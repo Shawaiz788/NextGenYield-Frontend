@@ -107,14 +107,20 @@ export default function FarmMapScreen() {
         <View style={styles.headerTopRow}>
           <View style={styles.brandRow}>
             <View style={styles.logoCircle}>
-              <MaterialCommunityIcons name="map-marker-radius" size={20} color="#FFFFFF" />
+              <MaterialCommunityIcons name="map-marker-radius" size={18} color="#FFFFFF" />
             </View>
-            <View>
-              <Text style={[styles.screenTitle, { fontSize: 18 * fontMultiplier }]}>
-                {language === 'ur' ? 'کھیت کا نقشہ اور سیٹلائٹ منظر' : 'Farm Cadastral & Satellite Map'}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenTitle, { fontSize: 15 * fontMultiplier }]}>
+                {language === 'ur' ? 'کھیت کا نقشہ اور سیٹلائٹ' : 'Farm Map & Satellite'}
               </Text>
-              <Text style={[styles.screenSubtitle, { fontSize: 11 * fontMultiplier }]}>
-                {language === 'ur' ? '📍 مصطفیٰ ٹاؤن، لاہور · حقیقی سیٹلائٹ منظر' : '📍 Mustafa Town, Lahore · Real GIS Imagery'}
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
+                {language === 'ur' ? '📍 مصطفیٰ ٹاؤن، لاہور · حقیقی جی آئی ایس' : '📍 Mustafa Town, Lahore · Real GIS'}
               </Text>
             </View>
           </View>

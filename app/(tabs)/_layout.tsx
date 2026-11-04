@@ -15,8 +15,8 @@ export default function TabLayout() {
 
   const isUrdu = language === 'ur';
 
-  const bottomPadding = Platform.OS === 'web' ? 10 : Math.max(insets.bottom, 8);
-  const barHeight = Platform.OS === 'web' ? 64 : 56 + insets.bottom;
+  const bottomPadding = Platform.OS === 'web' ? 10 : Math.max(insets.bottom + 6, 16);
+  const barHeight = Platform.OS === 'web' ? 64 : 58 + Math.max(insets.bottom, 14);
 
   return (
     <Tabs

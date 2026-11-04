@@ -360,39 +360,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ─── FoMo4Wheat AI Stage Prediction Feature Banner ─── */}
-        <TouchableOpacity
-          style={styles.aiFeatureBanner}
-          onPress={() => router.push('/(tabs)/scan')}
-          activeOpacity={0.88}>
-          <View style={styles.aiBannerLeft}>
-            <View style={styles.aiBannerIconWrap}>
-              <Ionicons name="sparkles" size={20} color="#16A34A" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <View style={styles.aiTagRow}>
-                <View style={styles.aiBadgePill}>
-                  <Text style={styles.aiBadgePillText}>FoMo4Wheat ViT-B/14</Text>
-                </View>
-                <View style={styles.gpuBadgePill}>
-                  <Text style={styles.gpuBadgePillText}>RTX 5070 GPU</Text>
-                </View>
-              </View>
-              <Text style={[styles.aiBannerTitle, { fontSize: 15 * fontMultiplier }]}>
-                {language === 'ur' ? 'گندم کے نمو کے مرحلے کی درست تشخیص' : 'AI Growth Stage Prediction'}
-              </Text>
-              <Text style={[styles.aiBannerSubtitle, { fontSize: 11.5 * fontMultiplier }]}>
-                {language === 'ur'
-                  ? 'کھیت کی تصویر سے گندم کا مرحلہ جانیں اور تفصیلی زرعی مشورہ حاصل کریں'
-                  : 'Predict 6 growth stages with deep vision transformer & live agronomic advice'}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.aiBannerArrowWrap}>
-            <Ionicons name="chevron-forward" size={18} color="#16A34A" />
-          </View>
-        </TouchableOpacity>
-
         {/* ─── Actionable Advice ("What to do right now") ─── */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeadingRow}>

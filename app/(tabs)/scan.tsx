@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, CameraType, FlashMode } from 'expo-camera';
 import { Accelerometer } from 'expo-sensors';
@@ -54,6 +55,8 @@ export default function CameraScanScreen() {
   const [flash, setFlash] = useState<FlashMode>('off');
   const cameraRef = useRef<CameraView>(null);
 
+  const isFocused = useIsFocused();
+
   // ─── Sensor Downward Pitch Angle ─────────────────────────────────────────
   // Target sweet spot: 45° to 60°
   const [downwardAngle, setDownwardAngle] = useState<number>(52);
@@ -61,6 +64,11 @@ export default function CameraScanScreen() {
   const prevAngleGoodRef = useRef<boolean>(false);
 
   useEffect(() => {
+    if (!isFocused) {
+      prevAngleGoodRef.current = false;
+      return;
+    }
+
     Accelerometer.setUpdateInterval(100);
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       // Downward angle relative to ground:
@@ -70,7 +78,7 @@ export default function CameraScanScreen() {
       const clamped = Math.max(0, Math.min(90, pitchDeg));
       setDownwardAngle(clamped);
 
-      // Light haptic feedback once entering the good range
+      // Light haptic feedback once entering the good range (only when active screen)
       const inRange = clamped >= 45 && clamped <= 60;
       if (inRange && !prevAngleGoodRef.current) {
         if (Platform.OS !== 'web') {
@@ -83,7 +91,7 @@ export default function CameraScanScreen() {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [isFocused]);
 
   // ─── Analysis & Prediction State ─────────────────────────────────────────
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
