@@ -65,7 +65,7 @@ export default function DashboardScreen() {
         <View style={styles.headerTopRow}>
           <View style={styles.brandRow}>
             <View style={styles.logoCircle}>
-              <MaterialCommunityIcons name="sprout" size={16} color="#FFFFFF" />
+              <MaterialCommunityIcons name="sprout" size={18} color="#FFFFFF" />
             </View>
             <View style={styles.brandTextCol}>
               <View style={styles.appNameRow}>
@@ -599,9 +599,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#16A34A',
     alignItems: 'center',
     justifyContent: 'center',

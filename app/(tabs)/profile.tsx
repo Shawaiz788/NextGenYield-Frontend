@@ -62,14 +62,20 @@ export default function ProfileScreen() {
         <View style={styles.headerTopRow}>
           <View style={styles.brandRow}>
             <View style={styles.logoCircle}>
-              <Ionicons name="person" size={20} color="#FFFFFF" />
+              <Ionicons name="person" size={18} color="#FFFFFF" />
             </View>
-            <View>
-              <Text style={[styles.screenTitle, { fontSize: 18 * fontMultiplier }]}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenTitle, { fontSize: 15 * fontMultiplier }]}>
                 {isUrdu ? 'کسان پروفائل اور ترتیبات' : 'Farmer Profile & Settings'}
               </Text>
-              <Text style={[styles.screenSubtitle, { fontSize: 11 * fontMultiplier }]}>
-                {isUrdu ? 'کسان آئی ڈی: PK-LHR-0198' : 'Farmer ID: PK-LHR-0198 · Verified'}
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
+                {isUrdu ? '📍 کسان آئی ڈی: PK-LHR-0198' : '📍 Farmer ID: PK-LHR-0198 · Verified'}
               </Text>
             </View>
           </View>
@@ -382,8 +388,9 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flex: 1,
+    minWidth: 0,
   },
   logoCircle: {
     width: 36,

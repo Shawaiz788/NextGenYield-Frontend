@@ -67,15 +67,26 @@ export default function BestPracticeShowcaseScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { fontSize: 22 * fontMultiplier }]}>
-              {language === 'ur' ? 'کامیاب فصلوں کا شیڈول' : 'Proven Yields'}
-            </Text>
-            <Text style={[styles.headerSubtitle, { fontSize: 13 * fontMultiplier }]}>
-              {language === 'ur'
-                ? 'بہترین فصل کے 140 روزہ شیڈول'
-                : 'Top harvest cycles to adopt'}
-            </Text>
+          <View style={styles.brandRow}>
+            <View style={styles.logoCircle}>
+              <Ionicons name="trophy" size={18} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenTitle, { fontSize: 15 * fontMultiplier }]}>
+                {language === 'ur' ? 'کامیاب پیداواری شیڈول' : 'Proven Yields'}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
+                {language === 'ur'
+                  ? '📍 فیصل آباد · ٹاپ فارمرز'
+                  : '📍 Faisalabad · 54-62 M/Ac'}
+              </Text>
+            </View>
           </View>
           <AccessibilityControls />
         </View>
@@ -346,15 +357,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+    gap: 8,
   },
-  headerTitle: {
-    fontFamily: FontFamily.extraBold,
-    color: Colors.light.text,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
   },
-  headerSubtitle: {
+  logoCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenTitle: {
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+  },
+  screenSubtitle: {
     fontFamily: FontFamily.medium,
-    color: Colors.light.textSecondary,
-    marginTop: 2,
+    color: '#64748B',
+    marginTop: 1,
   },
   filterRow: {
     gap: Spacing.sm,
