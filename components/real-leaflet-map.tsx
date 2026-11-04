@@ -232,7 +232,7 @@ export function RealLeafletMap({
     var map = L.map('map', {
       center: MUSTAFA_TOWN,
       zoom: 16,
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: false
     });
 
