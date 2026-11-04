@@ -1,0 +1,699 @@
+\chapter{Software Requirement Specifications}
+This chapter provides a comprehensive and detailed specification of the software requirements for \textbf{NextGenYield: Wheat Crop Decision Support and Vision AI System}. It delineates the functional and non-functional requirements, defines quality attributes, hardware and software runtime constraints, user-interaction use cases, graphical user interface architecture, database entity-relationship models, data dictionaries, and an exhaustive risk analysis. The objective of this specification is to furnish an unambiguous engineering blueprint that enables researchers, software engineers, and agricultural domain specialists to understand, verify, and reproduce the entire software system.
+
+\section{List of Features}
+NextGenYield provides a mobile-first, AI-driven precision agriculture ecosystem tailored specifically for wheat smallholder farmers, landowners, agronomic professionals, and input manufacturers. The primary features of the system include:
+
+\begin{enumerate}
+    \item \textbf{Foundation Model-Powered Phenological Classification:} Utilizes the specialized \textit{FoMo4Wheat} Vision Transformer (ViT-B/14, 86.6M parameters) pre-trained on 2.5 million agricultural images. A downstream classification head classifies crop canopy imagery into six distinct biological growth stages (Tillering, Jointing, Booting, Flowering, Grain Filling, and Maturity) without requiring extensive computational resources on the client side.
+    \item \textbf{Real-Time Edge Image Quality and Angle Compliance Guardrail:} An onboard sensor-fusion filter running on the smartphone's client layer that leverages the hardware gyroscope, accelerometer, and Laplacian edge-variance computation. It prevents degraded or non-compliant field photography by actively guiding farmers into capturing oblique-to-downward canopy imagery ($45^\circ - 80^\circ$ tilt) with adequate sharpness before image transmission.
+    \item \textbf{Decoupled Field Demarcation and GeoJSON Boundary Creation:} An interactive GIS mapping tool allowing farmers and landowners to demarcate field parcel perimeters directly upon high-resolution satellite and cadastral map overlays. It provides four distinct boundary geometries---Square, Rectangle, Polygon (multi-vertex), and Circle (centre-pivot radial)---generating standardized RFC 7946 GeoJSON representations with real-time acreage and square-meter calculations.
+    \item \textbf{Decoupled Crop Cycle Initialization:} Land parcel boundary creation is strictly separated from agricultural crop inputs. Once a field boundary is established, farmers initiate a 140-day crop cycle only when the land is prepared for sowing, entering seed variety (e.g., Akbar-2019, Dilkash-20), certified seed source, fertilizer manufacturer (FFC, Engro, Fatima), and sowing date exactly once.
+    \item \textbf{Deterministic, Hallucination-Free Agronomic Advisory Engine:} Eliminates probabilistic Large Language Model (LLM) text hallucinations by employing a rule-governed agronomic knowledge base. Crop growth stage transitions are deterministically mapped to verified provincial agricultural protocols, generating stage-specific irrigation schedules, fertilizer split dosages, and disease warnings (e.g., yellow stripe rust prevention during booting).
+    \item \textbf{Temporal Crop Growth Timeline Engine:} Maintains a persistent, timestamped chronological ledger of all visual observations, stage confidence scores, and photographic records per field. It tracks cumulative Days After Sowing (DAS) and computes phenological velocity to detect delayed germination or premature senescence.
+    \item \textbf{Collective Farm Intelligence and Regional GIS Mapping:} Provides a spatial visualization of neighboring wheat parcels across the agricultural district (e.g., Faisalabad division). Fields are color-coded by current phenological stage, enabling peer observation, regional water management coordination along canal waterways, and disease spread monitoring.
+    \item \textbf{Peer Benchmarking and Proven Techniques Showcase:} A collaborative peer showcase displaying verified top-yielding plots (54--62 Maunds/Acre). Farmers can inspect the complete 140-day crop cycle---including exact watering dates, weed filtering applications, fertilizer split timings, and seed variants---and adopt proven schedules directly into their own field calendar.
+    \item \textbf{Farmer Accessibility, Bilingual Localization, and Audio Narration:} Engineered specifically for varying levels of digital and textual literacy. The interface offers full Urdu and English bilingual toggles, high-contrast light mode optimized for harsh direct field sunlight, adjustable typography scaling, and integrated audio synthesis that reads agronomic advisories aloud in spoken Urdu.
+\end{enumerate}
+
+\section{Functional Requirements}
+The functional requirements specify the operational capabilities and behaviors that NextGenYield must support for its primary actors: Farmers/Landowners, Agricultural Stakeholders, and the Underlying System.
+
+\subsection{Functional Requirements for Farmers and Landowners}
+Farmers and landowners using the mobile application shall be able to:
+\begin{enumerate}
+    \item \textbf{Account Registration and Profile Authentication:} Create a user profile using phone number authentication or credentials, storing personal details, primary village/district location, and language preference.
+    \item \textbf{Demarcate Land Boundaries on GIS Map:} Add and delineate farm parcels using interactive map boundary tools (Square, Rectangle, Multi-Vertex Polygon, and Centre-Pivot Circle) over satellite or cadastral views.
+    \item \textbf{Inspect Calculated Area in Real Time:} View automatically calculated parcel measurements in both standard agricultural Acres and metric square meters ($\text{m}^2$).
+    \item \textbf{Initiate Crop Cycle:} Activate an unstarted (fallow) field parcel by entering the wheat seed cultivar, certified seed supplier, fertilizer manufacturing brand, sowing technique, and sowing date.
+    \item \textbf{Execute Sensor-Guided Field Photography:} Capture canopy imagery using a camera interface equipped with real-time pitch angle reticles ($45^\circ - 80^\circ$ compliance) and Laplacian blur detection.
+    \item \textbf{Receive Automated Growth Stage Classification:} Obtain instant phenological identification across six wheat growth stages accompanied by an AI classification confidence score.
+    \item \textbf{Access Actionable Agronomic Guidance:} Retrieve deterministic recommendations detailing immediate irrigation requirements, fertilizer split quantities per acre, and active pathogen hazards.
+    \item \textbf{Listen to Spoken Advisory Narration:} Trigger text-to-speech audio guidance in spoken Urdu to comprehend recommendations without reading text on screen.
+    \item \textbf{Review Chronological Field Timeline:} Inspect sequential photographic and stage observations logged since sowing date to evaluate crop development pace.
+    \item \textbf{Explore Regional GIS Map:} View surrounding agricultural plots color-coded by growth stage and inspect public cadastral and agronomic attributes of neighboring fields.
+    \item \textbf{Adopt Best-Practice Crop Schedules:} Browse top-performing benchmark yields, examine full 140-day crop management cycles, and replicate successful schedules into their own active fields.
+\end{enumerate}
+
+\subsection{Functional Requirements for Agricultural Stakeholders}
+Agricultural extension officers, agronomic researchers, and fertilizer technical representatives shall be able to:
+\begin{enumerate}
+    \item \textbf{Monitor Regional Phenological Trends:} Access aggregated geospatial analytics illustrating district-wide stage distributions (e.g., percentage of fields in Jointing vs. Booting).
+    \item \textbf{Audit Verified Harvest Yields:} Verify and record final weighbridge harvest yields (Maunds/Acre) for benchmark fields to maintain showcase integrity.
+    \item \textbf{Update Deterministic Agronomic Protocols:} Modify stage-dependent threshold parameters, fertilizer dosing recommendations, and fungicide alerts according to updated agricultural research directives.
+    \item \textbf{Assess Input Performance Analytics:} Evaluate comparative cultivar performance and fertilizer brand efficacy across varying soil textures (e.g., Sandy Loam vs. Clay Loam).
+\end{enumerate}
+
+\subsection{Functional Requirements of the NextGenYield System}
+The core NextGenYield system shall be capable of:
+\begin{enumerate}
+    \item \textbf{Edge Sensor Fusion and Guardrail Verification:} Continuously evaluate hardware orientation vectors and compute frame variance to reject blurry or improperly oriented photographs prior to server upload.
+    \item \textbf{Vision Foundation Model Inference:} Resize input canopy images to $518 \times 518$ resolution, execute forward-pass feature extraction across frozen ViT-B/14 transformer layers, and evaluate linear classification logits.
+    \item \textbf{Geospatial Coordinate Processing:} Validate, project, and store field polygon geometries compliant with RFC 7946 GeoJSON specifications, executing spatial containment queries for district-wide mapping.
+    \item \textbf{Deterministic Rule-Engine Resolution:} Map current classified growth stage, cumulative days after sowing, and registered fertilizer manufacturer to deterministic advisory guidelines without generative model hallucination.
+    \item \textbf{Temporal State Management:} Dynamically track active vs. fallow field states, calculate developmental velocity, and trigger critical milestone alerts.
+    \item \textbf{Bilingual Data Serialization:} Serve internationalized string tables and synthesize Urdu audio strings for low-literacy accessibility.
+\end{enumerate}
+
+\section{Quality Attributes}
+To guarantee operational viability across rural agricultural environments, NextGenYield satisfies the following quality attributes:
+\begin{itemize}
+    \item \textbf{Usability and Ergonomics:} The application interface utilizes high-contrast visual tokens, prominent icon-driven navigation, localized Urdu terminology, and single-tap audio narration, accommodating farmers with limited smartphone proficiency.
+    \item \textbf{Reliability:} The system maintains high service availability during peak agricultural seasons (November wheat sowing through April harvest), ensuring advisory continuity.
+    \item \textbf{Performance and Latency:} On-device edge guardrails provide instant angle feedback ($< 50\text{ ms}$), and end-to-end vision model inference executes within $1.8\text{ seconds}$ over standard $3\text{G}/4\text{G}$ cellular connections.
+    \item \textbf{Agronomic Safety and Accuracy:} Deterministic rule matching prevents over-fertilization or premature watering, eliminating toxic agricultural hazards.
+    \item \textbf{Modularity and Reusability:} Client-side view controllers, edge sensors, backend microservices, and GIS engines are strictly decoupled through well-defined REST API interfaces.
+    \item \textbf{Scalability:} Stateless model inference containers and spatial database indexing support thousands of concurrent field queries during peak morning and evening farming hours.
+\end{itemize}
+
+\section{Non-Functional Requirements}
+
+\subsection{Performance}
+\begin{itemize}
+    \item Edge-based sensor angle validation and blur computation must execute in real time on mobile hardware ($< 50\text{ ms}$ latency).
+    \item AI growth stage inference through the backend vision service must complete within $2.0\text{ seconds}$ under a nominal $4\text{G}$ network connection.
+    \item The backend REST API must sustain at least $500$ concurrent user requests without response degradation exceeding $1.5\text{ seconds}$.
+    \item Regional GIS map rendering of 100 localized plot polygons must render within $1.2\text{ seconds}$ of viewport settlement.
+\end{itemize}
+
+\subsection{Reliability and Availability}
+\begin{itemize}
+    \item The system shall achieve an operational availability of at least $99.5\%$ throughout the 140-day wheat cultivation season.
+    \item In the event of network disconnection, the mobile client must cache captured observations, field boundaries, and advisory cards locally, synchronizing automatically when connectivity resumes.
+\end{itemize}
+
+\subsection{Usability and Accessibility}
+\begin{itemize}
+    \item All user-facing screens must support instantaneous toggling between English and localized Urdu.
+    \item High-contrast light mode styling must enforce a contrast ratio exceeding $4.5:1$ (WCAG AA standard) to preserve legibility under direct ambient field sunlight exceeding 50,000 lux.
+    \item All key agronomic recommendations must feature an audible spoken Urdu audio narration button accessible via a single touch.
+    \item Typography must support standard ($1.0\times$) and enlarged ($1.15\times$) font multiplication modes.
+\end{itemize}
+
+\subsection{Reusability and Maintainability}
+\begin{itemize}
+    \item The mobile application code base must follow a modular component architecture (under cross-platform frameworks such as React Native or Flutter), strictly isolating UI components, translation keys, state providers, and mock fixtures.
+    \item The deterministic advisory logic must be maintained in structured configuration schemas rather than hardcoded conditional trees, permitting rapid agronomic parameter updates without recompiling client binaries.
+\end{itemize}
+
+\subsection{Security and Data Integrity}
+\begin{itemize}
+    \item All telemetric observations, user credentials, and spatial coordinates transmitted over the public network must be encrypted via Transport Layer Security (TLS 1.3).
+    \item Field polygon definitions must enforce strict topological validation (no self-intersecting loops or degenerate nodes) before persisting to the spatial database.
+\end{itemize}
+
+\section{Assumptions}
+\begin{itemize}
+    \item \textbf{Hardware Availability:} The primary user possesses an Android or iOS smartphone equipped with a functional optical camera, accelerometer, gyroscope, and GNSS/GPS location services.
+    \item \textbf{Cellular Connectivity:} While the client supports local caching for offline observation capture, periodic internet connectivity ($2\text{G}/3\text{G}/4\text{G}$ or Wi-Fi) is assumed for model inference synchronization and satellite basemap tile streaming.
+    \item \textbf{Crop Scope:} The current operational scope of NextGenYield focuses exclusively on bread wheat (\textit{Triticum aestivum}) cultivated within irrigated sub-tropical agricultural regimes (e.g., Indus Basin plains).
+    \item \textbf{Third-Party Basemaps:} Map rendering depends on standard OpenStreetMap or Mapbox satellite raster tile services for aerial spatial boundary visualization.
+\end{itemize}
+
+\section{Hardware and Software Requirements}
+
+\subsection{Hardware Requirements}
+\begin{itemize}
+    \item \textbf{Development Workstation:}
+    \begin{itemize}
+        \item Multi-core processor (Intel Core i7/AMD Ryzen 7 or Apple Silicon M-series).
+        \item 16 GB DDR4/DDR5 RAM.
+        \item 50 GB free solid-state storage.
+        \item Dedicated GPU (NVIDIA RTX 3060 or higher with 8 GB+ VRAM) for model fine-tuning and PyTorch inference benchmarking.
+    \end{itemize}
+    \item \textbf{Target Client Mobile Device:}
+    \begin{itemize}
+        \item Operating System: Android 10.0+ (API level 29+) or iOS 15.0+.
+        \item Camera: Minimum 8.0-megapixel rear optical sensor with autofocus.
+        \item Integrated Sensors: 3-axis accelerometer and 3-axis gyroscope.
+        \item Minimum RAM: 2.0 GB.
+        \item Network: $3\text{G}$, $4\text{G}$ LTE, or Wi-Fi radio.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Software Requirements}
+\begin{itemize}
+    \item \textbf{Mobile Client Runtime:} Modern cross-platform mobile application framework (React Native or Flutter) supporting native hardware sensor access (accelerometer, gyroscope, camera), reactive state management, and integrated GIS mapping canvas.
+    \item \textbf{Programming Languages:} TypeScript / Dart (client-side mobile application), Python 3.10+ (backend vision API and deterministic advisory services).
+    \item \textbf{AI/Vision Framework:} PyTorch 2.x, Hugging Face Transformers, TorchVision, FoMo4Wheat ViT-B/14 pre-trained model checkpoint.
+    \item \textbf{Backend Web Services:} FastAPI / Python ASGI runtime, Uvicorn server, Pydantic data schemas.
+    \item \textbf{Database Management System:} PostgreSQL 15+ equipped with PostGIS extension for spatial polygon geometries and JSONB support for temporal cycle logs.
+    \item \textbf{Operating Systems:} Windows 11 / Linux (Ubuntu 22.04 LTS) for development, target deployment on Android and iOS.
+\end{itemize}
+
+\section{Use Cases}
+NextGenYield's operational workflow is structured into nine core use cases that cover user authentication, land demarcation, cycle initialization, AI canopy phenotyping, advisory generation, timeline tracking, GIS exploration, and peer benchmark adoption. Each usecase table details the actor actions and corresponding system responses across standard and alternative execution paths.
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 1: User Registration}
+\label{tab:uc1}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{User Registration} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Smallholder Farmer, Landowner, Agricultural Stakeholder} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{A new user creates an account within the NextGenYield platform to manage farm parcels and receive personalized crop advisories.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The user has installed the NextGenYield application and possesses an active mobile telephone number.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A user profile is created in the database, and authentication tokens are securely saved to the device.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{The user interface must support clear Urdu and English text prompts with large touch targets.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & User launches the application and selects `Create Account'. & 2 & The system displays the registration form. \\ \hline
+2 & User enters full name, mobile number, district, and preferred language (Urdu or English). & 3 & System records input data and validates telephone format. \\ \hline
+3 & User creates a secure PIN or password. & 4 & System verifies PIN strength and confirms credentials match. \\ \hline
+4 & User submits the registration form. & 5 & System creates user record, stores session tokens, and navigates to the Farm Dashboard. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+2-A & User enters an already registered mobile number. & 3-A & System responds with an error message: Phone number already registered, and redirects to Login. \\ \hline
+4-A & User submits registration form without internet connectivity. & 5-A & System responds with network failure alert and prompts user to retry. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 2: User Login}
+\label{tab:uc2}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{User Login} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Registered Farmer, Landowner, Stakeholder} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{An existing user authenticates into the NextGenYield mobile app to access their fields, timelines, and advisories.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The user has an active account on the platform.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{User session is authenticated, and the personalized farm overview dashboard is rendered.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Supports rapid biometric or PIN entry for smallholder accessibility.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & User opens the application. & 2 & The system displays the login interface requesting mobile number and PIN. \\ \hline
+2 & User enters registered mobile number and PIN. & 3 & System verifies credentials against the user database. \\ \hline
+3 & User taps the `Sign In' button. & 4 & System initializes user session, loads farm parcel data, and navigates to Dashboard. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+2-A & User enters invalid mobile number or PIN. & 3-A & System responds with an error message: Incorrect credentials entered, and prompts re-entry. \\ \hline
+3-A & Device is offline during login attempt. & 4-A & System validates locally cached authentication token to grant offline access. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 3: Field Boundary Demarcation on Map (GeoJSON)}
+\label{tab:uc3}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Field Boundary Demarcation on Map (GeoJSON)} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer, Landowner} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The user demarcates the physical perimeter of their agricultural parcel directly on a satellite map using interactive geometric tools.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The user is logged in and navigates to the Map tab.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A new parcel record is saved with RFC 7946 GeoJSON boundary coordinates, calculated acreage, and unstarted (fallow) cycle status.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{High-resolution satellite basemap overlay with real-time acreage calculation.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & User taps `Add Field' on the map interface. & 2 & System centers satellite view on user GPS coordinates and displays geometry selector tools. \\ \hline
+2 & User selects boundary tool: Square, Rectangle, Multi-vertex Polygon, or Circle. & 3 & System activates the interactive drawing canvas on the satellite view. \\ \hline
+3 & User taps or drags on satellite view to delineate parcel boundaries. & 4 & System computes and displays parcel acreage (Acres and $\text{m}^2$) in real time. \\ \hline
+4 & User enters custom field label (e.g., `North Canal Plot') and confirms. & 5 & System serializes perimeter into RFC 7946 GeoJSON, saves parcel, and updates map. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+3-A & User creates a self-intersecting polygon loop. & 4-A & System flags topological error and prompts user to adjust boundary vertices. \\ \hline
+4-A & User cancels demarcation before confirming. & 5-A & System discards temporary vertices and restores default map viewport. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 4: Starting a Crop Cycle (Seed Variety \& Fertilizer Configuration)}
+\label{tab:uc4}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Starting a Crop Cycle (Seed Variety \& Fertilizer Configuration)} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The farmer activates a fallow field parcel by initializing a new 140-day wheat cultivation cycle, configuring seed cultivar, supplier, and fertilizer brand in a single entry step.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A field boundary exists with no active cycle (Status: `Cycle Not Started').} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A new `CropCycle' record is activated for the field, initial watering/nutrient schedules are generated, and the cycle clock (DAS) commences.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Single-entry modal ensuring seed and fertilizer partner details are configured once per season.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & Farmer taps `Start Cycle' on a fallow field card. & 2 & System presents the Single-Entry Cycle Initialization Modal. \\ \hline
+2 & Farmer selects sown Wheat Variety (e.g., Akbar-2019, Dilkash-20) and Certified Seed Source. & 3 & System records cultivar and certified seed parameters. \\ \hline
+3 & Farmer selects Fertilizer Partner (FFC, Engro, Fatima) and enters Sowing Date. & 4 & System computes target 140-day phenological schedule. \\ \hline
+4 & Farmer taps `Confirm \& Start Cycle'. & 5 & System updates field state to `Active Cycle', logs Day 0, and displays baseline advisory. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+3-A & Farmer enters a future sowing date. & 4-A & System responds with warning: Sowing date cannot be in the future, and restricts confirmation. \\ \hline
+4-A & Farmer exits modal without confirming. & 5-A & System retains field in `Cycle Not Started' state with no cycle created. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 5: Crop Canopy Scanning with Quality \& Angle Guardrail}
+\label{tab:uc5}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Crop Canopy Scanning with Quality \& Angle Guardrail} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The farmer uses the smartphone camera to capture a standardized canopy photograph, guided by on-device angle reticles and blur detection filters.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{An active crop cycle is selected, and camera/motion sensor permissions are granted.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A verified high-quality canopy image is transmitted to the FoMo4Wheat vision inference pipeline.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Real-time hardware gyroscope/accelerometer sensor fusion and Laplacian edge variance computation ($< 50\text{ ms}$).} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & Farmer taps `Scan Field Canopy' on the active field card. & 2 & System opens camera viewfinder with pitch angle reticle and blur indicator. \\ \hline
+2 & Farmer tilts phone toward crop canopy at $45^\circ - 80^\circ$ downward angle. & 3 & System sensor listener confirms tilt is within optimal green compliance zone. \\ \hline
+3 & Farmer holds camera steady over the wheat foliage. & 4 & System computes Laplacian variance ($> 90$) and unlocks shutter button. \\ \hline
+4 & Farmer taps shutter button to capture canopy image. & 5 & System saves photograph locally and transmits it to vision inference backend. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+2-A & Camera is held flat or horizontally ($< 45^\circ$ or $> 80^\circ$). & 3-A & System locks shutter and HUD reticle displays warning: `Tilt downward toward crop canopy'. \\ \hline
+3-A & Camera motion causes excessive image blur ($< 90$). & 4-A & System locks shutter and displays alert: `Hold camera steady'. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 6: Retrieving Agronomic Advisory \& Growth Guidance}
+\label{tab:uc6}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Retrieving Agronomic Advisory \& Growth Guidance} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer, Landowner} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The system provides verified, deterministic agronomic guidance based on the classified growth stage, DAS, and registered fertilizer partner.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{A canopy observation has been classified by the FoMo4Wheat model.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{Recommended irrigation actions, fertilizer split requirements, and disease alerts are presented to the farmer.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Hallucination-free deterministic rule engine and one-tap spoken Urdu audio narration.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & Backend vision service classifies the canopy photograph. & 2 & System returns classified growth stage (e.g., Booting Stage, 94.2\% confidence). \\ \hline
+2 & Deterministic rule engine matches stage, DAS, and fertilizer partner. & 3 & System compiles stage-specific watering advice, fertilizer dosage, and rust warnings. \\ \hline
+3 & Farmer views the Stage Advisory Card on screen. & 4 & System highlights critical pending milestones and nutrient recommendations. \\ \hline
+4 & Farmer taps `Listen (Urdu Audio)' speaker button. & 5 & System synthesizes and plays audio narration in spoken Urdu. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+4-A & Device audio is muted or volume is set to zero. & 5-A & System displays on-screen toast: `Please raise device volume to listen'. \\ \hline
+2-A & Network timeout occurs during AI classification. & 3-A & System serves cached baseline advisory for current DAS with offline disclaimer. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 7: Field Observation Logging \& Timeline Tracking}
+\label{tab:uc7}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Field Observation Logging \& Timeline Tracking} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer, Agronomic Extension Worker} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The user inspects the historical progression of the crop cycle from sowing to harvest through a sequential visual timeline.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{An active crop cycle has at least one logged observation or milestone.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The user reviews developmental milestones, phenological velocity, and photographic records across the 140-day lifecycle.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Chronological milestone ledger with photographic evidence and DAS progression.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & User navigates to Field Details and selects `Timeline' tab. & 2 & System retrieves chronological log of cycle events from database. \\ \hline
+2 & User scrolls through 140-day growth milestone nodes. & 3 & System renders DAS markers (Day 0 Sowing, Day 22 CRI, Day 50 Jointing, etc.). \\ \hline
+3 & User taps a specific historical observation node. & 4 & System expands node showing canopy photo, classified stage, and historical advisory. \\ \hline
+4 & User compares current growth stage against target schedule. & 5 & System displays phenological pacing indicator (Normal, Delayed, or Advanced). \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+2-A & No scans have been logged yet for active cycle. & 3-A & System displays placeholder message prompting user to perform initial scan. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 8: Regional Farm Map Exploration \& Neighbor Plot Inspection}
+\label{tab:uc8}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Regional Farm Map Exploration \& Neighbor Plot Inspection} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer, Landowner, Agricultural Stakeholder} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The user navigates a regional GIS map displaying their own parcels alongside neighboring plots, color-coded by crop growth stage.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{GPS location services are active or a target district is selected.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{Regional spatial distribution of wheat phenology is visualized for community coordination and peer learning.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Stage-based polygon color coding and privacy-preserving public agronomic attributes.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & User taps the `Regional Map' tab. & 2 & System fetches spatial boundary polygons for the district and renders map tiles. \\ \hline
+2 & User views parcels color-coded by stage (Green for Tillering, Blue for Booting, Amber for Maturity). & 3 & System displays interactive plot overlays. \\ \hline
+3 & User taps an adjacent neighboring parcel polygon. & 4 & System opens bottom inspection sheet showing wheat cultivar, current stage, and field acreage. \\ \hline
+4 & User inspects regional canal water turn schedule. & 5 & System displays community water management notices. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+1-A & Device lacks internet connectivity. & 2-A & System renders locally cached vector plot outlines with offline status banner. \\ \hline
+3-A & User attempts to view private owner information. & 4-A & System restricts personal data, displaying only anonymized agronomic attributes. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Use Case 9: Adopting Proven Best-Practice Yield Schedule (Showcase)}
+\label{tab:uc9}
+\begin{tabular}{|p{0.6cm}|p{6.4cm}|p{0.8cm}|p{6.6cm}|}
+\hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Name}} & \multicolumn{2}{p{7.4cm}|}{Adopting Proven Best-Practice Yield Schedule (Showcase)} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Actors}} & \multicolumn{2}{p{7.4cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Summary}} & \multicolumn{2}{p{7.4cm}|}{The farmer explores verified high-yielding benchmark fields (54--62 Maunds/Acre) in the Proven Techniques Showcase and adopts their 140-day management schedule.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Pre-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The farmer has an active or planned wheat crop cycle.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Post-Conditions}} & \multicolumn{2}{p{7.4cm}|}{The benchmark field's watering and fertilizer schedule is replicated into the farmer's crop cycle calendar.} \\ \hline
+\multicolumn{2}{|p{7.0cm}|}{\textbf{Special Requirements}} & \multicolumn{2}{p{7.4cm}|}{Complete 140-day event schedule display (watering days, weed filtering, fertilizer splits) and one-tap adoption.} \\ \hline
+\multicolumn{4}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{2}{|c|}{\textbf{Actor Action}} & \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+1 & Farmer taps `Proven Techniques' tab. & 2 & System lists verified high-yield benchmark plots (54--62 Maunds/Acre). \\ \hline
+2 & Farmer selects benchmark plot (e.g., `Samundri Plot A: 62 Maunds/Acre, Dilkash-20'). & 3 & System displays full 140-day management event log. \\ \hline
+3 & Farmer reviews exact dates for watering, weed filtering, and fertilizer splits. & 4 & System highlights yield gain factors. \\ \hline
+4 & Farmer taps `Adopt Schedule for My Field'. & 5 & System synchronizes schedule into farmer active cycle calendar and sets reminder alerts. \\ \hline
+\multicolumn{4}{|c|}{\textbf{Alternative Flow}} \\ \hline
+4-A & Farmer has no active or planned crop cycle. & 5-A & System prompts user to first add a field boundary and start a crop cycle. \\ \hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Graphical User Interface}
+The NextGenYield mobile user interface is engineered to combine agricultural usability under direct sunlight with high-accuracy AI phenotyping tools. Below are the architectural layout specifications and figure placeholders for the system's graphical screens:
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.1: Farmer Home Dashboard and Cycle Management View]}\\[1em]
+        \textit{\small (Placeholder: Farmer home dashboard showing active fields, phenological badge, DAS counters, and cycle initialization action)}
+    }
+}
+\caption{Farmer Home Dashboard and Cycle Management View}
+\label{fig:gui_dashboard}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.2: Decoupled Interactive GeoJSON Map Demarcation Interface]}\\[1em]
+        \textit{\small (Placeholder: Satellite boundary tool with Square, Rectangle, Polygon, and Circle geometry options and real-time acreage counter)}
+    }
+}
+\caption{Decoupled Interactive GeoJSON Map Demarcation Interface}
+\label{fig:gui_map}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.3: Single-Entry Crop Cycle Initialization Modal]}\\[1em]
+        \textit{\small (Placeholder: Modal interface configuring seed cultivar, certified supplier, fertilizer partner, and sowing date)}
+    }
+}
+\caption{Single-Entry Crop Cycle Initialization Modal}
+\label{fig:gui_start_cycle}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.4: Sensor-Guided Field Photography HUD (Angle \& Blur Guardrail)]}\\[1em]
+        \textit{\small (Placeholder: Camera HUD reticle displaying pitch compliance ($45^\circ - 80^\circ$) and edge Laplacian sharpness status)}
+    }
+}
+\caption{Sensor-Guided Field Photography HUD (Angle and Blur Guardrail)}
+\label{fig:gui_camera_hud}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.5: Phenological AI Classification and Agronomic Advisory Card]}\\[1em]
+        \textit{\small (Placeholder: FoMo4Wheat growth stage result card with deterministic irrigation/fertilizer directives and Urdu audio player)}
+    }
+}
+\caption{Phenological AI Classification and Agronomic Advisory Card}
+\label{fig:gui_advisory}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.6: 140-Day Temporal Crop Growth Timeline Screen]}\\[1em]
+        \textit{\small (Placeholder: Chronological milestone ledger displaying photographic history and phenological development pacing)}
+    }
+}
+\caption{140-Day Temporal Crop Growth Timeline Screen}
+\label{fig:gui_timeline}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.7: Regional GIS Farm Network and Neighbor Plot Inspection]}\\[1em]
+        \textit{\small (Placeholder: District-wide GIS map showing neighboring wheat plots color-coded by biological growth stage)}
+    }
+}
+\caption{Regional GIS Farm Network and Neighbor Plot Inspection}
+\label{fig:gui_regional_map}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.8: Proven Techniques Showcase and 140-Day Event Log]}\\[1em]
+        \textit{\small (Placeholder: Verified top-yielding plots (54--62 Maunds/Acre) with watering, weeding, and fertilizer split log)}
+    }
+}
+\caption{Proven Techniques Showcase and 140-Day Event Log}
+\label{fig:gui_showcase}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.9: Farmer Accessibility and Spoken Audio Narration Settings]}\\[1em]
+        \textit{\small (Placeholder: High-contrast light mode, Urdu/English bilingual switch, and font scaling controls)}
+    }
+}
+\caption{Farmer Accessibility and Spoken Audio Narration Settings}
+\label{fig:gui_accessibility}
+\end{figure}
+
+\clearpage
+\section{Database Design}
+The NextGenYield persistence layer is structured using a relational schema implemented in PostgreSQL with the PostGIS extension for geospatial polygon boundaries. The Entity-Relationship (ER) model and associated data dictionary tables are defined below.
+
+\subsection{ER Diagram}
+\begin{figure}[H]
+\centering
+\fbox{
+    \parbox[c][6.5cm][c]{0.85\textwidth}{
+        \centering
+        \textbf{[Figure 4.10: Entity-Relationship Diagram of the NextGenYield Database]}\\[1em]
+        \textit{\small (Placeholder: ER Diagram illustrating User, Field, CropCycle, FieldObservation, FertilizerSchedule, IrrigationSchedule, PeerShowcaseField, and AgronomicAdvisoryRule entities)}
+    }
+}
+\caption{Entity-Relationship Diagram of the NextGenYield Database}
+\label{fig:er_diagram}
+\end{figure}
+
+\subsection{Data Dictionary}
+The relational database architecture is defined by the following eight entity specifications:
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{User Table Data Dictionary}
+\label{tab:user_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+UserID & Primary Key & No & - & - & Unique identifier for the user. \\ \hline
+FullName & Varchar(60) & No & - & - & Full legal or preferred name of the user. \\ \hline
+PhoneNumber & Varchar(15) & No & - & - & Primary contact number used for authentication. \\ \hline
+PasswordHash & Varchar(255) & No & - & - & Bcrypt hashed security password/PIN. \\ \hline
+Role & Varchar(20) & No & - & - & User role (`farmer', `landowner', `stakeholder'). \\ \hline
+District & Varchar(50) & No & - & - & Home administrative district (e.g., Faisalabad). \\ \hline
+LanguagePref & Varchar(5) & No & - & - & Language code (`ur' for Urdu, `en' for English). \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{Field Table Data Dictionary}
+\label{tab:field_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+FieldID & Primary Key & No & - & - & Unique identifier for the land parcel. \\ \hline
+UserID & Foreign Key & No & User & Many-to-One & User who owns or manages the field. \\ \hline
+FieldName & Varchar(50) & No & - & - & Friendly display name (e.g., North Canal Plot). \\ \hline
+ShapeType & Varchar(15) & No & - & - & Geometry type (`square', `rectangle', `polygon', `circle'). \\ \hline
+AreaAcres & Decimal(6,2) & No & - & - & Computed land area in standard acres. \\ \hline
+AreaSqm & Decimal(10,2) & No & - & - & Computed land area in square meters. \\ \hline
+BoundaryGeoJSON & JSONB & No & - & - & RFC 7946 GeoJSON polygon coordinates. \\ \hline
+CenterLatitude & Decimal(9,6) & No & - & - & Geographic centroid latitude coordinate. \\ \hline
+CenterLongitude & Decimal(9,6) & No & - & - & Geographic centroid longitude coordinate. \\ \hline
+CurrentCycleID & Foreign Key & Yes & CropCycle & One-to-One & Active crop cycle pointer (null if fallow). \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{CropCycle Table Data Dictionary}
+\label{tab:cropcycle_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+CycleID & Primary Key & No & - & - & Unique identifier for the 140-day crop cycle. \\ \hline
+FieldID & Foreign Key & No & Field & Many-to-One & Associated land parcel. \\ \hline
+WheatVariety & Varchar(50) & No & - & - & Seed cultivar (Akbar-19, Dilkash-20, etc.). \\ \hline
+SeedCompany & Varchar(60) & No & - & - & Certified seed provider or research agency. \\ \hline
+FertilizerCompany & Varchar(60) & No & - & - & Partner manufacturer (FFC, Engro, Fatima). \\ \hline
+SowingMethod & Varchar(30) & No & - & - & Planting method (Drill, Broadcast, Bed). \\ \hline
+SowingDate & Date & No & - & - & Date seed was planted into moist soil. \\ \hline
+TargetHarvestDate & Date & No & - & - & Projected 140-day maturity harvest date. \\ \hline
+IsActive & Boolean & No & - & - & Flag indicating whether cycle is ongoing. \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{FieldObservation Table Data Dictionary}
+\label{tab:observation_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+ObservationID & Primary Key & No & - & - & Unique identifier for visual scan record. \\ \hline
+CycleID & Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+ImageURI & Varchar(255) & No & - & - & Persistent file storage path for canopy photo. \\ \hline
+StageIndex & Integer & No & - & - & Predicted stage index ($0$ to $5$). \\ \hline
+StageName & Varchar(30) & No & - & - & Predicted stage label (e.g., Booting Stage). \\ \hline
+Confidence & Decimal(5,2) & No & - & - & FoMo4Wheat classification confidence score (\%). \\ \hline
+PitchAngleDeg & Decimal(4,1) & No & - & - & Measured camera pitch tilt angle ($45^\circ - 80^\circ$). \\ \hline
+BlurScore & Decimal(6,2) & No & - & - & Laplacian edge variance sharpness metric. \\ \hline
+DAS & Integer & No & - & - & Days After Sowing at time of capture. \\ \hline
+CapturedAt & Timestamp & No & - & - & Exact timestamp of observation capture. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{FertilizerSchedule Table Data Dictionary}
+\label{tab:fertilizer_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+FertilizerID & Primary Key & No & - & - & Unique identifier for fertilizer split entry. \\ \hline
+CycleID & Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+SplitNumber & Integer & No & - & - & Sequential application split ($1$, $2$, or $3$). \\ \hline
+NutrientType & Varchar(40) & No & - & - & Type (e.g., Basal DAP, 1st Topdress Urea). \\ \hline
+TargetDAS & Integer & No & - & - & Recommended Days After Sowing for application. \\ \hline
+DosePerAcre & Varchar(50) & No & - & - & Recommended quantity (e.g., 1 Bag (50kg) / Acre). \\ \hline
+IsApplied & Boolean & No & - & - & Flag indicating completed application. \\ \hline
+AppliedAt & Timestamp & Yes & - & - & Timestamp of farmer confirmation. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{IrrigationSchedule Table Data Dictionary}
+\label{tab:irrigation_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+IrrigationID & Primary Key & No & - & - & Unique identifier for irrigation event. \\ \hline
+CycleID & Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+EventName & Varchar(40) & No & - & - & Irrigation milestone (e.g., Rauni Pre-sowing, 1st CRI Irrigation). \\ \hline
+WaterSource & Varchar(30) & No & - & - & Source (Canal Supply, Tube-well, Solar Pump). \\ \hline
+TargetDAS & Integer & No & - & - & Target Days After Sowing (e.g., Day 22 for CRI). \\ \hline
+IsCompleted & Boolean & No & - & - & Status indicating field watering completion. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{PeerShowcaseField Table Data Dictionary}
+\label{tab:showcase_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+ShowcaseID & Primary Key & No & - & - & Unique identifier for verified benchmark plot. \\ \hline
+FieldCode & Varchar(20) & No & - & - & Identifier (e.g., PK-FSD-04 Benchmark). \\ \hline
+District & Varchar(50) & No & - & - & Agricultural tehsil/district (e.g., Samundri, Faisalabad). \\ \hline
+WheatVariety & Varchar(50) & No & - & - & Wheat cultivar sown. \\ \hline
+SeedCompany & Varchar(60) & No & - & - & Certified seed provider. \\ \hline
+FertilizerCompany & Varchar(60) & No & - & - & Fertilizer manufacturer utilized. \\ \hline
+AreaAcres & Decimal(6,2) & No & - & - & Total parcel acreage. \\ \hline
+ShapeType & Varchar(15) & No & - & - & Geometry type (`rectangle', `square', `polygon', `circle'). \\ \hline
+YieldMaundsPerAcre & Decimal(5,1) & No & - & - & Verified harvest yield (e.g., 62.0 Maunds/Acre). \\ \hline
+YieldKgSqm & Decimal(5,2) & No & - & - & Normalized harvest yield efficiency ($\text{kg}/\text{m}^2$). \\ \hline
+SowingDate & Date & No & - & - & Sowing date of the verified cycle. \\ \hline
+HarvestDate & Date & No & - & - & Harvesting date of the verified cycle. \\ \hline
+CycleEventLog & JSON & No & - & - & Full chronological 140-day log of watering, weed filtering, and fertilizer splits. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\footnotesize
+\centering
+\caption{AgronomicAdvisoryRule Table Data Dictionary}
+\label{tab:advisory_table}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+RuleID & Primary Key & No & - & - & Unique identifier for deterministic rule. \\ \hline
+StageIndex & Integer & No & - & - & Biological wheat growth stage index ($0$ to $5$). \\ \hline
+StageName & Varchar(30) & No & - & - & Growth stage identifier (Tillering, Booting, etc.). \\ \hline
+SummaryTextEn & Text & No & - & - & English agronomic stage summary. \\ \hline
+SummaryTextUr & Text & No & - & - & Urdu translated stage summary. \\ \hline
+IrrigationAdviceEn & Text & No & - & - & English stage-specific watering directive. \\ \hline
+IrrigationAdviceUr & Text & No & - & - & Urdu stage-specific watering directive. \\ \hline
+NutrientAdviceEn & Text & No & - & - & English fertilizer timing guidance. \\ \hline
+NutrientAdviceUr & Text & No & - & - & Urdu fertilizer timing guidance. \\ \hline
+RiskAlerts & JSON & No & - & - & Active disease/weather hazard warnings array. \\ \hline
+AudioScriptUr & Text & No & - & - & Phonetic Urdu audio synthesis script. \\ \hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Risk Analysis}
+Risk analysis is a pivotal aspect of NextGenYield's project planning, encompassing various potential challenges that may emerge throughout its development and field deployment:
+
+\subsection{Technical Risks}
+Technical hurdles, such as edge device sensor compatibility, camera calibration variations across smartphone manufacturers, and backend AI model latency, are concerns. To address compatibility risks, NextGenYield utilizes hardware-agnostic sensor fusion listeners, and for inference scalability, the backend leverages optimized PyTorch runtime containers and load-balanced microservices.
+
+\subsection{Business and Operational Risks}
+Adoption barriers among rural agricultural communities and dependency on commercial fertilizer partners present operational risks. NextGenYield must establish a strong value proposition by demonstrating verifiable yield improvements. Additionally, maintaining an impartial, research-backed recommendation framework without commercial bias is crucial to retaining farmer trust.
+
+\subsection{Data and Model Quality Risks}
+Field canopy image quality and AI growth stage misclassification are paramount. Poor lighting, severe motion blur, and improper camera angles could degrade classification reliability. NextGenYield maintains data quality through on-device edge quality guardrails (enforcing $45^\circ - 80^\circ$ tilt and sharpness checks) and grounds all guidance in deterministic, verified agronomic research tables.
+
+\subsection{User Adoption and Engagement Risks}
+Overcoming digital literacy gaps and ensuring smooth onboarding for smallholder farmers are pivotal. NextGenYield enhances usability by offering complete Urdu localization, high-contrast sunlight visibility, and one-tap spoken Urdu audio narration. It also provides an intuitive icon-driven interface to facilitate seamless onboarding without requiring extensive technical training.
+
+\subsection{Environmental and Connectivity Risks}
+Intermittent $2\text{G}/3\text{G}$ cellular connectivity in remote agricultural areas and extreme weather conditions pose environmental risks. To mitigate connectivity limitations, NextGenYield implements offline-first local caching for observations and schedules, automatically synchronizing data when network access resumes.
+
+To mitigate these risks effectively, NextGenYield will conduct continuous evaluations at different agricultural growth stages, establish robust fallback protocols for offline operation, and maintain flexibility in its agronomic rule base. Periodic validation against on-ground field trials will be critical throughout the project's lifecycle.
+
+\clearpage
+\section{Conclusion}
+Chapter 4 has articulated the complete Software Requirement Specifications for NextGenYield. Beginning with a detailed feature breakdown and functional requirements for farmers, agricultural professionals, and backend systems, the chapter delineated non-functional performance and accessibility mandates. The nine formal use cases capture the end-to-end user journey---from GeoJSON boundary demarcation on satellite maps and single-entry cycle initialization to sensor-guided canopy photography, deterministic advisory generation, and peer benchmark replication. The graphical user interface architecture and relational database schema provide concrete implementation structures, while the risk analysis outlines rigorous mitigation strategies against vision degradation, agronomic hallucinations, and rural connectivity challenges. Together, these specifications lay an unyielding engineering foundation for precision wheat monitoring and decision support.
