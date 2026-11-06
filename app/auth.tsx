@@ -8,16 +8,57 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Spacing, Radius } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
+import { setAuthToken, getBackendBaseUrl, BackendUnreachableError } from '@/services/api-client';
+import { useLoginMutation, useRegisterMutation } from '@/hooks/use-auth-mutations';
+import { logger } from '@/services/logger';
+
+declare const __DEV__: boolean;
+
+/**
+ * Validates and normalizes Pakistani mobile numbers.
+ * Supports: 300 8472910, 03008472910, +923008472910, 923008472910
+ */
+function validateAndFormatPhone(phone: string): { valid: boolean; formatted: string; error?: string } {
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  if (digitsOnly.length === 0) {
+    return { valid: false, formatted: '', error: 'phone_required' };
+  }
+
+  // 12 digits: starts with 923...
+  if (digitsOnly.startsWith('92') && digitsOnly.length === 12 && digitsOnly.startsWith('923')) {
+    return { valid: true, formatted: '0' + digitsOnly.slice(2) };
+  }
+
+  // 11 digits: starts with 03...
+  if (digitsOnly.startsWith('0') && digitsOnly.length === 11 && digitsOnly.startsWith('03')) {
+    return { valid: true, formatted: digitsOnly };
+  }
+
+  // 10 digits: starts with 3... (standard when +92 prefix is already shown)
+  if (digitsOnly.length === 10 && digitsOnly.startsWith('3')) {
+    return { valid: true, formatted: '0' + digitsOnly };
+  }
+
+  return {
+    valid: false,
+    formatted: '',
+    error: 'phone_invalid',
+  };
+}
 
 /**
  * Sign-Up & Login Screen — Chapter 4, Figure 4.1
  * Implements Use Case 1 (Registration) and Use Case 2 (Login)
+ * Features TanStack Query mutations, progressive button states,
+ * and comprehensive input validation.
  */
 export default function AuthScreen() {
   const { login, language, setLanguage, userProfile } = useApp();
@@ -30,17 +71,245 @@ export default function AuthScreen() {
   const [district, setDistrict] = useState('Lahore');
   const [pin, setPin] = useState('1234');
 
+  // Validation errors
+  const [errors, setErrors] = useState<{
+    fullName?: string;
+    phoneNumber?: string;
+    district?: string;
+    pin?: string;
+  }>({});
+
+  // Progressive submission states: 'idle' | 'sending' | 'success'
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'success'>('idle');
+
+  // Backend reachability / error state
+  const [backendError, setBackendError] = useState<{
+    isUnreachable: boolean;
+    message: string;
+    targetUrl?: string;
+  } | null>(null);
+
   const isUrdu = language === 'ur';
 
-  const handleSubmit = () => {
+  // TanStack Query Mutations
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+
+  /**
+   * Validate all input fields before sending the API request.
+   */
+  const validateInputs = (): { isValid: boolean; formattedPhone: string } => {
+    const newErrors: {
+      fullName?: string;
+      phoneNumber?: string;
+      district?: string;
+      pin?: string;
+    } = {};
+
+    // 1. Validate Phone Number
+    const phoneCheck = validateAndFormatPhone(phoneNumber);
+    if (!phoneCheck.valid) {
+      if (phoneCheck.error === 'phone_required') {
+        newErrors.phoneNumber = isUrdu ? 'موبائل نمبر درج کرنا ضروری ہے' : 'Mobile number is required';
+      } else {
+        newErrors.phoneNumber = isUrdu
+          ? 'درست موبائل نمبر درج کریں (مثال: 300 1234567)'
+          : 'Enter a valid 10-digit mobile number (e.g. 300 1234567)';
+      }
+    }
+
+    // 2. Validate PIN / Password
+    const trimmedPin = pin.trim();
+    if (!trimmedPin) {
+      newErrors.pin = isUrdu ? 'پن کوڈ درج کرنا ضروری ہے' : 'PIN / Password is required';
+    } else if (trimmedPin.length < 4) {
+      newErrors.pin = isUrdu
+        ? 'پن کوڈ کم از کم 4 ہندسوں پر مشتمل ہونا چاہیے'
+        : 'PIN must be at least 4 digits';
+    }
+
+    // 3. Validate Signup-only fields
+    if (mode === 'signup') {
+      const trimmedName = fullName.trim();
+      if (!trimmedName) {
+        newErrors.fullName = isUrdu ? 'پورا نام درج کرنا ضروری ہے' : 'Full name is required';
+      } else if (trimmedName.length < 2) {
+        newErrors.fullName = isUrdu
+          ? 'نام کم از کم 2 حروف کا ہونا چاہیے'
+          : 'Name must be at least 2 characters';
+      }
+
+      if (!district) {
+        newErrors.district = isUrdu ? 'ضلع کا انتخاب ضروری ہے' : 'District selection is required';
+      }
+    }
+
+    setErrors(newErrors);
+    const isValid = Object.keys(newErrors).length === 0;
+
+    if (!isValid) {
+      logger.warn('Form validation failed:', newErrors);
+    }
+
+    return { isValid, formattedPhone: phoneCheck.formatted };
+  };
+
+  /**
+   * Handle progressive submission with TanStack Query and safe error feedback.
+   */
+  const handleSubmit = async () => {
+    // Clear previous backend errors
+    setBackendError(null);
+
+    // 1. Strict Validation: Stop immediately if inputs are not valid!
+    const { isValid, formattedPhone } = validateInputs();
+    if (!isValid) {
+      return;
+    }
+
+    // 2. Progressive State: Sending request
+    setSubmitStatus('sending');
+    logger.info(`Initiating auth [${mode}] for phone: ${formattedPhone}`);
+
+    try {
+      if (mode === 'signup') {
+        const resp = await registerMutation.mutateAsync({
+          fullName: fullName.trim(),
+          phoneNumber: formattedPhone,
+          password: pin.trim(),
+          district: district,
+          languagePref: language,
+          role: 'farmer',
+        });
+
+        // 3. Progressive State: Success
+        setSubmitStatus('success');
+        setAuthToken(resp.access_token);
+        login({
+          fullName: resp.user.full_name,
+          phoneNumber: resp.user.phone_number,
+          district: resp.user.district,
+          role: resp.user.role,
+        });
+
+        setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 500);
+
+      } else {
+        const resp = await loginMutation.mutateAsync({
+          phoneNumber: formattedPhone,
+          pinOrPass: pin.trim(),
+        });
+
+        // 3. Progressive State: Success
+        setSubmitStatus('success');
+        setAuthToken(resp.access_token);
+        login({
+          fullName: resp.user.full_name,
+          phoneNumber: resp.user.phone_number,
+          district: resp.user.district,
+          role: resp.user.role,
+        });
+
+        setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 500);
+      }
+    } catch (err: any) {
+      setSubmitStatus('idle');
+      const isUnreachable =
+        err instanceof BackendUnreachableError ||
+        err.name === 'BackendUnreachableError' ||
+        err.message?.includes('Unable to reach backend') ||
+        err.message?.includes('Network request failed') ||
+        err.message?.includes('Failed to fetch');
+
+      const targetUrl = getBackendBaseUrl();
+
+      logger.error('Authentication attempt failed:', {
+        mode,
+        isUnreachable,
+        message: err.message,
+        targetUrl,
+      });
+
+      if (isUnreachable) {
+        setBackendError({
+          isUnreachable: true,
+          message: isUrdu
+            ? `سرور (${targetUrl}) سے رابطہ نہیں ہو سکا۔ براہ کرم چیک کریں کہ سرور آن ہے اور نیٹ ورک ٹھیک ہے۔`
+            : `Unable to reach backend at ${targetUrl}. Please check your connection or server terminal.`,
+          targetUrl,
+        });
+      } else {
+        setBackendError({
+          isUnreachable: false,
+          message: err.message || (isUrdu ? 'لاگ ان کی تصدیق ناکام رہی' : 'Authentication failed. Please verify your credentials.'),
+          targetUrl,
+        });
+      }
+    }
+  };
+
+  /**
+   * Optional demo bypass when user explicitly opts to continue offline
+   */
+  const handleContinueOffline = () => {
+    logger.info('User opted for offline demo fallback');
     login({
       fullName: (mode === 'signup' && fullName.trim()) ? fullName.trim() : (userProfile.fullName || 'Chaudhry Muhammad Akram'),
-      phoneNumber: phoneNumber.trim() ? (phoneNumber.startsWith('+92') ? phoneNumber : `+92 ${phoneNumber}`) : userProfile.phoneNumber,
+      phoneNumber: phoneNumber.trim(),
       district: district || userProfile.district,
     });
     router.replace('/(tabs)');
   };
 
+  // Helper to clear error when user modifies an input
+  const clearError = (field: keyof typeof errors) => {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    if (backendError) {
+      setBackendError(null);
+    }
+  };
+
+  // Determine button label and icon based on progressive status
+  const getButtonContent = () => {
+    if (submitStatus === 'sending') {
+      return (
+        <View style={styles.buttonContentRow}>
+          <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Text style={styles.submitBtnText}>
+            {isUrdu ? 'درخواست بھیجی جا رہی ہے...' : 'Sending request...'}
+          </Text>
+        </View>
+      );
+    }
+
+    if (submitStatus === 'success') {
+      return (
+        <View style={styles.buttonContentRow}>
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+          <Text style={styles.submitBtnText}>
+            {isUrdu ? 'کامیاب! ہوم اسکرین پر جا رہے ہیں...' : 'Moving to home screen...'}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.buttonContentRow}>
+        <Text style={styles.submitBtnText}>
+          {mode === 'login'
+            ? (isUrdu ? 'لاگ ان کریں' : 'Sign In')
+            : (isUrdu ? 'اکاؤنٹ بنائیں' : 'Create Account')}
+        </Text>
+        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -96,7 +365,11 @@ export default function AuthScreen() {
           {/* ─── Mode Toggle: Sign Up / Login ─── */}
           <View style={styles.modeToggle}>
             <TouchableOpacity
-              onPress={() => setMode('login')}
+              onPress={() => {
+                setMode('login');
+                setErrors({});
+                setBackendError(null);
+              }}
               style={[styles.modeBtn, mode === 'login' && styles.modeBtnActive]}
               activeOpacity={0.7}>
               <Text style={[styles.modeBtnText, mode === 'login' && styles.modeBtnTextActive]}>
@@ -104,7 +377,11 @@ export default function AuthScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setMode('signup')}
+              onPress={() => {
+                setMode('signup');
+                setErrors({});
+                setBackendError(null);
+              }}
               style={[styles.modeBtn, mode === 'signup' && styles.modeBtnActive]}
               activeOpacity={0.7}>
               <Text style={[styles.modeBtnText, mode === 'signup' && styles.modeBtnTextActive]}>
@@ -115,43 +392,138 @@ export default function AuthScreen() {
 
           {/* ─── Form Card ─── */}
           <View style={styles.formCard}>
+
+            {/* Backend Unreachable / API Error Banner */}
+            {backendError && (
+              <View style={[
+                styles.errorBanner,
+                backendError.isUnreachable ? styles.errorBannerUnreachable : styles.errorBannerGeneric
+              ]}>
+                <Ionicons
+                  name={backendError.isUnreachable ? 'cloud-offline-outline' : 'alert-circle-outline'}
+                  size={24}
+                  color={backendError.isUnreachable ? '#DC2626' : '#B45309'}
+                  style={{ marginTop: 2 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[
+                    styles.errorBannerTitle,
+                    { color: backendError.isUnreachable ? '#991B1B' : '#92400E' }
+                  ]}>
+                    {backendError.isUnreachable
+                      ? (isUrdu ? 'سرور سے رابطہ نہیں ہو سکا' : 'Unable to reach backend')
+                      : (isUrdu ? 'توثیقی غلطی' : 'Authentication Notice')}
+                  </Text>
+                  <Text style={[
+                    styles.errorBannerMessage,
+                    { color: backendError.isUnreachable ? '#B91C1C' : '#B45309' }
+                  ]}>
+                    {backendError.message}
+                  </Text>
+
+                  {typeof __DEV__ !== 'undefined' && __DEV__ && (
+                    <Text style={styles.devHintText}>
+                      [DEV MODE] Diagnostic logs dispatched to logger service.
+                    </Text>
+                  )}
+
+                  <View style={styles.errorBannerActions}>
+                    <TouchableOpacity
+                      onPress={handleSubmit}
+                      style={styles.retryBtn}
+                      activeOpacity={0.8}>
+                      <Ionicons name="refresh" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.retryBtnText}>
+                        {isUrdu ? 'دوبارہ کوشش کریں' : 'Retry'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {backendError.isUnreachable && (
+                      <TouchableOpacity
+                        onPress={handleContinueOffline}
+                        style={styles.offlineBtn}
+                        activeOpacity={0.8}>
+                        <Text style={styles.offlineBtnText}>
+                          {isUrdu ? 'آف لائن جاری رکھیں' : 'Continue Offline'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Full Name (Sign Up only) */}
             {mode === 'signup' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
                   {isUrdu ? 'پورا نام' : 'Full Name'}
                 </Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="person-outline" size={18} color={Colors.light.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  errors.fullName ? styles.inputWrapperError : null
+                ]}>
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={errors.fullName ? '#DC2626' : Colors.light.textMuted}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     value={fullName}
-                    onChangeText={setFullName}
+                    onChangeText={(text) => {
+                      setFullName(text);
+                      clearError('fullName');
+                    }}
                     placeholder={isUrdu ? 'اپنا نام درج کریں' : 'Enter your full name'}
                     placeholderTextColor="#94A3B8"
                     style={styles.textInput}
+                    editable={submitStatus !== 'sending'}
                   />
                 </View>
+                {errors.fullName && (
+                  <View style={styles.errorRow}>
+                    <Ionicons name="warning-outline" size={14} color="#DC2626" />
+                    <Text style={styles.errorText}>{errors.fullName}</Text>
+                  </View>
+                )}
               </View>
             )}
 
+            {/* Phone Number */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {isUrdu ? 'موبائل نمبر' : 'Mobile Number'}
               </Text>
-              <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputWrapper,
+                errors.phoneNumber ? styles.inputWrapperError : null
+              ]}>
                 <View style={styles.phonePrefix}>
                   <Text style={styles.phonePrefixText}>+92</Text>
                 </View>
                 <TextInput
                   value={phoneNumber}
-                  onChangeText={setPhoneNumber}
+                  onChangeText={(text) => {
+                    setPhoneNumber(text);
+                    clearError('phoneNumber');
+                  }}
                   placeholder={isUrdu ? '3XX XXXXXXX' : '3XX XXXXXXX'}
                   placeholderTextColor="#94A3B8"
                   keyboardType="phone-pad"
                   style={[styles.textInput, { paddingLeft: 4 }]}
+                  editable={submitStatus !== 'sending'}
                 />
               </View>
+              {errors.phoneNumber && (
+                <View style={styles.errorRow}>
+                  <Ionicons name="warning-outline" size={14} color="#DC2626" />
+                  <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+                </View>
+              )}
             </View>
 
+            {/* District Chips (Sign Up only) */}
             {mode === 'signup' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
@@ -161,51 +533,93 @@ export default function AuthScreen() {
                   {['Faisalabad', 'Lahore', 'Multan', 'Sahiwal'].map((d) => (
                     <TouchableOpacity
                       key={d}
-                      onPress={() => setDistrict(d)}
-                      style={[styles.districtChip, district === d && styles.districtChipActive]}
-                      activeOpacity={0.7}>
-                      <Text style={[styles.districtChipText, district === d && styles.districtChipTextActive]}>
+                      onPress={() => {
+                        setDistrict(d);
+                        clearError('district');
+                      }}
+                      style={[
+                        styles.districtChip,
+                        district === d && styles.districtChipActive,
+                      ]}
+                      activeOpacity={0.7}
+                      disabled={submitStatus === 'sending'}>
+                      <Text style={[
+                        styles.districtChipText,
+                        district === d && styles.districtChipTextActive,
+                      ]}>
                         {d}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
+                {errors.district && (
+                  <View style={styles.errorRow}>
+                    <Ionicons name="warning-outline" size={14} color="#DC2626" />
+                    <Text style={styles.errorText}>{errors.district}</Text>
+                  </View>
+                )}
               </View>
             )}
 
+            {/* PIN / Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {isUrdu ? 'پن کوڈ' : 'PIN / Password'}
               </Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.light.textMuted} style={styles.inputIcon} />
+              <View style={[
+                styles.inputWrapper,
+                errors.pin ? styles.inputWrapperError : null
+              ]}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color={errors.pin ? '#DC2626' : Colors.light.textMuted}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   value={pin}
-                  onChangeText={setPin}
+                  onChangeText={(text) => {
+                    setPin(text);
+                    clearError('pin');
+                  }}
                   placeholder={isUrdu ? '4 ہندسوں کا پن' : 'Enter 4-digit PIN'}
                   placeholderTextColor="#94A3B8"
                   secureTextEntry={!showPin}
                   keyboardType="number-pad"
                   maxLength={6}
                   style={styles.textInput}
+                  editable={submitStatus !== 'sending'}
                 />
-                <TouchableOpacity onPress={() => setShowPin(!showPin)} style={styles.eyeBtn}>
-                  <Ionicons name={showPin ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.light.textMuted} />
+                <TouchableOpacity
+                  onPress={() => setShowPin(!showPin)}
+                  style={styles.eyeBtn}
+                  disabled={submitStatus === 'sending'}>
+                  <Ionicons
+                    name={showPin ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={Colors.light.textMuted}
+                  />
                 </TouchableOpacity>
               </View>
+              {errors.pin && (
+                <View style={styles.errorRow}>
+                  <Ionicons name="warning-outline" size={14} color="#DC2626" />
+                  <Text style={styles.errorText}>{errors.pin}</Text>
+                </View>
+              )}
             </View>
 
-            {/* Submit Button */}
+            {/* Progressive Submit Button */}
             <TouchableOpacity
               onPress={handleSubmit}
-              style={styles.submitBtn}
+              disabled={submitStatus === 'sending' || submitStatus === 'success'}
+              style={[
+                styles.submitBtn,
+                submitStatus === 'sending' && styles.submitBtnSending,
+                submitStatus === 'success' && styles.submitBtnSuccess,
+              ]}
               activeOpacity={0.85}>
-              <Text style={styles.submitBtnText}>
-                {mode === 'login'
-                  ? (isUrdu ? 'لاگ ان کریں' : 'Sign In')
-                  : (isUrdu ? 'اکاؤنٹ بنائیں' : 'Create Account')}
-              </Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              {getButtonContent()}
             </TouchableOpacity>
 
           </View>
@@ -217,7 +631,13 @@ export default function AuthScreen() {
                 ? (isUrdu ? 'نئے ہیں؟' : "Don't have an account?")
                 : (isUrdu ? 'پہلے سے اکاؤنٹ ہے؟' : 'Already have an account?')}
             </Text>
-            <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+            <TouchableOpacity
+              onPress={() => {
+                if (submitStatus === 'sending') return;
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setErrors({});
+                setBackendError(null);
+              }}>
               <Text style={styles.switchLink}>
                 {mode === 'login'
                   ? (isUrdu ? 'اکاؤنٹ بنائیں' : 'Create Account')
@@ -384,6 +804,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     minHeight: 48,
   },
+  inputWrapperError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+    marginLeft: 2,
+  },
+  errorText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: '#DC2626',
+  },
   inputIcon: {
     marginRight: Spacing.sm,
   },
@@ -436,7 +872,73 @@ const styles = StyleSheet.create({
     color: Colors.light.primaryDark,
   },
 
-  // ─── Submit ───────────────────────────────
+  // ─── Backend Error Banner ─────────────────
+  errorBanner: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  errorBannerUnreachable: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  errorBannerGeneric: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  errorBannerTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+  },
+  errorBannerMessage: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  devHintText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  errorBannerActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
+  },
+  retryBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#FFFFFF',
+  },
+  offlineBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
+  },
+  offlineBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#DC2626',
+  },
+
+  // ─── Submit Button & Progressive States ────
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -450,6 +952,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+  },
+  submitBtnSending: {
+    backgroundColor: '#15803D',
+    opacity: 0.9,
+  },
+  submitBtnSuccess: {
+    backgroundColor: '#059669',
+  },
+  buttonContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   submitBtnText: {
     fontFamily: FontFamily.bold,

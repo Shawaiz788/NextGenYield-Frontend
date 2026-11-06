@@ -74,7 +74,7 @@ export function getDefaultBaseUrl(): string {
   if (customBaseUrl) {
     return customBaseUrl;
   }
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  const envUrl = process.env.EXPO_PUBLIC_MODEL_API_URL || process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
