@@ -35,7 +35,9 @@ export const logger = {
 
   error: (...args: any[]): void => {
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      console.error(formatPrefix('error'), ...args);
+      // In React Native / Expo, console.error triggers a full-screen LogBox RedScreen overlay.
+      // We route error messages to console.warn to log clearly in Metro terminal without breaking the mobile UI.
+      console.warn(formatPrefix('error'), ...args);
     }
   },
 

@@ -65,11 +65,11 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [showPin, setShowPin] = useState(false);
 
-  // Form state
+  // Form state - inputs start completely empty by default
   const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('300 8472910');
-  const [district, setDistrict] = useState('Lahore');
-  const [pin, setPin] = useState('1234');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [district, setDistrict] = useState('');
+  const [pin, setPin] = useState('');
 
   // Validation errors
   const [errors, setErrors] = useState<{
@@ -227,7 +227,7 @@ export default function AuthScreen() {
 
       const targetUrl = getBackendBaseUrl();
 
-      logger.error('Authentication attempt failed:', {
+      logger.warn('Authentication attempt notice:', {
         mode,
         isUnreachable,
         message: err.message,
@@ -239,13 +239,43 @@ export default function AuthScreen() {
           isUnreachable: true,
           message: isUrdu
             ? `سرور (${targetUrl}) سے رابطہ نہیں ہو سکا۔ براہ کرم چیک کریں کہ سرور آن ہے اور نیٹ ورک ٹھیک ہے۔`
-            : `Unable to reach backend at ${targetUrl}. Please check your connection or server terminal.`,
+            : `Unable to reach backend at ${targetUrl}. Please ensure your backend is running and reachable on this Wi-Fi network.`,
           targetUrl,
         });
       } else {
+        const rawMsg = (err.message || '').toLowerCase();
+        let displayMsg = err.message || '';
+
+        // Differentiate: account doesn't exist vs wrong password/pin vs phone registered
+        if (rawMsg.includes('no account') || rawMsg.includes('not found')) {
+          displayMsg = isUrdu
+            ? 'اس موبائل نمبر پر کوئی اکاؤنٹ موجود نہیں ہے۔ براہ کرم "نیا اکاؤنٹ" منتخب کریں۔'
+            : 'No account found with this mobile number. Please check your number or create an account.';
+          setErrors((prev) => ({
+            ...prev,
+            phoneNumber: isUrdu ? 'اکاؤنٹ موجود نہیں' : 'Account not found',
+          }));
+        } else if (rawMsg.includes('invalid pin') || rawMsg.includes('password') || rawMsg.includes('incorrect credentials') || rawMsg.includes('401')) {
+          displayMsg = isUrdu
+            ? 'موبائل نمبر یا پن کوڈ درست نہیں۔ براہ کرم دوبارہ کوشش کریں۔'
+            : 'Incorrect mobile number or PIN entered. Please verify your credentials and try again.';
+          setErrors((prev) => ({
+            ...prev,
+            pin: isUrdu ? 'غلط پن کوڈ' : 'Incorrect PIN',
+          }));
+        } else if (rawMsg.includes('already registered')) {
+          displayMsg = isUrdu
+            ? 'یہ موبائل نمبر پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔'
+            : 'This mobile number is already registered. Please sign in instead.';
+          setErrors((prev) => ({
+            ...prev,
+            phoneNumber: isUrdu ? 'پہلے سے رجسٹرڈ ہے' : 'Already registered',
+          }));
+        }
+
         setBackendError({
           isUnreachable: false,
-          message: err.message || (isUrdu ? 'لاگ ان کی تصدیق ناکام رہی' : 'Authentication failed. Please verify your credentials.'),
+          message: displayMsg,
           targetUrl,
         });
       }

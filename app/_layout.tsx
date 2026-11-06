@@ -2,9 +2,17 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, LogBox } from 'react-native';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
+
+// Suppress LogBox popup for handled network connection and auth failure notices
+LogBox.ignoreLogs([
+  'Network request failed',
+  'Unable to reach backend',
+  'BackendUnreachableError',
+  'Incorrect credentials entered',
+]);
 import {
   useFonts,
   Inter_400Regular,

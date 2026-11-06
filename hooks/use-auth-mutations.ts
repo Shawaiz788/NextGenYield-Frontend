@@ -26,7 +26,7 @@ export function useLoginMutation() {
       return await api.login(phoneNumber, pinOrPass);
     },
     onError: (error) => {
-      logger.error('Login mutation failed:', error.message);
+      logger.warn('Login mutation notice:', error.message);
     },
     onSuccess: (data) => {
       logger.info('Login mutation succeeded for user:', data.user.full_name);
@@ -44,7 +44,7 @@ export function useRegisterMutation() {
       return await api.register(params);
     },
     onError: (error) => {
-      logger.error('Register mutation failed:', error.message);
+      logger.warn('Register mutation notice:', error.message);
     },
     onSuccess: (data) => {
       logger.info('Register mutation succeeded for user:', data.user.full_name);

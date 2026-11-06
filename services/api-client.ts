@@ -115,7 +115,7 @@ class ApiClient {
         headers,
       });
     } catch (networkErr: any) {
-      logger.error(`Network error connecting to backend at ${url}:`, networkErr?.message || networkErr);
+      logger.warn(`Network unavailable connecting to backend at ${url}:`, networkErr?.message || networkErr);
       throw new BackendUnreachableError(
         `Unable to reach backend server at ${baseUrl}. Please check your connection or server status.`,
         baseUrl
@@ -130,7 +130,7 @@ class ApiClient {
           errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
         }
       } catch (_) {}
-      logger.error(`API Error [${res.status}] ${endpoint}:`, errMsg);
+      logger.warn(`API response status [${res.status}] on ${endpoint}:`, errMsg);
       throw new Error(errMsg);
     }
 
