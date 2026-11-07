@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View, Platform, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { StyleSheet, View, Platform, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import { MapFieldItem } from '@/context/app-context';
 import { logger } from '@/services/logger';
@@ -95,10 +96,61 @@ export function RealLeafletMap({
     return () => window.removeEventListener('message', onWebMessage);
   }, [onSelectField, onBoundaryUpdated]);
 
+  const [isLocating, setIsLocating] = useState(false);
+
   const handleZoomIn = () => sendMapAction('zoomIn');
   const handleZoomOut = () => sendMapAction('zoomOut');
   const handleFitBounds = () => sendMapAction('fitBounds');
-  const handleLocateMe = () => sendMapAction('locateMe');
+
+  const handleLocateMe = async () => {
+    if (isLocating) return;
+    setIsLocating(true);
+
+    try {
+      if (Platform.OS === 'web') {
+        sendMapAction('locateMe');
+        setTimeout(() => setIsLocating(false), 2500);
+        return;
+      }
+
+      // Check current permission status
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        setIsLocating(false);
+        Alert.alert(
+          language === 'ur' ? 'لوکیشن کی اجازت درکار ہے' : 'Location Permission Required',
+          language === 'ur'
+            ? 'نقشے پر آپ کے کھیت کا مقام دیکھنے کے لیے لوکیشن کی اجازت دیں۔'
+            : 'Please grant location access to center the satellite map on your farm.',
+          [{ text: language === 'ur' ? 'ٹھیک ہے' : 'OK' }]
+        );
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      sendMapAction('flyToLocation', {
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude,
+        accuracy: loc.coords.accuracy || 25,
+      });
+    } catch (err: any) {
+      logger.warn('Failed to obtain GPS location:', err?.message || err);
+      // Fallback to leaflet locate
+      sendMapAction('locateMe');
+    } finally {
+      setTimeout(() => setIsLocating(false), 2000);
+    }
+  };
 
   // HTML content for Leaflet
   const leafletHtml = `
@@ -352,6 +404,30 @@ export function RealLeafletMap({
 
     var userLocationMarker = null;
     var userLocationCircle = null;
+
+    window.showNativeLocation = function(lat, lng, acc) {
+      if (userLocationMarker) map.removeLayer(userLocationMarker);
+      if (userLocationCircle) map.removeLayer(userLocationCircle);
+
+      userLocationCircle = L.circle([lat, lng], {
+        radius: acc || 20,
+        color: '#3B82F6',
+        fillColor: '#3B82F6',
+        fillOpacity: 0.15,
+        weight: 1
+      }).addTo(map);
+
+      userLocationMarker = L.circleMarker([lat, lng], {
+        radius: 8,
+        color: '#FFFFFF',
+        fillColor: '#2563EB',
+        fillOpacity: 1,
+        weight: 2.5
+      }).addTo(map);
+
+      userLocationMarker.bindTooltip('Your Location', { permanent: false, direction: 'top' });
+      map.flyTo([lat, lng], 17, { duration: 1.2 });
+    };
 
     window.locateUser = function() {
       if (navigator.geolocation) {
@@ -618,6 +694,8 @@ export function RealLeafletMap({
         map.zoomOut();
       } else if (data.action === 'locateMe') {
         window.locateUser();
+      } else if (data.action === 'flyToLocation') {
+        window.showNativeLocation(data.lat, data.lng, data.accuracy);
       }
     };
 
@@ -687,8 +765,16 @@ export function RealLeafletMap({
 
       {/* Floating Map Zoom, Center & Locate Me Control Buttons */}
       <View style={styles.mapToolsCol}>
-        <TouchableOpacity style={styles.mapToolBtn} onPress={handleLocateMe} activeOpacity={0.85}>
-          <Ionicons name="locate" size={17} color="#22C55E" />
+        <TouchableOpacity
+          style={styles.mapToolBtn}
+          onPress={handleLocateMe}
+          disabled={isLocating}
+          activeOpacity={0.85}>
+          {isLocating ? (
+            <ActivityIndicator size="small" color="#22C55E" />
+          ) : (
+            <Ionicons name="locate" size={17} color="#22C55E" />
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.mapToolBtn} onPress={handleZoomIn} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color="#FFFFFF" />

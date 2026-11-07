@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,7 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Switch,
+  Linking,
+  Platform,
 } from 'react-native';
+import { Camera } from 'expo-camera';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,8 +34,80 @@ export default function ProfileScreen() {
   } = useApp();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<boolean>(false);
+  const [locationPermission, setLocationPermission] = useState<boolean>(false);
+  const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean>(false);
 
   const isUrdu = language === 'ur';
+
+  const checkPermissions = async () => {
+    try {
+      const cam = await Camera.getCameraPermissionsAsync();
+      setCameraPermission(cam.status === 'granted');
+
+      const loc = await Location.getForegroundPermissionsAsync();
+      setLocationPermission(loc.status === 'granted');
+
+      const media = await ImagePicker.getMediaLibraryPermissionsAsync();
+      setMediaLibraryPermission(media.status === 'granted');
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    checkPermissions();
+  }, []);
+
+  const handleToggleCamera = async () => {
+    if (!cameraPermission) {
+      const res = await Camera.requestCameraPermissionsAsync();
+      setCameraPermission(res.status === 'granted');
+      if (res.status !== 'granted' && !res.canAskAgain) {
+        promptOpenSettings(isUrdu ? 'کیمرہ' : 'Camera');
+      }
+    } else {
+      promptOpenSettings(isUrdu ? 'کیمرہ' : 'Camera');
+    }
+  };
+
+  const handleToggleLocation = async () => {
+    if (!locationPermission) {
+      const res = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(res.status === 'granted');
+      if (res.status !== 'granted' && !res.canAskAgain) {
+        promptOpenSettings(isUrdu ? 'لوکیشن' : 'Location');
+      }
+    } else {
+      promptOpenSettings(isUrdu ? 'لوکیشن' : 'Location');
+    }
+  };
+
+  const handleToggleMedia = async () => {
+    if (!mediaLibraryPermission) {
+      const res = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setMediaLibraryPermission(res.status === 'granted');
+      if (res.status !== 'granted' && !res.canAskAgain) {
+        promptOpenSettings(isUrdu ? 'تصاویر / گیلری' : 'Photos / Media');
+      }
+    } else {
+      promptOpenSettings(isUrdu ? 'تصاویر / گیلری' : 'Photos / Media');
+    }
+  };
+
+  const promptOpenSettings = (name: string) => {
+    Alert.alert(
+      isUrdu ? `${name} کی اجازت کی سیٹنگ` : `${name} Permission Setting`,
+      isUrdu
+        ? `اجازت تبدیل کرنے کے لیے ڈیوائس کی سیٹنگز اوپن کریں۔`
+        : `To change or revoke ${name} permission, please open device app settings.`,
+      [
+        { text: isUrdu ? 'منسوخ' : 'Cancel', style: 'cancel' },
+        {
+          text: isUrdu ? 'سیٹنگز کھولیں' : 'Open Settings',
+          onPress: () => Linking.openSettings(),
+        },
+      ]
+    );
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -321,6 +399,114 @@ export default function ProfileScreen() {
                 {isUrdu ? 'سیٹلائٹ سروس: ایسری ورلڈ امیجری (Mustafa Town GIS)' : 'Satellite Service: Esri World Imagery (GIS Real)'}
               </Text>
             </View>
+          </View>
+        </View>
+
+        {/* ─── Device Permissions Section Card ─── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { fontSize: 16 * fontMultiplier }]}>
+              {isUrdu ? 'ایپ کی اجازتیں (Device Permissions)' : 'App Permissions & Privacy'}
+            </Text>
+            <TouchableOpacity onPress={checkPermissions} activeOpacity={0.7}>
+              <Ionicons name="refresh-outline" size={18} color="#16A34A" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.permissionsSubtitle}>
+            {isUrdu
+              ? 'کیمرہ اور لوکیشن وغیرہ کی حیثیت چیک اور تبدیل کریں۔'
+              : 'Review and manage hardware permissions used for crop scanning & mapping.'}
+          </Text>
+
+          {/* Camera Permission */}
+          <View style={styles.permissionItemRow}>
+            <View style={styles.permissionLeft}>
+              <View style={[styles.permissionIconWrap, { backgroundColor: cameraPermission ? '#DCFCE7' : '#FEE2E2' }]}>
+                <Ionicons
+                  name="camera"
+                  size={18}
+                  color={cameraPermission ? '#16A34A' : '#DC2626'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'کیمرہ کی اجازت (Camera)' : 'Camera Access'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {cameraPermission
+                    ? (isUrdu ? 'فعال (AI فصل اسکین کے لیے دستیاب)' : 'Granted · Active for ViT-B/14 canopy analysis')
+                    : (isUrdu ? 'غیر فعال (تصویر لینے کے لیے درکار)' : 'Disabled · Required to capture wheat scans')}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={cameraPermission}
+              onValueChange={handleToggleCamera}
+              trackColor={{ false: '#CBD5E1', true: '#86EFAC' }}
+              thumbColor={cameraPermission ? '#16A34A' : '#F1F5F9'}
+            />
+          </View>
+
+          <View style={styles.cardDivider} />
+
+          {/* Location Permission */}
+          <View style={styles.permissionItemRow}>
+            <View style={styles.permissionLeft}>
+              <View style={[styles.permissionIconWrap, { backgroundColor: locationPermission ? '#DCFCE7' : '#FEE2E2' }]}>
+                <Ionicons
+                  name="location"
+                  size={18}
+                  color={locationPermission ? '#16A34A' : '#DC2626'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'لوکیشن کی اجازت (GPS)' : 'Location (GPS / Maps)'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {locationPermission
+                    ? (isUrdu ? 'فعال (نقشہ اور کھیت باؤنڈری کے لیے)' : 'Granted · Active for live field demarcation & GPS')
+                    : (isUrdu ? 'غیر فعال (کھیت کے مقام کے لیے درکار)' : 'Disabled · Required to locate plots on satellite map')}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={locationPermission}
+              onValueChange={handleToggleLocation}
+              trackColor={{ false: '#CBD5E1', true: '#86EFAC' }}
+              thumbColor={locationPermission ? '#16A34A' : '#F1F5F9'}
+            />
+          </View>
+
+          <View style={styles.cardDivider} />
+
+          {/* Photo Library Permission */}
+          <View style={styles.permissionItemRow}>
+            <View style={styles.permissionLeft}>
+              <View style={[styles.permissionIconWrap, { backgroundColor: mediaLibraryPermission ? '#DCFCE7' : '#FEE2E2' }]}>
+                <Ionicons
+                  name="images"
+                  size={18}
+                  color={mediaLibraryPermission ? '#16A34A' : '#DC2626'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'گیلری اور تصاویر (Photo Gallery)' : 'Photo Library / Gallery'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {mediaLibraryPermission
+                    ? (isUrdu ? 'فعال (گیلری سے تصویر منتخب کرنے کے لیے)' : 'Granted · Active for selecting saved crop photos')
+                    : (isUrdu ? 'غیر فعال (گیلری تصویر کے لیے درکار)' : 'Disabled · Required to pick photos from album')}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={mediaLibraryPermission}
+              onValueChange={handleToggleMedia}
+              trackColor={{ false: '#CBD5E1', true: '#86EFAC' }}
+              thumbColor={mediaLibraryPermission ? '#16A34A' : '#F1F5F9'}
+            />
           </View>
         </View>
 
@@ -738,6 +924,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#334155',
     flex: 1,
+  },
+
+  // Permissions section
+  permissionsSubtitle: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 14,
+  },
+  permissionItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  permissionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  permissionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Sign out card

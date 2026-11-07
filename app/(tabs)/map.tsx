@@ -30,7 +30,7 @@ export default function FarmMapScreen() {
 
   const [showLegend, setShowLegend] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'booting' | 'fallow'>('all');
-  const [selectedMapField, setSelectedMapField] = useState<MapFieldItem>(mapFields[0]);
+  const [selectedMapField, setSelectedMapField] = useState<MapFieldItem | null>(null);
 
   // Add Field / Real Draw Boundary State
   const [isDrawModeOpen, setIsDrawModeOpen] = useState(false);
@@ -284,7 +284,7 @@ export default function FarmMapScreen() {
       <View style={styles.mapContainer}>
         <RealLeafletMap
           fields={filteredFields}
-          selectedFieldId={selectedMapField.id}
+          selectedFieldId={selectedMapField ? selectedMapField.id : ""}
           onSelectField={handleSelectField}
           mapType={mapType}
           isDrawMode={isDrawModeOpen}
@@ -499,9 +499,15 @@ export default function FarmMapScreen() {
           </View>
         </View>
         </KeyboardAvoidingView>
-      ) : (
-        /* ─── Standard Selected Field Bottom Card ─── */
+      ) : selectedMapField ? (
+        /* ─── Standard Selected Field Bottom Card (Shown only when a field is selected) ─── */
         <View style={styles.bottomCard}>
+          <TouchableOpacity
+            style={styles.closeCardBtn}
+            onPress={() => setSelectedMapField(null)}
+            activeOpacity={0.7}>
+            <Ionicons name="close" size={18} color="#64748B" />
+          </TouchableOpacity>
           <View style={styles.bottomCardHandle} />
           {/* Accent bar */}
           <View style={[styles.bottomAccent, { backgroundColor: selectedMapField.cycleStatus === 'not_started' ? '#64748B' : selectedMapField.color }]} />
@@ -586,7 +592,7 @@ export default function FarmMapScreen() {
             </>
           )}
         </View>
-      )}
+      ) : null}
 
       {/* Floating Audio Player */}
       <AudioMiniPlayer />
@@ -1055,6 +1061,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
+  closeCardBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 14,
+    zIndex: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   // ─── Bottom Floating Card ──────────────────
   bottomCard: {
     backgroundColor: '#FFFFFF',

@@ -46,6 +46,12 @@
         {
           "cameraPermission": "NextGenYield needs camera access to capture wheat canopy photos for AI growth stage analysis."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "NextGenYield needs your location to center the farm satellite map and assist with field boundary demarcation."
+        }
       ]
     ],
     "experiments": {
