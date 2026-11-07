@@ -13,12 +13,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/app-context';
 import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { AccessibilityControls } from '@/components/accessibility-bar';
+import { useActiveCropCycleQuery, useApplyFertilizerMutation, useCompleteIrrigationMutation } from '@/hooks/use-crop-cycles';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { ActivityIndicator } from 'react-native';
+
 
 export default function FieldProfileScreen() {
   const theme = Colors.light;
   const { selectedField, t, fontMultiplier } = useApp();
 
   const [activeTab, setActiveTab] = useState<'timeline' | 'fertilizer' | 'irrigation'>('timeline');
+  const { data: activeCycle, isLoading: isCycleLoading, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
+  const applyFertilizerMutation = useApplyFertilizerMutation(selectedField?.id, activeCycle?.cycle_id);
+  const completeIrrigationMutation = useCompleteIrrigationMutation(selectedField?.id, activeCycle?.cycle_id);
+
   const currentStage = STAGE_CONFIG[selectedField.currentStageIndex];
 
   const stageNames: Record<number, string> = {
@@ -64,6 +72,14 @@ export default function FieldProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
+        {isCycleError && (
+          <BackendReachabilityBanner
+            isUrdu={false}
+            error={cycleError}
+            onRetry={() => refetchCycle()}
+            style={{ marginHorizontal: 0, marginBottom: 12 }}
+          />
+        )}
         {/* Field Summary Card */}
         <View style={styles.summaryCard}>
           <View style={[styles.summaryAccent, { backgroundColor: currentStage.color }]} />
@@ -200,21 +216,43 @@ export default function FieldProfileScreen() {
             <Text style={styles.cardSub}>{t.dosesPerAcre}</Text>
 
             <View style={styles.ledgerList}>
-              {selectedField.fertilizerPlan.map((entry, idx) => (
-                <View key={idx} style={[styles.ledgerRow, entry.applied && styles.ledgerRowApplied]}>
-                  <View style={styles.ledgerHeader}>
-                    <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{entry.stage}</Text>
-                    <View style={[styles.appliedPill, entry.applied ? styles.appliedPillDone : styles.appliedPillScheduled]}>
-                      <Text style={[styles.appliedPillText, entry.applied ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
-                        {entry.applied ? t.applied : t.scheduled}
-                      </Text>
+              {activeCycle?.fertilizer_schedules && activeCycle.fertilizer_schedules.length > 0 ? (
+                activeCycle.fertilizer_schedules.map((entry) => (
+                  <View key={entry.schedule_id} style={[styles.ledgerRow, entry.is_applied && styles.ledgerRowApplied]}>
+                    <View style={styles.ledgerHeader}>
+                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{entry.stage_name}</Text>
+                      <TouchableOpacity
+                        onPress={() => applyFertilizerMutation.mutate(entry.schedule_id)}
+                        disabled={entry.is_applied || applyFertilizerMutation.isPending}
+                        style={[styles.appliedPill, entry.is_applied ? styles.appliedPillDone : styles.appliedPillScheduled]}
+                        activeOpacity={0.8}>
+                        <Text style={[styles.appliedPillText, entry.is_applied ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
+                          {entry.is_applied ? t.applied : t.scheduled}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
+                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{entry.nutrient_type}</Text>
+                    <Text style={styles.ledgerDose}>Dose: {entry.dose_per_acre}</Text>
+                    <Text style={styles.ledgerDate}>📅 Target DAS: Day {entry.target_das}</Text>
                   </View>
-                  <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{entry.type}</Text>
-                  <Text style={styles.ledgerDose}>Dose: {entry.dosePerAcre}</Text>
-                  <Text style={styles.ledgerDate}>📅 {entry.date}</Text>
-                </View>
-              ))}
+                ))
+              ) : (
+                selectedField.fertilizerPlan.map((entry, idx) => (
+                  <View key={idx} style={[styles.ledgerRow, entry.applied && styles.ledgerRowApplied]}>
+                    <View style={styles.ledgerHeader}>
+                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{entry.stage}</Text>
+                      <View style={[styles.appliedPill, entry.applied ? styles.appliedPillDone : styles.appliedPillScheduled]}>
+                        <Text style={[styles.appliedPillText, entry.applied ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
+                          {entry.applied ? t.applied : t.scheduled}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{entry.type}</Text>
+                    <Text style={styles.ledgerDose}>Dose: {entry.dosePerAcre}</Text>
+                    <Text style={styles.ledgerDate}>📅 {entry.date}</Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         )}
@@ -226,20 +264,41 @@ export default function FieldProfileScreen() {
             <Text style={styles.cardSub}>{t.waterTimingMatched}</Text>
 
             <View style={styles.ledgerList}>
-              {selectedField.irrigationPlan.map((irrig, idx) => (
-                <View key={idx} style={[styles.ledgerRow, irrig.completed && styles.ledgerRowApplied]}>
-                  <View style={styles.ledgerHeader}>
-                    <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{irrig.event}</Text>
-                    <View style={[styles.appliedPill, irrig.completed ? styles.appliedPillDone : styles.appliedPillScheduled]}>
-                      <Text style={[styles.appliedPillText, irrig.completed ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
-                        {irrig.completed ? t.completed : t.upcoming}
-                      </Text>
+              {activeCycle?.irrigation_schedules && activeCycle.irrigation_schedules.length > 0 ? (
+                activeCycle.irrigation_schedules.map((irrig) => (
+                  <View key={irrig.schedule_id} style={[styles.ledgerRow, irrig.is_completed && styles.ledgerRowApplied]}>
+                    <View style={styles.ledgerHeader}>
+                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{irrig.event_name}</Text>
+                      <TouchableOpacity
+                        onPress={() => completeIrrigationMutation.mutate(irrig.schedule_id)}
+                        disabled={irrig.is_completed || completeIrrigationMutation.isPending}
+                        style={[styles.appliedPill, irrig.is_completed ? styles.appliedPillDone : styles.appliedPillScheduled]}
+                        activeOpacity={0.8}>
+                        <Text style={[styles.appliedPillText, irrig.is_completed ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
+                          {irrig.is_completed ? t.completed : t.upcoming}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
+                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{irrig.stage_name} · {irrig.water_depth_inches}" Depth</Text>
+                    <Text style={styles.ledgerDate}>📅 Target DAS: Day {irrig.target_das}</Text>
                   </View>
-                  <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{t.source}: {irrig.source}</Text>
-                  <Text style={styles.ledgerDate}>{t.date}: {irrig.date}</Text>
-                </View>
-              ))}
+                ))
+              ) : (
+                selectedField.irrigationPlan.map((irrig, idx) => (
+                  <View key={idx} style={[styles.ledgerRow, irrig.completed && styles.ledgerRowApplied]}>
+                    <View style={styles.ledgerHeader}>
+                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{irrig.event}</Text>
+                      <View style={[styles.appliedPill, irrig.completed ? styles.appliedPillDone : styles.appliedPillScheduled]}>
+                        <Text style={[styles.appliedPillText, irrig.completed ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
+                          {irrig.completed ? t.completed : t.upcoming}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{t.source}: {irrig.source}</Text>
+                    <Text style={styles.ledgerDate}>{t.date}: {irrig.date}</Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         )}

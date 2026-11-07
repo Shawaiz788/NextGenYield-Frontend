@@ -15,6 +15,11 @@ import { useApp } from '@/context/app-context';
 import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
+import { useFieldsQuery } from '@/hooks/use-fields';
+import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
+import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+
 
 export default function DashboardScreen() {
   const theme = Colors.light;
@@ -31,11 +36,32 @@ export default function DashboardScreen() {
 
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [inspectedStageIndex, setInspectedStageIndex] = useState<number | null>(null);
+  const { data: backendFields } = useFieldsQuery();
+  const { data: activeCycle, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
+  const { data: advisoryRules } = useAdvisoryRulesQuery();
+
+  const computedDas = React.useMemo(() => {
+    if (activeCycle?.sowing_date) {
+      const sowingTime = new Date(activeCycle.sowing_date).getTime();
+      const diffDays = Math.max(1, Math.floor((Date.now() - sowingTime) / (1000 * 60 * 60 * 24)));
+      const das = Math.min(diffDays, 140);
+      const pct = Math.round((das / 140) * 100);
+      return { das, pct, label: `Day ${das} / 140 (${pct}%)` };
+    }
+    return { das: 78, pct: 56, label: 'Day 78 / 140 (56%)' };
+  }, [activeCycle?.sowing_date]);
 
   const activeStageIndex = selectedField.currentStageIndex;
   const currentStage = STAGE_CONFIG[activeStageIndex];
   const displayedStageIndex = inspectedStageIndex !== null ? inspectedStageIndex : activeStageIndex;
   const displayedStage = STAGE_CONFIG[displayedStageIndex];
+
+  const activeStageRule = React.useMemo(() => {
+    if (advisoryRules && advisoryRules.length > 0) {
+      return advisoryRules.find((r) => r.stage_index === displayedStageIndex);
+    }
+    return null;
+  }, [advisoryRules, displayedStageIndex]);
 
   // Localized stage names
   const stageNames: Record<number, string> = {
@@ -228,7 +254,7 @@ export default function DashboardScreen() {
                   <View style={styles.dasBadge}>
                     <Ionicons name="calendar-outline" size={11} color="#64748B" style={{ marginRight: 3 }} />
                     <Text style={styles.dasText}>
-                      Day 78 / 140 (56%)
+                      {computedDas.label}
                     </Text>
                   </View>
                 </View>
@@ -405,7 +431,7 @@ export default function DashboardScreen() {
               <Text style={[styles.adviceBody, { fontSize: 13 * fontMultiplier, lineHeight: 19 * fontMultiplier }]}>
                 {language === 'ur'
                   ? 'گوبھ کا مرحلہ پانی کے لیے نہایت اہم ہے۔ زمین میں نمی برقرار رکھیں تاکہ سٹے میں دانوں کی تعداد کم نہ ہو۔'
-                  : selectedField.advisory.irrigationGuidance}
+                  : (activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance)}
               </Text>
             </View>
 
@@ -425,7 +451,7 @@ export default function DashboardScreen() {
               <Text style={[styles.adviceBody, { fontSize: 13 * fontMultiplier, lineHeight: 19 * fontMultiplier }]}>
                 {language === 'ur'
                   ? 'اس مرحلے پر یوریا کھاد کا اضافی استعمال مت کریں تاکہ پودا گرنے سے محفوظ رہے، اور جھنڈا پتے کی صحت کا خیال رکھیں۔'
-                  : selectedField.advisory.nutrientGuidance}
+                  : (activeStageRule ? `${activeStageRule.critical_nutrient} — ${activeStageRule.primary_action}` : selectedField.advisory.nutrientGuidance)}
               </Text>
             </View>
 

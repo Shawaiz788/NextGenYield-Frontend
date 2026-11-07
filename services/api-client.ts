@@ -10,6 +10,9 @@ export class BackendUnreachableError extends Error {
   }
 }
 
+// ==========================================
+// User & Auth DTOs
+// ==========================================
 export interface UserProfileDTO {
   user_id: string;
   full_name: string;
@@ -26,6 +29,9 @@ export interface AuthResponseDTO {
   user: UserProfileDTO;
 }
 
+// ==========================================
+// Field DTOs
+// ==========================================
 export interface FieldCreateDTO {
   field_name: string;
   shape_type: string;
@@ -34,6 +40,18 @@ export interface FieldCreateDTO {
   boundary_geojson: any;
   center_latitude?: number;
   center_longitude?: number;
+  soil_texture?: string;
+}
+
+export interface FieldUpdateDTO {
+  field_name?: string;
+  shape_type?: string;
+  area_acres?: number;
+  area_sqm?: number;
+  boundary_geojson?: any;
+  center_latitude?: number;
+  center_longitude?: number;
+  soil_texture?: string;
 }
 
 export interface FieldResponseDTO {
@@ -46,17 +64,43 @@ export interface FieldResponseDTO {
   boundary_geojson: any;
   center_latitude: number;
   center_longitude: number;
-  current_cycle_id?: string;
+  current_cycle_id?: string | null;
   created_at: string;
 }
 
+// ==========================================
+// Crop Cycle & Schedule DTOs
+// ==========================================
 export interface StartCycleDTO {
   field_id: string;
   wheat_variety: string;
   seed_company: string;
   fertilizer_company: string;
   sowing_method?: string;
-  sowing_date: string;
+  sowing_date: string; // ISO YYYY-MM-DD
+  target_harvest_date?: string;
+}
+
+export interface FertilizerScheduleDTO {
+  schedule_id: number;
+  cycle_id: string;
+  stage_name: string;
+  nutrient_type: string;
+  dose_per_acre: string;
+  target_das: number;
+  is_applied: boolean;
+  applied_date?: string | null;
+}
+
+export interface IrrigationScheduleDTO {
+  schedule_id: number;
+  cycle_id: string;
+  stage_name: string;
+  event_name: string;
+  target_das: number;
+  water_depth_inches: number;
+  is_completed: boolean;
+  completed_date?: string | null;
 }
 
 export interface CycleResponseDTO {
@@ -70,10 +114,87 @@ export interface CycleResponseDTO {
   target_harvest_date: string;
   is_active: boolean;
   created_at: string;
-  fertilizer_schedules: any[];
-  irrigation_schedules: any[];
+  fertilizer_schedules: FertilizerScheduleDTO[];
+  irrigation_schedules: IrrigationScheduleDTO[];
 }
 
+// ==========================================
+// Observation DTOs
+// ==========================================
+export interface ObservationResponseDTO {
+  observation_id: string;
+  cycle_id: string;
+  image_uri: string;
+  stage_index: number;
+  stage_name: string;
+  confidence: number;
+  pitch_angle_deg: number;
+  blur_score: number;
+  das: number;
+  created_at: string;
+}
+
+export interface UploadObservationParams {
+  cycleId: string;
+  stageIndex: number;
+  stageName: string;
+  confidence: number;
+  pitchAngleDeg: number;
+  blurScore: number;
+  das: number;
+  imageUri: string;
+  filename?: string;
+}
+
+// ==========================================
+// Advisory DTOs
+// ==========================================
+export interface AdvisoryRuleDTO {
+  rule_id: number;
+  stage_index: number;
+  stage_name: string;
+  primary_action: string;
+  primary_action_ur: string;
+  secondary_advice: string;
+  secondary_advice_ur: string;
+  critical_nutrient: string;
+  water_recommendation: string;
+  weed_management: string;
+}
+
+// ==========================================
+// Peer Showcase DTOs
+// ==========================================
+export interface ShowcasePostDTO {
+  showcase_id: string;
+  user_id: string;
+  title: string;
+  field_name: string;
+  region: string;
+  wheat_variety: string;
+  actual_yield_maunds: number;
+  sowing_date?: string | null;
+  harvesting_date?: string | null;
+  key_tactics?: string | null;
+  photo_url?: string | null;
+  created_at: string;
+}
+
+export interface ShowcaseCreateDTO {
+  title: string;
+  field_name: string;
+  region: string;
+  wheat_variety: string;
+  actual_yield_maunds: number;
+  sowing_date?: string;
+  harvesting_date?: string;
+  key_tactics?: string;
+  photo_url?: string;
+}
+
+// ==========================================
+// Auth Token & URL Management
+// ==========================================
 let activeAuthToken: string | null = null;
 
 export function setAuthToken(token: string | null) {
@@ -89,9 +210,12 @@ export function getBackendBaseUrl(): string {
   if (envUrl && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return 'http://10.250.174.230:8000';
+  return 'http://192.168.2.146:8000';
 }
 
+// ==========================================
+// Centralized API Client
+// ==========================================
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const baseUrl = getBackendBaseUrl();
@@ -131,10 +255,18 @@ class ApiClient {
         }
       } catch (_) {}
       logger.warn(`API response status [${res.status}] on ${endpoint}:`, errMsg);
-      throw new Error(errMsg);
+      const error: any = new Error(errMsg);
+      error.status = res.status;
+      throw error;
     }
 
     logger.debug(`API Success: [${options.method || 'GET'}] ${url} (${res.status})`);
+    
+    // Support HTTP 204 No Content
+    if (res.status === 204) {
+      return {} as T;
+    }
+
     return res.json() as Promise<T>;
   }
 
@@ -179,10 +311,27 @@ class ApiClient {
     return this.request<FieldResponseDTO[]>('/fields/');
   }
 
+  async getField(fieldId: string): Promise<FieldResponseDTO> {
+    return this.request<FieldResponseDTO>(`/fields/${fieldId}`);
+  }
+
   async createField(field: FieldCreateDTO): Promise<FieldResponseDTO> {
     return this.request<FieldResponseDTO>('/fields/', {
       method: 'POST',
       body: JSON.stringify(field),
+    });
+  }
+
+  async updateField(fieldId: string, field: FieldUpdateDTO): Promise<FieldResponseDTO> {
+    return this.request<FieldResponseDTO>(`/fields/${fieldId}`, {
+      method: 'PUT',
+      body: JSON.stringify(field),
+    });
+  }
+
+  async deleteField(fieldId: string): Promise<void> {
+    await this.request<void>(`/fields/${fieldId}`, {
+      method: 'DELETE',
     });
   }
 
@@ -197,20 +346,127 @@ class ApiClient {
         fertilizer_company: cycle.fertilizer_company,
         sowing_method: cycle.sowing_method || 'Drill Sowing',
         sowing_date: cycle.sowing_date,
+        target_harvest_date: cycle.target_harvest_date,
       }),
     });
   }
 
-  // --- Agronomic Advisory & Rules ---
-  async getAdvisoryRules(): Promise<any[]> {
-    return this.request<any[]>('/advisory/rules');
+  async getCropCycle(cycleId: string): Promise<CycleResponseDTO> {
+    return this.request<CycleResponseDTO>(`/crop-cycles/${cycleId}`);
   }
 
-  // --- Peer Benchmarks ---
-  async getShowcaseFields(): Promise<any[]> {
-    return this.request<any[]>('/showcase/');
+  async getActiveCropCycle(fieldId: string): Promise<CycleResponseDTO | null> {
+    try {
+      return await this.request<CycleResponseDTO>(`/crop-cycles/field/${fieldId}/active`);
+    } catch (err: any) {
+      if (err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('No active crop cycle')) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async applyFertilizer(scheduleId: number): Promise<FertilizerScheduleDTO> {
+    return this.request<FertilizerScheduleDTO>(`/crop-cycles/fertilizer/${scheduleId}/apply`, {
+      method: 'PUT',
+    });
+  }
+
+  async completeIrrigation(scheduleId: number): Promise<IrrigationScheduleDTO> {
+    return this.request<IrrigationScheduleDTO>(`/crop-cycles/irrigation/${scheduleId}/complete`, {
+      method: 'PUT',
+    });
+  }
+
+  // --- Observations Endpoints ---
+  async getObservations(cycleId: string): Promise<ObservationResponseDTO[]> {
+    return this.request<ObservationResponseDTO[]>(`/observations/cycle/${cycleId}`);
+  }
+
+  async uploadObservation(params: UploadObservationParams): Promise<ObservationResponseDTO> {
+    const baseUrl = getBackendBaseUrl();
+    const url = `${baseUrl}/api/v1/observations/`;
+
+    const formData = new FormData();
+    formData.append('cycle_id', params.cycleId);
+    formData.append('stage_index', String(params.stageIndex));
+    formData.append('stage_name', params.stageName);
+    formData.append('confidence', String(params.confidence));
+    formData.append('pitch_angle_deg', String(params.pitchAngleDeg));
+    formData.append('blur_score', String(params.blurScore));
+    formData.append('das', String(params.das));
+
+    const filename = params.filename || `canopy_${Date.now()}.jpg`;
+
+    // React Native FormData file attachment
+    formData.append('image', {
+      uri: params.imageUri,
+      name: filename,
+      type: 'image/jpeg',
+    } as any);
+
+    const headers: Record<string, string> = {};
+    if (activeAuthToken) {
+      headers['Authorization'] = `Bearer ${activeAuthToken}`;
+    }
+
+    logger.debug(`API Upload Observation: [POST] ${url}`);
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+    } catch (networkErr: any) {
+      logger.warn(`Network unavailable during observation upload to ${url}:`, networkErr?.message || networkErr);
+      throw new BackendUnreachableError(
+        `Unable to reach backend server at ${baseUrl}. Please check your connection or server status.`,
+        baseUrl
+      );
+    }
+
+    if (!res.ok) {
+      let errMsg = `Upload failed with status ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) {
+          errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+        }
+      } catch (_) {}
+      logger.warn(`API upload error [${res.status}]:`, errMsg);
+      throw new Error(errMsg);
+    }
+
+    return res.json() as Promise<ObservationResponseDTO>;
+  }
+
+  // --- Agronomic Advisory Endpoints ---
+  async getAdvisoryRules(): Promise<AdvisoryRuleDTO[]> {
+    return this.request<AdvisoryRuleDTO[]>('/advisory/rules');
+  }
+
+  async getAdvisoryRule(stageIndex: number): Promise<AdvisoryRuleDTO> {
+    return this.request<AdvisoryRuleDTO>(`/advisory/rules/${stageIndex}`);
+  }
+
+  // --- Peer Showcase Endpoints ---
+  async getShowcasePosts(): Promise<ShowcasePostDTO[]> {
+    return this.request<ShowcasePostDTO[]>('/showcase/');
+  }
+
+  async getShowcasePost(showcaseId: string): Promise<ShowcasePostDTO> {
+    return this.request<ShowcasePostDTO>(`/showcase/${showcaseId}`);
+  }
+
+  async submitShowcase(post: ShowcaseCreateDTO): Promise<ShowcasePostDTO> {
+    return this.request<ShowcasePostDTO>('/showcase/', {
+      method: 'POST',
+      body: JSON.stringify(post),
+    });
   }
 }
 
 export const api = new ApiClient();
-
+export default api;

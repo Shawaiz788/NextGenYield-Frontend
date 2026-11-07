@@ -30,6 +30,10 @@ import {
   getConfidenceBadgeColor,
 } from '@/hooks/use-growth-stage';
 import { GrowthStagePrediction } from '@/services/growth-stage-api';
+import { useUploadObservationMutation } from '@/hooks/use-observations';
+import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
+import { logger } from '@/services/logger';
+
 
 export default function CameraScanScreen() {
   const {
@@ -101,6 +105,10 @@ export default function CameraScanScreen() {
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [tempUrlInput, setTempUrlInput] = useState(baseUrl);
   const [saveSuccessToast, setSaveSuccessToast] = useState(false);
+  const uploadObsMutation = useUploadObservationMutation();
+  const { data: activeCycle } = useActiveCropCycleQuery(selectedField?.id);
+  const [isUploading, setIsUploading] = useState(false);
+
 
   const isCameraAudioActive = playingAudioId === 'camera_guidance';
   const isResultAudioActive = playingAudioId === 'result_advice';
@@ -171,7 +179,7 @@ export default function CameraScanScreen() {
   };
 
   // ─── Save Observation to Selected Field ──────────────────────────────────
-  const handleSaveObservation = () => {
+  const handleSaveObservation = async () => {
     if (!prediction || !capturedImageUri) return;
 
     addScanObservation({
@@ -183,12 +191,37 @@ export default function CameraScanScreen() {
       angleScore: downwardAngle,
     });
 
+    if (activeCycle?.cycle_id) {
+      setIsUploading(true);
+      try {
+        const sowingTime = new Date(activeCycle.sowing_date).getTime();
+        const diffDays = Math.max(1, Math.floor((Date.now() - sowingTime) / (1000 * 60 * 60 * 24)));
+        const das = Math.min(140, diffDays);
+
+        await uploadObsMutation.mutateAsync({
+          cycleId: activeCycle.cycle_id,
+          stageIndex: prediction.stage_index,
+          stageName: prediction.stage_name,
+          confidence: prediction.confidence,
+          pitchAngleDeg: downwardAngle,
+          blurScore: 95.0,
+          das,
+          imageUri: capturedImageUri,
+        });
+        logger.info('Observation persisted to cloud storage & database');
+      } catch (err: any) {
+        logger.warn('Cloud observation upload error, retained local record:', err?.message || err);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     setSaveSuccessToast(true);
     setTimeout(() => {
       setSaveSuccessToast(false);
       setShowResultSheet(false);
       router.push('/(tabs)');
-    }, 1500);
+    }, 1200);
   };
 
   // ─── Save Server URL ─────────────────────────────────────────────────────
@@ -608,12 +641,24 @@ export default function CameraScanScreen() {
                 <View style={styles.modalButtonsRow}>
                   <TouchableOpacity
                     onPress={handleSaveObservation}
-                    style={styles.saveObservationBtn}
+                    disabled={isUploading}
+                    style={[styles.saveObservationBtn, isUploading && { opacity: 0.85 }]}
                     activeOpacity={0.85}>
-                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.saveObservationBtnText}>
-                      {saveSuccessToast ? 'Saved!' : t.saveToTimeline}
-                    </Text>
+                    {isUploading ? (
+                      <>
+                        <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.saveObservationBtnText}>
+                          {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Uploading...'}
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.saveObservationBtnText}>
+                          {saveSuccessToast ? (language === 'ur' ? 'محفوظ ہو گیا!' : 'Saved!') : t.saveToTimeline}
+                        </Text>
+                      </>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity

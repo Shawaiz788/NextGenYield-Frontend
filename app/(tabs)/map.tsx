@@ -17,6 +17,11 @@ import { STAGE_CONFIG, FontFamily, Colors, Spacing, Radius } from '@/constants/t
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { RealLeafletMap } from '@/components/real-leaflet-map';
+import { useFieldsQuery, useCreateFieldMutation } from '@/hooks/use-fields';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { logger } from '@/services/logger';
+import { ActivityIndicator } from 'react-native';
+
 
 export default function FarmMapScreen() {
   const { setSelectedFieldId, mapFields, addNewField, t, language, fontMultiplier } = useApp();
@@ -34,6 +39,44 @@ export default function FarmMapScreen() {
   const [soilTextureInput, setSoilTextureInput] = useState('Sandy Loam');
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const fieldsQuery = useFieldsQuery();
+  const createFieldMutation = useCreateFieldMutation();
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
+  const [saveError, setSaveError] = useState<Error | null>(null);
+
+  const liveMapFields = React.useMemo<MapFieldItem[]>(() => {
+    if (!fieldsQuery.data || fieldsQuery.data.length === 0) {
+      return mapFields;
+    }
+    const backendItems: MapFieldItem[] = fieldsQuery.data.map((f, idx) => {
+      let coords: [number, number][] = [];
+      try {
+        if (f.boundary_geojson?.type === 'Polygon' && f.boundary_geojson.coordinates?.[0]) {
+          coords = f.boundary_geojson.coordinates[0].map((pt: [number, number]) => [pt[1], pt[0]]);
+        }
+      } catch (_) {}
+
+      return {
+        id: f.field_id,
+        code: f.field_name.split('·')[0]?.trim() || `PK-FSD-0${idx + 1}`,
+        name: f.field_name,
+        stageIndex: 2,
+        stageName: f.current_cycle_id ? 'Active Cycle' : 'Fallow',
+        variety: 'Akbar-2019',
+        yieldKgSqm: 0.38,
+        color: f.current_cycle_id ? '#16A34A' : '#EAB308',
+        acres: f.area_acres,
+        isMine: true,
+        shapeType: (f.shape_type as any) || 'polygon',
+        cycleStatus: f.current_cycle_id ? 'active' : 'not_started',
+        coordinates: coords.length > 0 ? coords : undefined,
+      };
+    });
+
+    const regional = mapFields.filter((m) => !m.isMine);
+    return [...backendItems, ...regional];
+  }, [fieldsQuery.data, mapFields]);
+
 
   const handleSelectShape = (shape: 'polygon' | 'rectangle' | 'square' | 'circle') => {
     setSelectedShape(shape);
@@ -46,14 +89,14 @@ export default function FarmMapScreen() {
   // Start Crop Cycle Modal State
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
 
-  const filteredFields = mapFields.filter((f) => {
+  const filteredFields = liveMapFields.filter((f) => {
     if (activeFilter === 'booting') return f.stageName === 'Booting';
     if (activeFilter === 'fallow') return f.cycleStatus === 'not_started';
     return true;
   });
 
   const handleSelectField = (fieldId: string) => {
-    const f = mapFields.find((item) => item.id === fieldId);
+    const f = liveMapFields.find((item) => item.id === fieldId);
     if (f) {
       setSelectedMapField(f);
       if (f.isMine) {
@@ -69,7 +112,7 @@ export default function FarmMapScreen() {
     setDrawnCoords(data.coords);
   };
 
-  const handleSaveDrawnField = () => {
+  const handleSaveDrawnField = async () => {
     if (drawnCoords.length < 3) {
       Alert.alert(
         language === 'ur' ? 'باؤنڈری نامکمل ہے' : 'Incomplete Boundary',
@@ -81,23 +124,51 @@ export default function FarmMapScreen() {
     }
 
     const acresNum = parseFloat(acresInput) || 3.8;
+    const ring = drawnCoords.map(([lat, lng]) => [lng, lat]);
+    ring.push([drawnCoords[0][1], drawnCoords[0][0]]);
 
-    addNewField({
-      code: fieldCodeInput || 'PK-FSD-05',
-      displayName: fieldNameInput || 'Mustafa Town West Parcel',
-      areaAcres: acresNum,
-      shapeType: selectedShape,
-      soilTexture: soilTextureInput,
-      coordinates: drawnCoords,
-    });
+    const boundary_geojson = {
+      type: 'Polygon',
+      coordinates: [ring],
+    };
 
-    setIsDrawModeOpen(false);
-    setToastMessage(
-      language === 'ur'
-        ? `${fieldCodeInput} کی باؤنڈری مصطفیٰ ٹاؤن کے نقشے پر محفوظ ہو گئی ہے!`
-        : `Field ${fieldCodeInput} boundary saved near Mustafa Town!`
-    );
-    setTimeout(() => setToastMessage(null), 3500);
+    setSaveStatus('saving');
+    setSaveError(null);
+
+    try {
+      await createFieldMutation.mutateAsync({
+        field_name: fieldNameInput.trim() || 'Mustafa Town Wheat Parcel',
+        shape_type: selectedShape,
+        area_acres: acresNum,
+        boundary_geojson,
+        soil_texture: soilTextureInput,
+      });
+
+      addNewField({
+        code: fieldCodeInput || 'PK-FSD-05',
+        displayName: fieldNameInput || 'Mustafa Town West Parcel',
+        areaAcres: acresNum,
+        shapeType: selectedShape,
+        soilTexture: soilTextureInput,
+        coordinates: drawnCoords,
+      });
+
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setIsDrawModeOpen(false);
+        setToastMessage(
+          language === 'ur'
+            ? `${fieldNameInput} محفوظ ہو گیا ہے!`
+            : `Field ${fieldNameInput} saved successfully!`
+        );
+        setTimeout(() => setToastMessage(null), 3500);
+      }, 500);
+    } catch (err: any) {
+      logger.warn('Failed to save field to backend:', err.message);
+      setSaveError(err);
+      setSaveStatus('idle');
+    }
   };
 
   return (
@@ -393,6 +464,14 @@ export default function FarmMapScreen() {
             </View>
           </View>
 
+          {saveError && (
+            <BackendReachabilityBanner
+              isUrdu={language === 'ur'}
+              error={saveError}
+              onRetry={handleSaveDrawnField}
+              style={{ marginHorizontal: 0, marginBottom: 8 }}
+            />
+          )}
           {/* Action Buttons */}
           <View style={styles.addFieldActionsRow}>
             <TouchableOpacity
@@ -406,9 +485,22 @@ export default function FarmMapScreen() {
               onPress={handleSaveDrawnField}
               style={styles.saveFieldBtn}
               activeOpacity={0.85}>
-              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
               <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
+              {saveStatus === 'saving' ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                    {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Saving Field...'}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                    {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
+                  </Text>
+                </>
+              )}
               </Text>
             </TouchableOpacity>
           </View>

@@ -7,10 +7,26 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp, MapFieldItem } from '@/context/app-context';
 import { FieldData } from '@/constants/mock-data';
+import { useStartCropCycleMutation } from '@/hooks/use-crop-cycles';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { logger } from '@/services/logger';
+
+function normalizeToIsoDate(dateStr: string): string {
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+  return new Date().toISOString().split('T')[0];
+}
 
 interface StartCycleModalProps {
   visible: boolean;
@@ -57,28 +73,77 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
   const [sowingDate, setSowingDate] = useState('02 Oct 2026');
   const [sowingMethod, setSowingMethod] = useState('Drill Sowing (9 inch)');
   const [targetYield, setTargetYield] = useState('55');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'success'>('idle');
+  const [cycleError, setCycleError] = useState<Error | null>(null);
+
+  const startCycleMutation = useStartCropCycleMutation();
 
   if (!visible || !field) return null;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const varietyToUse = isCustomVariety && customVariety.trim() ? customVariety.trim() : selectedVariety;
     const yieldNum = parseFloat(targetYield) || 55.0;
+    const isoSowingDate = normalizeToIsoDate(sowingDate);
+
+    setSubmitStatus('sending');
+    setCycleError(null);
+
+    try {
+      await startCycleMutation.mutateAsync({
+        field_id: field.id,
+        wheat_variety: varietyToUse,
+        seed_company: selectedSeedCompany,
+        fertilizer_company: selectedFertilizerCompany,
+        sowing_date: isoSowingDate,
+        sowing_method: sowingMethod,
+      });
+
+      startCropCycle({
+        fieldId: field.id,
+        wheatVariety: varietyToUse,
+        seedCompany: selectedSeedCompany,
+        fertilizerCompany: selectedFertilizerCompany,
+        sowingDate: isoSowingDate,
+        sowingMethod,
+        targetYieldMaunds: yieldNum,
+      });
+
+      setSubmitStatus('success');
+      setTimeout(() => {
+        setSubmitStatus('idle');
+        onClose();
+        if (onSuccess) {
+          onSuccess(field.code);
+        }
+      }, 500);
+    } catch (err: any) {
+      logger.warn('Backend start crop cycle failed:', err.message);
+      setCycleError(err);
+      setSubmitStatus('idle');
+    }
+  };
+
+  const handleOfflineFallback = () => {
+    const varietyToUse = isCustomVariety && customVariety.trim() ? customVariety.trim() : selectedVariety;
+    const yieldNum = parseFloat(targetYield) || 55.0;
+    const isoSowingDate = normalizeToIsoDate(sowingDate);
 
     startCropCycle({
       fieldId: field.id,
       wheatVariety: varietyToUse,
       seedCompany: selectedSeedCompany,
       fertilizerCompany: selectedFertilizerCompany,
-      sowingDate,
+      sowingDate: isoSowingDate,
       sowingMethod,
       targetYieldMaunds: yieldNum,
     });
-
+    setCycleError(null);
     onClose();
     if (onSuccess) {
       onSuccess(field.code);
     }
   };
+
 
   const fieldName = 'name' in field ? field.name : field.displayName;
   const fieldAcres = 'acres' in field ? field.acres : field.areaAcres;
@@ -273,16 +338,48 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
             </View>
           </ScrollView>
 
+          {cycleError && (
+            <View style={{ marginBottom: 6 }}>
+              <BackendReachabilityBanner
+                isUrdu={language === 'ur'}
+                error={cycleError}
+                onRetry={handleConfirm}
+                style={{ marginHorizontal: 0 }}
+              />
+              <TouchableOpacity onPress={handleOfflineFallback} style={{ alignSelf: 'center', marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '600' }}>
+                  {language === 'ur' ? 'آف لائن موڈ میں جاری رکھیں' : 'Continue in Offline Mode'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {/* Bottom Actions */}
           <View style={styles.footer}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.7}>
               <Text style={styles.cancelBtnText}>{t.cancel}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleConfirm} style={styles.startBtn} activeOpacity={0.85}>
-              <Ionicons name="leaf" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <TouchableOpacity
+              onPress={handleConfirm}
+              disabled={submitStatus === 'sending'}
+              style={[styles.startBtn, submitStatus === 'sending' && { opacity: 0.85 }]}
+              activeOpacity={0.85}>
               <Text style={[styles.startBtnText, { fontSize: 15 * fontMultiplier }]}>
-                {language === 'ur' ? 'تصدیق کریں اور فصل شروع کریں' : 'Confirm & Start Cycle'}
+              {submitStatus === 'sending' ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.startBtnText, { fontSize: 14 * fontMultiplier }]}>
+                    {language === 'ur' ? 'شروع ہو رہا ہے...' : 'Activating Cycle...'}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="leaf" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.startBtnText, { fontSize: 15 * fontMultiplier }]}>
+                    {language === 'ur' ? 'تصدیق کریں اور فصل شروع کریں' : 'Confirm & Start Cycle'}
+                  </Text>
+                </>
+              )}
               </Text>
             </TouchableOpacity>
           </View>

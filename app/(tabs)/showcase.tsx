@@ -14,6 +14,11 @@ import { useApp } from '@/context/app-context';
 import { PeerShowcaseField, CropCycleEvent } from '@/constants/mock-data';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { useShowcasePostsQuery, useSubmitShowcaseMutation } from '@/hooks/use-showcase';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { logger } from '@/services/logger';
+import { ActivityIndicator, TextInput, Alert } from 'react-native';
+
 
 const CATEGORY_COLORS: Record<CropCycleEvent['category'], string> = {
   water: '#3B82F6',
@@ -30,8 +35,96 @@ export default function BestPracticeShowcaseScreen() {
   const [expandedId, setExpandedId] = useState<string | null>('peer_field_01');
   const [adoptingField, setAdoptingField] = useState<PeerShowcaseField | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showcaseQuery = useShowcasePostsQuery();
+  const submitShowcaseMutation = useSubmitShowcaseMutation();
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [submittingState, setSubmittingState] = useState<'idle' | 'sending' | 'success'>('idle');
+  const [submissionError, setSubmissionError] = useState<Error | null>(null);
 
-  const filtered = peerShowcase.filter((f) => {
+  // Form states for new showcase post
+  const [newTitle, setNewTitle] = useState('Chaudhry Record Plot');
+  const [newFieldName, setNewFieldName] = useState('Mustafa Town Canal Block');
+  const [newRegion, setNewRegion] = useState('Lahore');
+  const [newVariety, setNewVariety] = useState('Akbar-2019');
+  const [newYield, setNewYield] = useState('61.5');
+  const [newTactics, setNewTactics] = useState('Nitrogen split 3x; Potash spray at booting; Laser levelling');
+
+  const displayPosts = React.useMemo<PeerShowcaseField[]>(() => {
+    if (!showcaseQuery.data || showcaseQuery.data.length === 0) {
+      return peerShowcase;
+    }
+    const backendItems: PeerShowcaseField[] = showcaseQuery.data.map((item, idx) => ({
+      rank: idx + 1,
+      fieldId: item.showcase_id,
+      code: `PK-${item.region.slice(0, 3).toUpperCase()}-0${idx + 1}`,
+      district: item.region,
+      wheatVariety: item.wheat_variety,
+      seedCompany: 'Punjab Seed Corp',
+      soilTexture: 'Clay Loam',
+      areaAcres: 5.0,
+      areaSqm: 20234,
+      shapeType: 'polygon',
+      shapeDescription: 'Irregular demarcated plot',
+      yieldMaundsPerAcre: item.actual_yield_maunds,
+      yieldKgSqm: parseFloat((item.actual_yield_maunds * 0.0098).toFixed(2)),
+      vsRegionalAvg: `+${Math.max(5, Math.round(((item.actual_yield_maunds - 42) / 42) * 100))}%`,
+      sowingDate: item.sowing_date || '01 Nov 2025',
+      harvestDate: item.harvesting_date || '15 Apr 2026',
+      irrigationMethod: 'Laser-levelled Flood Irrigation',
+      fertilizerCompany: 'FFC / Sona DAP & Urea',
+      successFactors: item.key_tactics
+        ? item.key_tactics.split(';').map((t) => t.trim())
+        : ['Balanced N-P-K fertilization', 'Pre-booting irrigation management'],
+      cropCycle: [],
+      playbookAvailable: true,
+    }));
+
+    return [...backendItems, ...peerShowcase.filter((p) => !backendItems.some((b) => b.fieldId === p.fieldId))];
+  }, [showcaseQuery.data, peerShowcase]);
+
+  const handleSubmitShowcase = async () => {
+    if (!newTitle.trim() || !newFieldName.trim() || !newYield.trim()) {
+      Alert.alert('Incomplete Form', 'Please provide a title, field name, and actual yield.');
+      return;
+    }
+
+    const yieldNum = parseFloat(newYield);
+    if (isNaN(yieldNum) || yieldNum <= 0) {
+      Alert.alert('Invalid Yield', 'Please enter a valid positive number for yield.');
+      return;
+    }
+
+    setSubmittingState('sending');
+    setSubmissionError(null);
+
+    try {
+      await submitShowcaseMutation.mutateAsync({
+        title: newTitle.trim(),
+        field_name: newFieldName.trim(),
+        region: newRegion,
+        wheat_variety: newVariety,
+        actual_yield_maunds: yieldNum,
+        key_tactics: newTactics.trim(),
+        sowing_date: '2025-11-05',
+        harvesting_date: '2026-04-18',
+      });
+
+      setSubmittingState('success');
+      setTimeout(() => {
+        setSubmittingState('idle');
+        setIsSubmitModalOpen(false);
+        setToastMessage(language === 'ur' ? 'کامیاب ریکارڈ شائع ہو گیا!' : 'Yield playbook published to community!');
+        setTimeout(() => setToastMessage(null), 3000);
+      }, 500);
+    } catch (err: any) {
+      logger.warn('Failed to submit showcase post:', err.message);
+      setSubmissionError(err);
+      setSubmittingState('idle');
+    }
+  };
+
+
+  const filtered = displayPosts.filter((f) => {
     if (varietyFilter === 'all') return true;
     return f.wheatVariety === varietyFilter;
   });
@@ -88,7 +181,25 @@ export default function BestPracticeShowcaseScreen() {
               </Text>
             </View>
           </View>
-          <AccessibilityControls />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => setIsSubmitModalOpen(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#16A34A',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: Radius.sm,
+              }}
+              activeOpacity={0.8}>
+              <Ionicons name="add" size={15} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontFamily: FontFamily.bold, fontSize: 11, marginLeft: 2 }}>
+                {language === 'ur' ? 'شیئر کریں' : 'Share'}
+              </Text>
+            </TouchableOpacity>
+            <AccessibilityControls />
+          </View>
         </View>
 
         {/* Variety Filters */}
@@ -335,6 +446,138 @@ export default function BestPracticeShowcaseScreen() {
           </View>
         </Modal>
       )}
+      {/* Submit Yield Playbook Modal */}
+      <Modal visible={isSubmitModalOpen} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="trophy" size={20} color="#16A34A" />
+                </View>
+                <Text style={{ fontFamily: FontFamily.bold, fontSize: 16, color: Colors.light.text }}>
+                  {language === 'ur' ? 'کامیاب پیداوار شیئر کریں' : 'Share Proven Harvest'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsSubmitModalOpen(false)}>
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {submissionError && (
+              <BackendReachabilityBanner
+                isUrdu={language === 'ur'}
+                error={submissionError}
+                onRetry={handleSubmitShowcase}
+                style={{ marginHorizontal: 0, marginBottom: 10 }}
+              />
+            )}
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                {language === 'ur' ? 'عنوان / کسان کا نام' : 'Title / Farmer Name'}
+              </Text>
+              <TextInput
+                value={newTitle}
+                onChangeText={setNewTitle}
+                placeholder="e.g. Chaudhry Record Harvest"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+              />
+
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                {language === 'ur' ? 'کھیت کا نام' : 'Field / Parcel Name'}
+              </Text>
+              <TextInput
+                value={newFieldName}
+                onChangeText={setNewFieldName}
+                placeholder="e.g. Mustafa Town West"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                    {language === 'ur' ? 'گندم کی قسم' : 'Wheat Variety'}
+                  </Text>
+                  <TextInput
+                    value={newVariety}
+                    onChangeText={setNewVariety}
+                    placeholder="Akbar-2019"
+                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                    {language === 'ur' ? 'پیداوار (من/ایکڑ)' : 'Yield (Maunds/Ac)'}
+                  </Text>
+                  <TextInput
+                    value={newYield}
+                    onChangeText={setNewYield}
+                    keyboardType="numeric"
+                    placeholder="58.5"
+                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+                  />
+                </View>
+              </View>
+
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                {language === 'ur' ? 'علاقہ / ضلع' : 'Region / District'}
+              </Text>
+              <TextInput
+                value={newRegion}
+                onChangeText={setNewRegion}
+                placeholder="Faisalabad / Lahore"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+              />
+
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                {language === 'ur' ? 'اہم طریقہ کار اور حکمت عملی' : 'Key Agronomic Tactics'}
+              </Text>
+              <TextInput
+                value={newTactics}
+                onChangeText={setNewTactics}
+                multiline
+                numberOfLines={3}
+                placeholder="e.g. Split DAP application, Potash at booting, laser levelling"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 14, fontFamily: FontFamily.medium, fontSize: 13, minHeight: 60 }}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setIsSubmitModalOpen(false)}
+                  disabled={submittingState === 'sending'}
+                  style={{ flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center' }}>
+                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 13, color: '#475569' }}>
+                    {t.cancel}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSubmitShowcase}
+                  disabled={submittingState === 'sending'}
+                  style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, backgroundColor: '#16A34A', opacity: submittingState === 'sending' ? 0.85 : 1 }}>
+                  {submittingState === 'sending' ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={{ fontFamily: FontFamily.bold, fontSize: 14, color: '#FFFFFF' }}>
+                        {language === 'ur' ? 'شائع ہو رہا ہے...' : 'Publishing...'}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={{ fontFamily: FontFamily.bold, fontSize: 14, color: '#FFFFFF' }}>
+                        {language === 'ur' ? 'کمیونٹی میں شائع کریں' : 'Publish Playbook'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

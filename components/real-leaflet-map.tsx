@@ -3,6 +3,7 @@ import { StyleSheet, View, Platform, ActivityIndicator, TouchableOpacity } from 
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { MapFieldItem } from '@/context/app-context';
+import { logger } from '@/services/logger';
 
 interface RealLeafletMapProps {
   fields: MapFieldItem[];
@@ -37,7 +38,7 @@ export function RealLeafletMap({
       try {
         iframeRef.current?.contentWindow?.postMessage(jsonStr, '*');
       } catch (err) {
-        console.warn('Web iframe postMessage error:', err);
+        logger.warn('Web iframe postMessage error:', err);
       }
     } else if (webViewRef.current) {
       webViewRef.current.injectJavaScript(`
@@ -577,7 +578,7 @@ export function RealLeafletMap({
           coords: data.coords,
         });
       } else if (data.type === 'webview_error') {
-        console.warn('WebView Leaflet error:', data.message, data.lineno);
+        logger.warn('WebView Leaflet error:', data.message, data.lineno);
       }
     } catch {
       // Ignore parse error
