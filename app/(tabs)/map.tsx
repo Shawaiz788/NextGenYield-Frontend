@@ -7,6 +7,8 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -400,6 +402,10 @@ export default function FarmMapScreen() {
       {/* ─── Bottom Panel: Add Field Sheet OR Selected Field Card ─── */}
       {isDrawModeOpen ? (
         /* ─── Add Field Bottom Setup Sheet (Map remains visible above) ─── */
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
+          style={styles.keyboardAvoidingWrap}>
         <View style={styles.addFieldBottomPanel}>
           <View style={styles.bottomCardHandle} />
 
@@ -505,6 +511,7 @@ export default function FarmMapScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       ) : (
         /* ─── Standard Selected Field Bottom Card ─── */
         <View style={styles.bottomCard}>
@@ -927,6 +934,10 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
 
+  keyboardAvoidingWrap: {
+    width: '100%',
+    zIndex: 90,
+  },
   // ─── Add Field Bottom Panel ────────────────
   addFieldBottomPanel: {
     backgroundColor: '#FFFFFF',
