@@ -10,6 +10,9 @@ import {
 } from '@/constants/mock-data';
 import { TRANSLATIONS, Language } from '@/constants/translations';
 import { useFieldsQuery } from '@/hooks/use-fields';
+import { setAuthToken } from '@/services/api-client';
+import { sessionStore } from '@/services/session-store';
+import { logger } from '@/services/logger';
 
 export const FALLBACK_EMPTY_FIELD: FieldData = {
   id: '',
@@ -109,10 +112,11 @@ interface AppContextType {
   addNewField: (input: NewFieldInput) => void;
   startCropCycle: (input: StartCycleInput) => void;
   // Authentication & Profile
+  isAuthLoading: boolean;
   isAuthenticated: boolean;
   userProfile: UserProfile;
-  login: (info?: Partial<UserProfile>) => void;
-  logout: () => void;
+  login: (info?: Partial<UserProfile>, token?: string) => Promise<void>;
+  logout: () => Promise<void>;
   // Accessibility features
   language: Language;
   toggleLanguage: () => void;
@@ -136,7 +140,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [gyroSimulatedAngle, setGyroSimulatedAngle] = useState<number>(64);
   const [mapFields, setMapFields] = useState<MapFieldItem[]>([]);
 
-  // Authentication State (defaults to false so login screen is shown first)
+  // Authentication State
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     fullName: 'Chaudhry Muhammad Akram',
@@ -148,6 +153,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     seasonYieldMaunds: 840,
     cnicNumber: '35201-1984729-1',
   });
+
+  // Restore secure persistent session on app start
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreSession() {
+      try {
+        const storedToken = await sessionStore.getToken();
+        const storedProfile = await sessionStore.getUserProfile();
+
+        if (storedToken && storedToken.trim() !== '') {
+          setAuthToken(storedToken);
+          if (isMounted) {
+            setIsAuthenticated(true);
+            if (storedProfile) {
+              setUserProfile((prev) => ({ ...prev, ...storedProfile }));
+            }
+          }
+          logger.info('Restored authenticated session from secure storage.');
+        } else {
+          logger.info('No active session token found in secure storage.');
+        }
+      } catch (err: any) {
+        logger.warn('Error while restoring session:', err?.message || err);
+      } finally {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      }
+    }
+    restoreSession();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const { data: backendFields } = useFieldsQuery();
 
@@ -226,15 +265,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [backendFields]);
 
-  const login = (info?: Partial<UserProfile>) => {
+  const login = async (info?: Partial<UserProfile>, token?: string) => {
     setIsAuthenticated(true);
+    if (token) {
+      setAuthToken(token);
+      await sessionStore.saveToken(token);
+    }
     if (info) {
-      setUserProfile((prev) => ({ ...prev, ...info }));
+      setUserProfile((prev) => {
+        const next = { ...prev, ...info };
+        sessionStore.saveUserProfile(next);
+        return next;
+      });
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsAuthenticated(false);
+    setAuthToken(null);
+    await sessionStore.clearSession();
   };
 
   // Farmer Accessibility State
@@ -503,6 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mapFields,
         addNewField,
         startCropCycle,
+        isAuthLoading,
         isAuthenticated,
         userProfile,
         login,

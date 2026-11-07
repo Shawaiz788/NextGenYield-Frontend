@@ -184,13 +184,15 @@ export default function AuthScreen() {
 
         // 3. Progressive State: Success
         setSubmitStatus('success');
-        setAuthToken(resp.access_token);
-        login({
-          fullName: resp.user.full_name,
-          phoneNumber: resp.user.phone_number,
-          district: resp.user.district,
-          role: resp.user.role,
-        });
+        await login(
+          {
+            fullName: resp.user.full_name,
+            phoneNumber: resp.user.phone_number,
+            district: resp.user.district,
+            role: resp.user.role,
+          },
+          resp.access_token
+        );
 
         setTimeout(() => {
           router.replace('/(tabs)');
@@ -204,13 +206,15 @@ export default function AuthScreen() {
 
         // 3. Progressive State: Success
         setSubmitStatus('success');
-        setAuthToken(resp.access_token);
-        login({
-          fullName: resp.user.full_name,
-          phoneNumber: resp.user.phone_number,
-          district: resp.user.district,
-          role: resp.user.role,
-        });
+        await login(
+          {
+            fullName: resp.user.full_name,
+            phoneNumber: resp.user.phone_number,
+            district: resp.user.district,
+            role: resp.user.role,
+          },
+          resp.access_token
+        );
 
         setTimeout(() => {
           router.replace('/(tabs)');

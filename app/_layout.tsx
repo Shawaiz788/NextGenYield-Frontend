@@ -39,11 +39,14 @@ export const unstable_settings = {
 };
 
 function NavigationGuard() {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, isAuthLoading } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
+    // Wait until secure session restoration check finishes
+    if (isAuthLoading) return;
+
     const inAuthGroup = segments[0] === 'auth';
 
     if (!isAuthenticated && !inAuthGroup) {
@@ -51,7 +54,7 @@ function NavigationGuard() {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, segments, router]);
+  }, [isAuthenticated, isAuthLoading, segments, router]);
 
   return null;
 }

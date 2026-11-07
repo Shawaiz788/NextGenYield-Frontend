@@ -52,7 +52,8 @@
         {
           "locationWhenInUsePermission": "NextGenYield needs your location to center the farm satellite map and assist with field boundary demarcation."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
