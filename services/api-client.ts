@@ -65,6 +65,7 @@ export interface FieldResponseDTO {
   boundary_geojson: any;
   center_latitude: number;
   center_longitude: number;
+  soil_texture?: string;
   current_cycle_id?: string | null;
   created_at: string;
 }
@@ -214,11 +215,15 @@ export function getBackendBaseUrl(): string {
   return 'http://192.168.2.146:8000';
 }
 
+interface RequestOptions extends RequestInit {
+  silent404?: boolean;
+}
+
 // ==========================================
 // Centralized API Client
 // ==========================================
 class ApiClient {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const baseUrl = getBackendBaseUrl();
     const url = `${baseUrl}/api/v1${endpoint}`;
 
@@ -255,7 +260,13 @@ class ApiClient {
           errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
         }
       } catch (_) { }
-      logger.warn(`API response status [${res.status}] on ${endpoint}:`, errMsg);
+
+      if (res.status === 404 && options.silent404) {
+        logger.debug(`API expected 404 handled on ${endpoint}: ${errMsg}`);
+      } else {
+        logger.warn(`API response status [${res.status}] on ${endpoint}:`, errMsg);
+      }
+
       const error: any = new Error(errMsg);
       error.status = res.status;
       throw error;
@@ -352,20 +363,30 @@ class ApiClient {
     });
   }
 
-  async getCropCycle(cycleId: string): Promise < CycleResponseDTO > {
-      return this.request<CycleResponseDTO>(`/crop-cycles/${cycleId}`);
-    }
+  async getCropCycle(cycleId: string): Promise<CycleResponseDTO> {
+    return this.request<CycleResponseDTO>(`/crop-cycles/${cycleId}`);
+  }
 
-      async getActiveCropCycle(fieldId: string): Promise<CycleResponseDTO | null> {
-        try {
-          return await this.request<CycleResponseDTO>(`/crop-cycles/field/${fieldId}/active`);
-        } catch (err: any) {
-          if (err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('No active crop cycle')) {
-            return null;
-          }
-          throw err;
-        }
+  async getActiveCropCycle(fieldId: string): Promise<CycleResponseDTO | null> {
+    if (!fieldId || fieldId.startsWith('field_0')) {
+      return null;
+    }
+    try {
+      return await this.request<CycleResponseDTO>(`/crop-cycles/field/${fieldId}/active`, {
+        silent404: true,
+      });
+    } catch (err: any) {
+      if (
+        err?.status === 404 ||
+        err?.message?.includes('404') ||
+        err?.message?.includes('No active crop cycle') ||
+        err?.message?.includes('not found')
+      ) {
+        return null;
       }
+      throw err;
+    }
+  }
 
   async applyFertilizer(scheduleId: number): Promise<FertilizerScheduleDTO> {
         return this.request<FertilizerScheduleDTO>(`/crop-cycles/fertilizer/${scheduleId}/apply`, {

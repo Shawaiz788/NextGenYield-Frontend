@@ -20,15 +20,16 @@ export const CYCLE_QUERY_KEYS = {
  */
 export function useActiveCropCycleQuery(fieldId: string | null | undefined) {
   const token = getAuthToken();
+  const isValid = !!fieldId && !fieldId.startsWith('field_0');
 
   return useQuery<CycleResponseDTO | null, Error>({
     queryKey: CYCLE_QUERY_KEYS.activeByField(fieldId || ''),
     queryFn: async () => {
-      if (!fieldId) return null;
+      if (!isValid) return null;
       logger.debug('Fetching active crop cycle for field:', fieldId);
-      return await api.getActiveCropCycle(fieldId);
+      return await api.getActiveCropCycle(fieldId!);
     },
-    enabled: !!fieldId && !!token,
+    enabled: isValid && !!token,
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   MOCK_FIELDS,
   PEER_BENCHMARK_SHOWCASE,
@@ -9,6 +9,39 @@ import {
   FieldObservation,
 } from '@/constants/mock-data';
 import { TRANSLATIONS, Language } from '@/constants/translations';
+import { useFieldsQuery } from '@/hooks/use-fields';
+
+export const FALLBACK_EMPTY_FIELD: FieldData = {
+  id: '',
+  code: '',
+  displayName: 'No Field Selected',
+  areaAcres: 0,
+  areaSqm: 0,
+  wheatVariety: 'Unplanted',
+  sowingDate: 'Not Started',
+  sowingMethod: 'Drill Sowing',
+  soilTexture: 'Sandy Loam',
+  district: 'Faisalabad',
+  currentStageIndex: 0,
+  stageConfidence: 0.0,
+  lastUpdated: 'No data',
+  isUserField: true,
+  cycleStatus: 'not_started',
+  yieldReturnKgSqm: 0.0,
+  yieldMaundsPerAcre: 0.0,
+  coordinates: { latitude: 31.42, longitude: 73.08 },
+  polygonCoords: [],
+  history: [],
+  fertilizerPlan: [],
+  irrigationPlan: [],
+  advisory: {
+    summary: 'No active cycle found. Demarcate a field or start a crop cycle.',
+    irrigationGuidance: '',
+    nutrientGuidance: '',
+    riskAlerts: [],
+    actionRequired: false,
+  },
+};
 
 export interface MapFieldItem {
   id: string;
@@ -29,6 +62,7 @@ export interface MapFieldItem {
 }
 
 export interface NewFieldInput {
+  id?: string;
   code: string;
   displayName: string;
   areaAcres: number;
@@ -95,12 +129,12 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [fields, setFields] = useState<FieldData[]>(MOCK_FIELDS);
-  const [selectedFieldId, setSelectedFieldIdState] = useState<string>('field_01');
+  const [fields, setFields] = useState<FieldData[]>([]);
+  const [selectedFieldId, setSelectedFieldIdState] = useState<string>('');
   const [peerShowcase] = useState<PeerShowcaseField[]>(PEER_BENCHMARK_SHOWCASE);
   const [adoptedPlaybooks, setAdoptedPlaybooks] = useState<string[]>([]);
   const [gyroSimulatedAngle, setGyroSimulatedAngle] = useState<number>(64);
-  const [mapFields, setMapFields] = useState<MapFieldItem[]>(REGIONAL_MAP_FIELDS as MapFieldItem[]);
+  const [mapFields, setMapFields] = useState<MapFieldItem[]>([]);
 
   // Authentication State (defaults to false so login screen is shown first)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -114,6 +148,83 @@ export function AppProvider({ children }: { children: ReactNode }) {
     seasonYieldMaunds: 840,
     cnicNumber: '35201-1984729-1',
   });
+
+  const { data: backendFields } = useFieldsQuery();
+
+  // Sync backend fields to AppContext
+  useEffect(() => {
+    if (backendFields && Array.isArray(backendFields)) {
+      if (backendFields.length === 0) {
+        setFields([]);
+        setSelectedFieldIdState('');
+      } else {
+        setFields((prevFields) => {
+          return backendFields.map((bf) => {
+            const existing = prevFields.find((f) => f.id === bf.field_id);
+            let lat = 31.42;
+            let lng = 73.08;
+            let coordsArr: [number, number][] = [];
+            try {
+              if (bf.boundary_geojson?.type === 'Polygon' && bf.boundary_geojson.coordinates?.[0]) {
+                coordsArr = bf.boundary_geojson.coordinates[0].map((pt: [number, number]) => [pt[1], pt[0]]);
+                if (coordsArr.length > 0) {
+                  lat = coordsArr[0][0];
+                  lng = coordsArr[0][1];
+                }
+              }
+            } catch (_) {}
+
+            return {
+              id: bf.field_id,
+              code: bf.field_code || 'PK-FSD-01',
+              displayName: bf.field_name,
+              areaAcres: bf.area_acres,
+              areaSqm: bf.area_acres * 4046.86,
+              wheatVariety: existing?.wheatVariety || (bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted'),
+              seedCompany: existing?.seedCompany || '',
+              fertilizerCompany: existing?.fertilizerCompany || '',
+              sowingDate: existing?.sowingDate || (bf.current_cycle_id ? 'In Season' : 'Not Started'),
+              sowingMethod: existing?.sowingMethod || 'Drill Sowing (9 inch)',
+              soilTexture: bf.soil_texture || 'Sandy Loam',
+              district: 'Faisalabad',
+              currentStageIndex: existing?.currentStageIndex ?? 0,
+              stageConfidence: existing?.stageConfidence ?? 0.0,
+              lastUpdated: existing?.lastUpdated || 'Recently updated',
+              isUserField: true,
+              cycleStatus: (existing?.cycleStatus || (bf.current_cycle_id ? 'active' : 'not_started')) as any,
+              yieldReturnKgSqm: existing?.yieldReturnKgSqm || 0.0,
+              yieldMaundsPerAcre: existing?.yieldMaundsPerAcre || 0.0,
+              coordinates: { latitude: lat, longitude: lng },
+              polygonCoords: [
+                { x: 50, y: 50 },
+                { x: 120, y: 50 },
+                { x: 120, y: 120 },
+                { x: 50, y: 120 },
+              ],
+              history: existing?.history || [],
+              fertilizerPlan: existing?.fertilizerPlan || [],
+              irrigationPlan: existing?.irrigationPlan || [],
+              advisory: existing?.advisory || {
+                summary: bf.current_cycle_id
+                  ? 'Active wheat crop cycle in progress.'
+                  : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
+                irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
+                nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
+                riskAlerts: ['Ensure soil moisture check before sowing.'],
+                actionRequired: !bf.current_cycle_id,
+              },
+            };
+          });
+        });
+
+        setSelectedFieldIdState((prevId) => {
+          const exists = backendFields.some((f) => f.field_id === prevId);
+          if (exists) return prevId;
+          return backendFields[0].field_id;
+        });
+      }
+    }
+  }, [backendFields]);
 
   const login = (info?: Partial<UserProfile>) => {
     setIsAuthenticated(true);
@@ -131,7 +242,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [fontScale, setFontScale] = useState<'normal' | 'large'>('normal');
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
 
-  const selectedField = fields.find((f) => f.id === selectedFieldId) || fields[0];
+  const selectedField = fields.find((f) => f.id === selectedFieldId) || fields[0] || FALLBACK_EMPTY_FIELD;
 
   const setSelectedFieldId = (id: string) => {
     setSelectedFieldIdState(id);
@@ -192,7 +303,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addNewField = (input: NewFieldInput) => {
-    const newId = `field_${Date.now()}`;
+    const newId = input.id || `field_${Date.now()}`;
     const newField: FieldData = {
       id: newId,
       code: input.code,
@@ -232,7 +343,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     };
 
-    setFields((prev) => [newField, ...prev]);
+    setFields((prev) => [newField, ...prev.filter((f) => f.id !== newId)]);
     setSelectedFieldIdState(newId);
 
     // Add to map
@@ -251,14 +362,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       shapeType: input.shapeType,
       cycleStatus: 'not_started',
       pos: defaultPos,
-      coordinates: input.coordinates || [
-        [31.4970, 74.2650],
-        [31.4985, 74.2651],
-        [31.4984, 74.2670],
-        [31.4969, 74.2669],
-      ],
+      coordinates: input.coordinates,
     };
-    setMapFields((prev) => [newMapField, ...prev]);
+    setMapFields((prev) => [newMapField, ...prev.filter((m) => m.id !== newId)]);
   };
 
   const startCropCycle = (input: StartCycleInput) => {

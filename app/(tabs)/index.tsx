@@ -18,6 +18,7 @@ import { StartCycleModal } from '@/components/start-cycle-modal';
 import { useFieldsQuery } from '@/hooks/use-fields';
 import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
+import { useObservationsQuery } from '@/hooks/use-observations';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 
 
@@ -37,8 +38,36 @@ export default function DashboardScreen() {
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [inspectedStageIndex, setInspectedStageIndex] = useState<number | null>(null);
   const { data: backendFields } = useFieldsQuery();
+  const isFieldDemarcated = fields.length > 0 && !!selectedField && selectedField.id !== '';
   const { data: activeCycle, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const { data: advisoryRules } = useAdvisoryRulesQuery();
+  const { data: cycleObservations } = useObservationsQuery(activeCycle?.cycle_id);
+
+  const isCycleActive = Boolean((activeCycle && activeCycle.is_active) || selectedField?.cycleStatus === 'active');
+
+  const timelineObservations = React.useMemo(() => {
+    if (cycleObservations && cycleObservations.length > 0) {
+      return cycleObservations.map((obs) => ({
+        id: obs.observation_id,
+        stageIndex: obs.stage_index,
+        stageName: obs.stage_name,
+        confidence: obs.confidence,
+        imageUri: obs.image_uri,
+        date: new Date(obs.created_at).toLocaleDateString(language === 'ur' ? 'ur-PK' : 'en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+      }));
+    }
+    return selectedField?.history || [];
+  }, [cycleObservations, selectedField?.history, language]);
+
+  const activeStageIndex = React.useMemo(() => {
+    if (timelineObservations.length > 0) {
+      return timelineObservations[0].stageIndex;
+    }
+    return selectedField?.currentStageIndex || 0;
+  }, [timelineObservations, selectedField?.currentStageIndex]);
 
   const computedDas = React.useMemo(() => {
     if (activeCycle?.sowing_date) {
@@ -48,10 +77,9 @@ export default function DashboardScreen() {
       const pct = Math.round((das / 140) * 100);
       return { das, pct, label: `Day ${das} / 140 (${pct}%)` };
     }
-    return { das: 78, pct: 56, label: 'Day 78 / 140 (56%)' };
+    return { das: 1, pct: 1, label: 'Day 1 / 140 (1%)' };
   }, [activeCycle?.sowing_date]);
 
-  const activeStageIndex = selectedField.currentStageIndex;
   const currentStage = STAGE_CONFIG[activeStageIndex];
   const displayedStageIndex = inspectedStageIndex !== null ? inspectedStageIndex : activeStageIndex;
   const displayedStage = STAGE_CONFIG[displayedStageIndex];
@@ -124,57 +152,59 @@ export default function DashboardScreen() {
         </View>
 
         {/* Field Switcher Carousel */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.fieldChipsList}>
-          {fields.map((f) => {
-            const active = f.id === selectedField.id;
-            const isFallow = f.cycleStatus === 'not_started';
-            const varietyLabel = isFallow
-              ? (language === 'ur' ? 'تیار زمین' : 'Fallow')
-              : f.wheatVariety;
+        {fields.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.fieldChipsList}>
+            {fields.map((f) => {
+              const active = f.id === selectedField.id;
+              const isFallow = f.cycleStatus === 'not_started';
+              const varietyLabel = isFallow
+                ? (language === 'ur' ? 'تیار زمین' : 'Fallow')
+                : (f.wheatVariety || 'Wheat');
 
-            return (
-              <TouchableOpacity
-                key={f.id}
-                onPress={() => {
-                  setInspectedStageIndex(null);
-                  setSelectedFieldId(f.id);
-                }}
-                style={[styles.fieldCardChip, active && styles.fieldCardChipActive]}
-                activeOpacity={0.7}>
-                <View style={styles.fieldChipHeader}>
-                  <View style={[styles.fieldStatusDot, { backgroundColor: isFallow ? '#D97706' : (active ? '#16A34A' : '#94A3B8') }]} />
-                  <Text style={[styles.fieldChipCode, active && styles.fieldChipCodeActive, { fontSize: 12 * fontMultiplier }]}>
-                    {f.code}
-                  </Text>
-                  <View style={[styles.acresBadge, active && styles.acresBadgeActive]}>
-                    <Text style={[styles.acresText, active && styles.acresTextActive]}>
-                      {f.areaAcres} ac
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  onPress={() => {
+                    setInspectedStageIndex(null);
+                    setSelectedFieldId(f.id);
+                  }}
+                  style={[styles.fieldCardChip, active && styles.fieldCardChipActive]}
+                  activeOpacity={0.7}>
+                  <View style={styles.fieldChipHeader}>
+                    <View style={[styles.fieldStatusDot, { backgroundColor: isFallow ? '#D97706' : (active ? '#16A34A' : '#94A3B8') }]} />
+                    <Text style={[styles.fieldChipCode, active && styles.fieldChipCodeActive, { fontSize: 12 * fontMultiplier }]}>
+                      {f.code}
                     </Text>
+                    <View style={[styles.acresBadge, active && styles.acresBadgeActive]}>
+                      <Text style={[styles.acresText, active && styles.acresTextActive]}>
+                        {f.areaAcres} ac
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.fieldChipVariety, active && styles.fieldChipVarietyActive, { fontSize: 11 * fontMultiplier }]}>
-                  {varietyLabel}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.fieldChipVariety, active && styles.fieldChipVarietyActive, { fontSize: 11 * fontMultiplier }]}>
+                    {varietyLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
-          {/* Quick Add Field Button */}
-          <TouchableOpacity
-            onPress={() => router.push('/map')}
-            style={styles.addFieldChip}
-            activeOpacity={0.7}>
-            <Ionicons name="add" size={16} color="#16A34A" />
-            <Text style={[styles.addFieldText, { fontSize: 11 * fontMultiplier }]}>
-              {language === 'ur' ? 'نیا کھیت' : '+ Add Field'}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {/* Quick Add Field Button */}
+            <TouchableOpacity
+              onPress={() => router.push('/map')}
+              style={styles.addFieldChip}
+              activeOpacity={0.7}>
+              <Ionicons name="add" size={16} color="#16A34A" />
+              <Text style={[styles.addFieldText, { fontSize: 11 * fontMultiplier }]}>
+                {language === 'ur' ? 'نیا کھیت' : '+ Add Field'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
       </View>
 
       {/* ─── Scroll Content ─── */}
@@ -183,7 +213,31 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
-        {selectedField.cycleStatus === 'not_started' ? (
+        {!isFieldDemarcated ? (
+          /* ─── Empty State: No Demarcated Fields ─── */
+          <View style={styles.emptyFieldsCard}>
+            <View style={styles.emptyFieldsIconCircle}>
+              <MaterialCommunityIcons name="map-marker-path" size={42} color="#16A34A" />
+            </View>
+            <Text style={[styles.emptyFieldsTitle, { fontSize: 19 * fontMultiplier }]}>
+              {language === 'ur' ? 'کوئی کھیت شامل نہیں کیا گیا' : 'No Fields Demarcated Yet'}
+            </Text>
+            <Text style={[styles.emptyFieldsDesc, { fontSize: 13.5 * fontMultiplier }]}>
+              {language === 'ur'
+                ? 'اپنے گندم کے کھیت کی باؤنڈری سیٹلائٹ نقشے پر بنائیں تاکہ مرحلہ وار رہنمائی، کھاد و پانی کا شیڈول اور AI مانیٹرنگ شروع ہو سکے۔'
+                : 'Demarcate your wheat field boundary on the satellite map to start automated crop growth tracking, advisories, and weather telemetry.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/map')}
+              style={styles.emptyFieldsBtn}
+              activeOpacity={0.85}>
+              <Ionicons name="map-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={[styles.emptyFieldsBtnText, { fontSize: 15 * fontMultiplier }]}>
+                {language === 'ur' ? 'نقشے پر باؤنڈری بنائیں' : 'Demarcate Field on Map'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : !isCycleActive ? (
           /* ─── Fallow / Unstarted Cycle Card ─── */
           <View style={styles.fallowCard}>
             <View style={styles.fallowAccentBar} />
@@ -225,8 +279,9 @@ export default function DashboardScreen() {
             </View>
           </View>
         ) : (
-          /* ─── Hero Command Center: Growth Stage Card ─── */
-          <View style={styles.heroCard}>
+          <>
+            {/* ─── Hero Command Center: Growth Stage Card ─── */}
+            <View style={styles.heroCard}>
             {/* Top accent bar matching stage color */}
             <View style={[styles.stageAccentBar, { backgroundColor: currentStage.color }]} />
 
@@ -384,7 +439,6 @@ export default function DashboardScreen() {
               </View>
             </View>
           </View>
-        )}
 
         {/* ─── Actionable Advice ("What to do right now") ─── */}
         <View style={styles.sectionCard}>
@@ -504,7 +558,7 @@ export default function DashboardScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.sectionHeading, { fontSize: 18 * fontMultiplier }]}>{t.fieldHistory}</Text>
               <Text style={[styles.sectionSub, { fontSize: 12 * fontMultiplier }]}>
-                {selectedField.wheatVariety} · {language === 'ur' ? 'بوائی' : 'Sown'} {selectedField.sowingDate}
+                {(activeCycle?.wheat_variety || selectedField.wheatVariety)} · {language === 'ur' ? 'بوائی' : 'Sown'} {(activeCycle?.sowing_date || selectedField.sowingDate)}
               </Text>
             </View>
             <TouchableOpacity
@@ -518,35 +572,50 @@ export default function DashboardScreen() {
 
           {/* Timeline entries */}
           <View style={styles.historyTimeline}>
-            {selectedField.history.map((item, idx) => (
-              <View key={item.id} style={styles.historyItem}>
-                {/* Timeline dot + line */}
-                <View style={styles.historyDotCol}>
-                  <View style={[styles.historyDot, { backgroundColor: STAGE_CONFIG[item.stageIndex]?.color || theme.primary }]} />
-                  {idx < selectedField.history.length - 1 && <View style={styles.historyLine} />}
-                </View>
+            {timelineObservations.length === 0 ? (
+              <View style={styles.emptyTimelineBox}>
+                <Ionicons name="camera-outline" size={24} color="#94A3B8" />
+                <Text style={[styles.emptyTimelineText, { fontSize: 13 * fontMultiplier }]}>
+                  {language === 'ur'
+                    ? 'ابھی تک کوئی تصویر محفوظ نہیں ہوئی۔ پہلی تصویر اسکین کریں۔'
+                    : 'No canopy photos recorded yet for this cycle.'}
+                </Text>
+              </View>
+            ) : (
+              timelineObservations.map((item, idx) => (
+                <View key={item.id} style={styles.historyItem}>
+                  {/* Timeline dot + line */}
+                  <View style={styles.historyDotCol}>
+                    <View style={[styles.historyDot, { backgroundColor: STAGE_CONFIG[item.stageIndex]?.color || theme.primary }]} />
+                    {idx < timelineObservations.length - 1 && <View style={styles.historyLine} />}
+                  </View>
 
-                {/* Entry content */}
-                <View style={styles.historyContent}>
-                  <View style={styles.historyRow}>
-                    <Image source={{ uri: item.imageUri }} style={styles.photoThumb} />
-                    <View style={styles.historyMeta}>
-                      <Text style={[styles.historyStage, { fontSize: 14 * fontMultiplier }]}>
-                        {language === 'ur' ? stageNames[item.stageIndex] : item.stageName}
-                      </Text>
-                      <Text style={styles.historyDate}>{item.date}</Text>
-                    </View>
-                    <View style={styles.confidenceChip}>
-                      <Text style={styles.confidenceChipText}>
-                        {(item.confidence * 100).toFixed(0)}% Match
-                      </Text>
+                  {/* Entry content */}
+                  <View style={styles.historyContent}>
+                    <View style={styles.historyRow}>
+                      {item.imageUri ? (
+                        <Image source={{ uri: item.imageUri }} style={styles.photoThumb} />
+                      ) : null}
+                      <View style={styles.historyMeta}>
+                        <Text style={[styles.historyStage, { fontSize: 14 * fontMultiplier }]}>
+                          {language === 'ur' ? stageNames[item.stageIndex] : item.stageName}
+                        </Text>
+                        <Text style={styles.historyDate}>{item.date}</Text>
+                      </View>
+                      <View style={styles.confidenceChip}>
+                        <Text style={styles.confidenceChipText}>
+                          {(item.confidence * 100).toFixed(0)}% Match
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </View>
+      </>
+    )}
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
@@ -769,6 +838,73 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.md,
     gap: Spacing.md,
+  },
+
+  // ─── Empty Fields State ──────────────────
+  emptyFieldsCard: {
+    ...CardStyle,
+    borderColor: '#DCFCE7',
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    marginTop: 10,
+  },
+  emptyFieldsIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#BBF7D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyFieldsTitle: {
+    fontFamily: FontFamily.extraBold,
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyFieldsDesc: {
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 24,
+    maxWidth: 320,
+  },
+  emptyFieldsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    paddingVertical: 13,
+    paddingHorizontal: 24,
+    borderRadius: Radius.md,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  emptyFieldsBtnText: {
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+  },
+
+  emptyTimelineBox: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyTimelineText: {
+    fontFamily: FontFamily.medium,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 
   // ─── Fallow Card ──────────────────────────

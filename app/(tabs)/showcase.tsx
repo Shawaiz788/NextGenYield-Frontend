@@ -132,7 +132,8 @@ export default function BestPracticeShowcaseScreen() {
   const handleAdopt = (field: PeerShowcaseField) => {
     adoptPlaybook(field.fieldId);
     setAdoptingField(null);
-    setToastMessage(`${field.code} schedule applied to ${selectedField.code}`);
+    const targetCode = selectedField?.code || (language === 'ur' ? 'آپ کا کھیت' : 'your field');
+    setToastMessage(`${field.code} schedule applied to ${targetCode}`);
     setTimeout(() => setToastMessage(null), 3000);
   };
 

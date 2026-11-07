@@ -30,14 +30,15 @@ export function useFieldsQuery() {
  */
 export function useFieldQuery(fieldId: string | null | undefined) {
   const token = getAuthToken();
+  const isValid = !!fieldId && !fieldId.startsWith('field_0');
 
   return useQuery<FieldResponseDTO, Error>({
     queryKey: FIELD_QUERY_KEYS.detail(fieldId || ''),
     queryFn: async () => {
-      if (!fieldId) throw new Error('Field ID is required');
-      return await api.getField(fieldId);
+      if (!isValid) throw new Error('Field ID is required');
+      return await api.getField(fieldId!);
     },
-    enabled: !!fieldId && !!token,
+    enabled: isValid && !!token,
     staleTime: 1000 * 30,
   });
 }

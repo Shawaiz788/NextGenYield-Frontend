@@ -147,6 +147,7 @@ export default function FarmMapScreen() {
       });
 
       addNewField({
+        id: createdField.field_id,
         code: createdField?.field_code || 'PK-FSD-01',
         displayName: fieldNameInput || 'Mustafa Town West Parcel',
         areaAcres: acresNum,

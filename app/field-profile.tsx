@@ -27,7 +27,7 @@ export default function FieldProfileScreen() {
   const applyFertilizerMutation = useApplyFertilizerMutation(selectedField?.id, activeCycle?.cycle_id);
   const completeIrrigationMutation = useCompleteIrrigationMutation(selectedField?.id, activeCycle?.cycle_id);
 
-  const currentStage = STAGE_CONFIG[selectedField.currentStageIndex];
+  const currentStage = STAGE_CONFIG[selectedField?.currentStageIndex || 0] || STAGE_CONFIG[0];
 
   const stageNames: Record<number, string> = {
     0: t.stage0Name,
