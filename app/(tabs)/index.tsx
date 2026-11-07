@@ -15,6 +15,7 @@ import { useApp } from '@/context/app-context';
 import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
+import { DashboardFieldsSkeleton } from '@/components/skeleton-loader';
 import { useFieldsQuery } from '@/hooks/use-fields';
 import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
@@ -37,7 +38,7 @@ export default function DashboardScreen() {
 
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [inspectedStageIndex, setInspectedStageIndex] = useState<number | null>(null);
-  const { data: backendFields } = useFieldsQuery();
+  const { data: backendFields, isLoading: isFieldsLoading, isFetching: isFieldsFetching } = useFieldsQuery();
   const isFieldDemarcated = fields.length > 0 && !!selectedField && selectedField.id !== '';
   const { data: activeCycle, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const { data: advisoryRules } = useAdvisoryRulesQuery();
@@ -213,7 +214,10 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
-        {!isFieldDemarcated ? (
+        {(isFieldsLoading || (isFieldsFetching && fields.length === 0)) ? (
+          /* ─── Loading State: Animated Skeletons ─── */
+          <DashboardFieldsSkeleton />
+        ) : !isFieldDemarcated ? (
           /* ─── Empty State: No Demarcated Fields ─── */
           <View style={styles.emptyFieldsCard}>
             <View style={styles.emptyFieldsIconCircle}>

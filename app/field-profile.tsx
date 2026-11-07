@@ -6,13 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/app-context';
 import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { AccessibilityControls } from '@/components/accessibility-bar';
+import { StartCycleModal } from '@/components/start-cycle-modal';
 import { useActiveCropCycleQuery, useApplyFertilizerMutation, useCompleteIrrigationMutation } from '@/hooks/use-crop-cycles';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 import { ActivityIndicator } from 'react-native';
@@ -20,13 +21,15 @@ import { ActivityIndicator } from 'react-native';
 
 export default function FieldProfileScreen() {
   const theme = Colors.light;
-  const { selectedField, t, fontMultiplier } = useApp();
+  const { selectedField, t, language, fontMultiplier } = useApp();
 
+  const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'timeline' | 'fertilizer' | 'irrigation'>('timeline');
   const { data: activeCycle, isLoading: isCycleLoading, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const applyFertilizerMutation = useApplyFertilizerMutation(selectedField?.id, activeCycle?.cycle_id);
   const completeIrrigationMutation = useCompleteIrrigationMutation(selectedField?.id, activeCycle?.cycle_id);
 
+  const isCycleActive = Boolean((activeCycle && activeCycle.is_active) || selectedField?.cycleStatus === 'active');
   const currentStage = STAGE_CONFIG[selectedField?.currentStageIndex || 0] || STAGE_CONFIG[0];
 
   const stageNames: Record<number, string> = {
@@ -57,14 +60,23 @@ export default function FieldProfileScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top Bar */}
       <View style={styles.topBar}>
+        {/* Absolutely centered title across full screen width */}
+        <View pointerEvents="none" style={styles.absoluteCenterTitleGroup}>
+          <Text numberOfLines={1} style={[styles.topBarTitle, { fontSize: 16 * fontMultiplier }]}>
+            {t.fieldProfile}
+          </Text>
+          <Text numberOfLines={1} style={styles.topBarSubtitle}>
+            {selectedField.code} · {isCycleActive ? selectedField.wheatVariety : t.cycleNotStarted}
+          </Text>
+        </View>
+
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color={Colors.light.text} />
         </TouchableOpacity>
-        <View style={styles.topBarTitleGroup}>
-          <Text style={[styles.topBarTitle, { fontSize: 16 * fontMultiplier }]}>{t.fieldProfile}</Text>
-          <Text style={styles.topBarSubtitle}>{selectedField.code} · {selectedField.wheatVariety}</Text>
+
+        <View style={styles.topBarRightGroup}>
+          <AccessibilityControls />
         </View>
-        <AccessibilityControls />
       </View>
 
       <ScrollView
@@ -82,16 +94,16 @@ export default function FieldProfileScreen() {
         )}
         {/* Field Summary Card */}
         <View style={styles.summaryCard}>
-          <View style={[styles.summaryAccent, { backgroundColor: currentStage.color }]} />
+          <View style={[styles.summaryAccent, { backgroundColor: isCycleActive ? currentStage.color : '#D97706' }]} />
           <View style={styles.summaryContent}>
             <View style={styles.summaryTopRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.fieldTitle, { fontSize: 17 * fontMultiplier }]}>{selectedField.displayName}</Text>
                 <Text style={styles.fieldLocation}>{selectedField.district} · {selectedField.soilTexture}</Text>
               </View>
-              <View style={[styles.stageBadge, { backgroundColor: currentStage.lightBg }]}>
-                <Text style={[styles.stageBadgeText, { color: currentStage.color }]}>
-                  {stageNames[selectedField.currentStageIndex]}
+              <View style={[styles.stageBadge, { backgroundColor: isCycleActive ? currentStage.lightBg : '#FEF3C7' }]}>
+                <Text style={[styles.stageBadgeText, { color: isCycleActive ? currentStage.color : '#D97706' }]}>
+                  {isCycleActive ? stageNames[selectedField.currentStageIndex] : t.cycleNotStarted}
                 </Text>
               </View>
             </View>
@@ -106,21 +118,50 @@ export default function FieldProfileScreen() {
               <View style={[styles.gridItem, { backgroundColor: '#EFF6FF' }]}>
                 <Ionicons name="calendar-outline" size={14} color={Colors.light.irrigation} style={{ marginBottom: 2 }} />
                 <Text style={styles.gridLabel}>{t.sowingDate}</Text>
-                <Text style={styles.gridVal}>{selectedField.sowingDate}</Text>
+                <Text style={styles.gridVal}>{isCycleActive ? selectedField.sowingDate : t.cycleNotStarted}</Text>
               </View>
               <View style={[styles.gridItem, { backgroundColor: '#F0FDF4' }]}>
                 <Ionicons name="trophy-outline" size={14} color={Colors.light.primary} style={{ marginBottom: 2 }} />
                 <Text style={styles.gridLabel}>{t.harvestReturn}</Text>
-                <Text style={[styles.gridVal, { color: Colors.light.primary }]}>{selectedField.yieldMaundsPerAcre} M/Ac</Text>
+                <Text style={[styles.gridVal, { color: Colors.light.primary }]}>{isCycleActive ? `${selectedField.yieldMaundsPerAcre} M/Ac` : '--'}</Text>
               </View>
               <View style={[styles.gridItem, { backgroundColor: '#FEF3C7' }]}>
                 <Ionicons name="analytics-outline" size={14} color="#D97706" style={{ marginBottom: 2 }} />
                 <Text style={styles.gridLabel}>{t.efficiency}</Text>
-                <Text style={[styles.gridVal, { color: '#D97706' }]}>{selectedField.yieldReturnKgSqm} kg/m²</Text>
+                <Text style={[styles.gridVal, { color: '#D97706' }]}>{isCycleActive ? `${selectedField.yieldReturnKgSqm} kg/m²` : '--'}</Text>
               </View>
             </View>
           </View>
         </View>
+
+        {!isCycleActive && (
+          <View style={styles.fallowNoticeCard}>
+            <View style={styles.fallowNoticeHeader}>
+              <View style={styles.fallowIconCircle}>
+                <MaterialCommunityIcons name="seed-outline" size={24} color="#D97706" />
+              </View>
+              <View style={{ flex: 1, marginLeft: Spacing.md }}>
+                <Text style={[styles.fallowNoticeTitle, { fontSize: 15 * fontMultiplier }]}>
+                  {t.cycleNotStarted}
+                </Text>
+                <Text style={[styles.fallowNoticeDesc, { fontSize: 12 * fontMultiplier }]}>
+                  {language === 'ur'
+                    ? 'اس کھیت میں ابھی فصل کا دورانیہ شروع نہیں ہوا۔ مرحلہ وار رہنمائی، کھاد اور آبپاشی کا شیڈول حاصل کرنے کے لیے دورانیہ شروع کریں۔'
+                    : 'Crop cycle has not started for this field yet. Choose seed variant and fertilizer company to start 140-day schedule tracking.'}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => setIsStartCycleOpen(true)}
+              style={styles.startCycleBtn}
+              activeOpacity={0.85}>
+              <MaterialCommunityIcons name="sprout" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={[styles.startCycleBtnText, { fontSize: 13.5 * fontMultiplier }]}>
+                {t.startCropCycle}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Underline Tab Switcher */}
         <View style={styles.tabContainer}>
@@ -151,12 +192,14 @@ export default function FieldProfileScreen() {
         {activeTab === 'timeline' && (
           <View style={styles.card}>
             <Text style={[styles.cardHeading, { fontSize: 16 * fontMultiplier }]}>{t.growthMilestones}</Text>
-            <Text style={styles.cardSub}>{t.sixBiologicalStages}</Text>
+            <Text style={styles.cardSub}>
+              {isCycleActive ? t.sixBiologicalStages : (language === 'ur' ? 'دورانیہ شروع ہونے پر تمام مراحل فعال ہوں گے' : 'Stages will activate once cycle is started')}
+            </Text>
 
             <View style={styles.timelineList}>
               {STAGE_CONFIG.map((stage, idx) => {
-                const isPassed = idx < selectedField.currentStageIndex;
-                const isCurrent = idx === selectedField.currentStageIndex;
+                const isPassed = isCycleActive && idx < selectedField.currentStageIndex;
+                const isCurrent = isCycleActive && idx === selectedField.currentStageIndex;
 
                 return (
                   <View key={stage.key} style={styles.timelineItem}>
@@ -194,7 +237,13 @@ export default function FieldProfileScreen() {
                               isPassed && { color: Colors.light.primaryDark },
                               !isPassed && !isCurrent && { color: Colors.light.textSecondary },
                             ]}>
-                            {isCurrent ? t.activeNow : isPassed ? t.completed : t.upcoming}
+                            {!isCycleActive
+                              ? (language === 'ur' ? 'منتظر' : 'Pending')
+                              : isCurrent
+                              ? t.activeNow
+                              : isPassed
+                              ? t.completed
+                              : t.upcoming}
                           </Text>
                         </View>
                       </View>
@@ -305,6 +354,17 @@ export default function FieldProfileScreen() {
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
+
+      {/* Start Cycle Modal */}
+      <StartCycleModal
+        visible={isStartCycleOpen}
+        field={selectedField}
+        onClose={() => setIsStartCycleOpen(false)}
+        onSuccess={() => {
+          setIsStartCycleOpen(false);
+          refetchCycle();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -315,6 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   topBar: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -323,6 +384,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.borderLight,
   },
+  absoluteCenterTitleGroup: {
+    position: 'absolute',
+    left: 80,
+    right: 80,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 0,
+  },
   backBtn: {
     width: 36,
     height: 36,
@@ -330,21 +401,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F5F9',
+    zIndex: 1,
   },
-  topBarTitleGroup: {
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: Spacing.sm,
+  topBarRightGroup: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   topBarTitle: {
     fontFamily: FontFamily.extraBold,
     color: Colors.light.text,
+    textAlign: 'center',
   },
   topBarSubtitle: {
     fontFamily: FontFamily.medium,
     fontSize: 12,
     color: Colors.light.textSecondary,
     marginTop: 1,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,
@@ -353,6 +427,52 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     gap: 14,
+  },
+
+  // ─── Fallow Notice Card ───────────────────
+  fallowNoticeCard: {
+    ...CardStyle,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    padding: 16,
+  },
+  fallowNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  fallowIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fallowNoticeTitle: {
+    fontFamily: FontFamily.bold,
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  fallowNoticeDesc: {
+    fontFamily: FontFamily.regular,
+    color: '#78350F',
+    lineHeight: 18,
+  },
+  startCycleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Radius.md,
+    marginTop: 2,
+  },
+  startCycleBtnText: {
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
   },
 
   // ─── Summary Card ─────────────────────────

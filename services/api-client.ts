@@ -169,17 +169,29 @@ export interface AdvisoryRuleDTO {
 // ==========================================
 export interface ShowcasePostDTO {
   showcase_id: string;
-  user_id: string;
-  title: string;
-  field_name: string;
-  region: string;
+  field_code?: string;
+  district?: string;
   wheat_variety: string;
-  actual_yield_maunds: number;
+  seed_company?: string;
+  fertilizer_company?: string;
+  area_acres?: number;
+  shape_type?: string;
+  yield_maunds_per_acre?: number;
+  yield_kg_sqm?: number;
   sowing_date?: string | null;
+  harvest_date?: string | null;
+  cycle_event_log?: any[];
+
+  // User submission fields (if any)
+  user_id?: string;
+  title?: string;
+  field_name?: string;
+  region?: string;
+  actual_yield_maunds?: number;
   harvesting_date?: string | null;
   key_tactics?: string | null;
   photo_url?: string | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface ShowcaseCreateDTO {

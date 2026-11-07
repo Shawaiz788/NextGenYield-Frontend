@@ -53,31 +53,51 @@ export default function BestPracticeShowcaseScreen() {
     if (!showcaseQuery.data || showcaseQuery.data.length === 0) {
       return peerShowcase;
     }
-    const backendItems: PeerShowcaseField[] = showcaseQuery.data.map((item, idx) => ({
-      rank: idx + 1,
-      fieldId: item.showcase_id,
-      code: `PK-${item.region.slice(0, 3).toUpperCase()}-0${idx + 1}`,
-      district: item.region,
-      wheatVariety: item.wheat_variety,
-      seedCompany: 'Punjab Seed Corp',
-      soilTexture: 'Clay Loam',
-      areaAcres: 5.0,
-      areaSqm: 20234,
-      shapeType: 'polygon',
-      shapeDescription: 'Irregular demarcated plot',
-      yieldMaundsPerAcre: item.actual_yield_maunds,
-      yieldKgSqm: parseFloat((item.actual_yield_maunds * 0.0098).toFixed(2)),
-      vsRegionalAvg: `+${Math.max(5, Math.round(((item.actual_yield_maunds - 42) / 42) * 100))}%`,
-      sowingDate: item.sowing_date || '01 Nov 2025',
-      harvestDate: item.harvesting_date || '15 Apr 2026',
-      irrigationMethod: 'Laser-levelled Flood Irrigation',
-      fertilizerCompany: 'FFC / Sona DAP & Urea',
-      successFactors: item.key_tactics
-        ? item.key_tactics.split(';').map((t) => t.trim())
-        : ['Balanced N-P-K fertilization', 'Pre-booting irrigation management'],
-      cropCycle: [],
-      playbookAvailable: true,
-    }));
+    const backendItems: PeerShowcaseField[] = showcaseQuery.data.map((item, idx) => {
+      const region = item.district || item.region || 'Punjab';
+      const regionClean = region.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GEN';
+      const actualYield = item.yield_maunds_per_acre || item.actual_yield_maunds || 55.0;
+      const yieldKg = item.yield_kg_sqm || parseFloat((actualYield * 0.0098).toFixed(2));
+      const code = item.field_code || `PK-${regionClean}-0${idx + 1}`;
+
+      const cycleEvents: CropCycleEvent[] = Array.isArray(item.cycle_event_log)
+        ? item.cycle_event_log.map((ev: any, evIdx: number) => ({
+            day: typeof ev?.day === 'number' ? ev.day : evIdx * 20,
+            date: ev?.date || `Day ${typeof ev?.day === 'number' ? ev.day : evIdx * 20}`,
+            stageName: ev?.stageName || 'Milestone',
+            title: ev?.title || ev?.event || 'Agronomic Event',
+            category: (['water', 'fertilizer', 'filter', 'sow', 'harvest'].includes(ev?.category) ? ev.category : 'fertilizer') as CropCycleEvent['category'],
+            companyOrSource: ev?.companyOrSource || item.fertilizer_company || 'Standard',
+            description: ev?.description || ev?.event || 'Recommended milestone management practice.',
+          }))
+        : [];
+
+      return {
+        rank: idx + 1,
+        fieldId: item.showcase_id,
+        code,
+        district: region,
+        wheatVariety: item.wheat_variety,
+        seedCompany: item.seed_company || 'Punjab Seed Corp',
+        soilTexture: 'Clay Loam',
+        areaAcres: item.area_acres || 5.0,
+        areaSqm: (item.area_acres || 5.0) * 4046.86,
+        shapeType: (item.shape_type as any) || 'polygon',
+        shapeDescription: 'Irregular demarcated plot',
+        yieldMaundsPerAcre: actualYield,
+        yieldKgSqm: yieldKg,
+        vsRegionalAvg: `+${Math.max(5, Math.round(((actualYield - 42) / 42) * 100))}%`,
+        sowingDate: item.sowing_date || '01 Nov 2025',
+        harvestDate: item.harvest_date || item.harvesting_date || '15 Apr 2026',
+        irrigationMethod: 'Laser-levelled Flood Irrigation',
+        fertilizerCompany: item.fertilizer_company || 'FFC / Sona DAP & Urea',
+        successFactors: item.key_tactics
+          ? item.key_tactics.split(';').map((t) => t.trim())
+          : ['Balanced N-P-K fertilization', 'Pre-booting irrigation management'],
+        cropCycle: cycleEvents,
+        playbookAvailable: true,
+      };
+    });
 
     return [...backendItems, ...peerShowcase.filter((p) => !backendItems.some((b) => b.fieldId === p.fieldId))];
   }, [showcaseQuery.data, peerShowcase]);
@@ -235,6 +255,14 @@ export default function BestPracticeShowcaseScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
+        {showcaseQuery.isError && (
+          <BackendReachabilityBanner
+            isUrdu={language === 'ur'}
+            error={showcaseQuery.error}
+            onRetry={() => showcaseQuery.refetch()}
+            style={{ marginHorizontal: 0, marginBottom: 12 }}
+          />
+        )}
         {filtered.map((item) => {
           const isAdopted = adoptedPlaybooks.includes(item.fieldId);
           const isExpanded = expandedId === item.fieldId;
@@ -423,8 +451,8 @@ export default function BestPracticeShowcaseScreen() {
               </Text>
               <Text style={[styles.modalBody, { fontSize: 13 * fontMultiplier, lineHeight: 20 * fontMultiplier }]}>
                 {language === 'ur'
-                  ? `${adoptingField?.code} کا شیڈول آپ کے کھیت (${selectedField.code}) کے لیے ایڈجسٹ ہو جائے گا۔`
-                  : `This will calibrate the schedule from ${adoptingField?.code} for your field (${selectedField.code} · ${selectedField.areaAcres} Acres).`}
+                  ? `${adoptingField?.code} کا شیڈول آپ کے کھیت (${selectedField?.code || 'آپ کا کھیت'}) کے لیے ایڈجسٹ ہو جائے گا۔`
+                  : `This will calibrate the schedule from ${adoptingField?.code} for your field (${selectedField?.code || 'Your Field'} · ${selectedField?.areaAcres || 0} Acres).`}
               </Text>
 
               <View style={styles.modalActions}>

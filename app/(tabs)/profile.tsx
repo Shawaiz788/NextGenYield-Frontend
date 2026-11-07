@@ -204,16 +204,16 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Verification Bar */}
+          {/* Status Bar */}
           <View style={styles.cnicBar}>
             <View style={styles.cnicLeft}>
-              <Ionicons name="card-outline" size={15} color="#64748B" />
+              <Ionicons name="calendar-outline" size={15} color="#64748B" />
               <Text style={styles.cnicText}>
-                CNIC: {userProfile.cnicNumber || '35201-1984729-1'}
+                {isUrdu ? 'موسم ربیع 2026' : 'Season: Rabi 2026'}
               </Text>
             </View>
             <View style={styles.activeTag}>
-              <Text style={styles.activeTagText}>Active Rabi 2026</Text>
+              <Text style={styles.activeTagText}>Active</Text>
             </View>
           </View>
         </View>
@@ -369,36 +369,6 @@ export default function ProfileScreen() {
                 {fontScale === 'large' ? 'Set Normal' : 'Enlarge Font'}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ─── Agronomy & Extension Wing ─── */}
-        <View style={styles.sectionCard}>
-          <Text style={[styles.sectionTitle, { fontSize: 16 * fontMultiplier }]}>
-            {isUrdu ? 'محکمہ زراعت و مشاورتی معلومات' : 'Agronomy & Field Services'}
-          </Text>
-
-          <View style={styles.infoList}>
-            <View style={styles.infoRow}>
-              <Ionicons name="ribbon-outline" size={16} color="#16A34A" />
-              <Text style={styles.infoText}>
-                {isUrdu ? 'منظور شدہ بیج: فیصل آباد-2008 / اکبر-19' : 'Certified Seed: Faisalabad-2008 & Akbar-19'}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="business-outline" size={16} color="#0284C7" />
-              <Text style={styles.infoText}>
-                {isUrdu ? 'کھاد پارٹنر: اینگرو فرٹیلائزرز / فوجی فرٹیلائزر' : 'Fertilizer: Engro Fertilizers / FFC'}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="shield-checkmark-outline" size={16} color="#7C3AED" />
-              <Text style={styles.infoText}>
-                {isUrdu ? 'سیٹلائٹ سروس: ایسری ورلڈ امیجری (Mustafa Town GIS)' : 'Satellite Service: Esri World Imagery (GIS Real)'}
-              </Text>
-            </View>
           </View>
         </View>
 
