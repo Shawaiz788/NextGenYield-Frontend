@@ -56,6 +56,7 @@ export interface FieldUpdateDTO {
 
 export interface FieldResponseDTO {
   field_id: string;
+  field_code?: string;
   user_id: string;
   field_name: string;
   shape_type: string;

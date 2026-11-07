@@ -60,7 +60,7 @@ export default function FarmMapScreen() {
 
       return {
         id: f.field_id,
-        code: f.field_name.split('·')[0]?.trim() || `PK-FSD-0${idx + 1}`,
+        code: f.field_code || ("PK-FSD-0" + (idx + 1)),
         name: f.field_name,
         stageIndex: 2,
         stageName: f.current_cycle_id ? 'Active Cycle' : 'Fallow',
@@ -138,7 +138,7 @@ export default function FarmMapScreen() {
     setSaveError(null);
 
     try {
-      await createFieldMutation.mutateAsync({
+      const createdField = await createFieldMutation.mutateAsync({
         field_name: fieldNameInput.trim() || 'Mustafa Town Wheat Parcel',
         shape_type: selectedShape,
         area_acres: acresNum,
@@ -147,7 +147,7 @@ export default function FarmMapScreen() {
       });
 
       addNewField({
-        code: fieldCodeInput || 'PK-FSD-05',
+        code: createdField?.field_code || 'PK-FSD-01',
         displayName: fieldNameInput || 'Mustafa Town West Parcel',
         areaAcres: acresNum,
         shapeType: selectedShape,
@@ -424,31 +424,18 @@ export default function FarmMapScreen() {
           </View>
 
 
-          {/* Compact Form Inputs */}
-          <View style={styles.inlineInputsRow}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.miniLabel}>
-                {language === 'ur' ? 'شناختی کوڈ' : 'Field Code'}
-              </Text>
-              <TextInput
-                value={fieldCodeInput}
-                onChangeText={setFieldCodeInput}
-                placeholder="PK-FSD-05"
-                style={styles.miniTextInput}
-              />
-            </View>
-
-            <View style={{ flex: 2 }}>
-              <Text style={styles.miniLabel}>
-                {language === 'ur' ? 'کھیت کا نام' : 'Field Name / Location'}
-              </Text>
-              <TextInput
-                value={fieldNameInput}
-                onChangeText={setFieldNameInput}
-                placeholder="Mustafa Town West"
-                style={styles.miniTextInput}
-              />
-            </View>
+          {/* Field Name Input (Field Code is automatically assigned by backend) */}
+          <View style={styles.fieldNameInputGroup}>
+            <Text style={styles.miniLabel}>
+              {language === 'ur' ? 'کھیت کا نام / لوکیشن' : 'Field Name / Location'}
+            </Text>
+            <TextInput
+              value={fieldNameInput}
+              onChangeText={setFieldNameInput}
+              placeholder={language === 'ur' ? 'کھیت کا نام درج کریں (مثال: نہر والا رقبہ)' : 'Enter field name (e.g. Canal Block West)'}
+              placeholderTextColor="#94A3B8"
+              style={styles.miniTextInput}
+            />
           </View>
 
           {/* Soil Texture Selection */}
@@ -980,6 +967,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.extraBold,
     fontSize: 13,
     color: '#FFFFFF',
+  },
+  fieldNameInputGroup: {
+    marginBottom: 10,
   },
   inlineInputsRow: {
     flexDirection: 'row',
