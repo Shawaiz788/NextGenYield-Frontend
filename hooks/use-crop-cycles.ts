@@ -5,6 +5,7 @@ import {
   StartCycleDTO,
   FertilizerScheduleDTO,
   IrrigationScheduleDTO,
+  getAuthToken,
 } from '@/services/api-client';
 import { logger } from '@/services/logger';
 import { FIELD_QUERY_KEYS } from './use-fields';
@@ -18,6 +19,8 @@ export const CYCLE_QUERY_KEYS = {
  * TanStack Query Hook: Fetch active crop cycle for a field
  */
 export function useActiveCropCycleQuery(fieldId: string | null | undefined) {
+  const token = getAuthToken();
+
   return useQuery<CycleResponseDTO | null, Error>({
     queryKey: CYCLE_QUERY_KEYS.activeByField(fieldId || ''),
     queryFn: async () => {
@@ -25,7 +28,7 @@ export function useActiveCropCycleQuery(fieldId: string | null | undefined) {
       logger.debug('Fetching active crop cycle for field:', fieldId);
       return await api.getActiveCropCycle(fieldId);
     },
-    enabled: !!fieldId,
+    enabled: !!fieldId && !!token,
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });
@@ -35,6 +38,8 @@ export function useActiveCropCycleQuery(fieldId: string | null | undefined) {
  * TanStack Query Hook: Fetch crop cycle details by cycle_id
  */
 export function useCropCycleQuery(cycleId: string | null | undefined) {
+  const token = getAuthToken();
+
   return useQuery<CycleResponseDTO, Error>({
     queryKey: CYCLE_QUERY_KEYS.detail(cycleId || ''),
     queryFn: async () => {
@@ -42,7 +47,7 @@ export function useCropCycleQuery(cycleId: string | null | undefined) {
       logger.debug('Fetching crop cycle details:', cycleId);
       return await api.getCropCycle(cycleId);
     },
-    enabled: !!cycleId,
+    enabled: !!cycleId && !!token,
     staleTime: 1000 * 30,
   });
 }
@@ -122,3 +127,4 @@ export function useCompleteIrrigationMutation(fieldId?: string, cycleId?: string
     },
   });
 }
+

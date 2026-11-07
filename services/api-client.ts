@@ -220,7 +220,7 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const baseUrl = getBackendBaseUrl();
     const url = `${baseUrl}/api/v1${endpoint}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -253,7 +253,7 @@ class ApiClient {
         if (errJson.detail) {
           errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
         }
-      } catch (_) {}
+      } catch (_) { }
       logger.warn(`API response status [${res.status}] on ${endpoint}:`, errMsg);
       const error: any = new Error(errMsg);
       error.status = res.status;
@@ -261,7 +261,7 @@ class ApiClient {
     }
 
     logger.debug(`API Success: [${options.method || 'GET'}] ${url} (${res.status})`);
-    
+
     // Support HTTP 204 No Content
     if (res.status === 204) {
       return {} as T;
@@ -351,122 +351,122 @@ class ApiClient {
     });
   }
 
-  async getCropCycle(cycleId: string): Promise<CycleResponseDTO> {
-    return this.request<CycleResponseDTO>(`/crop-cycles/${cycleId}`);
-  }
-
-  async getActiveCropCycle(fieldId: string): Promise<CycleResponseDTO | null> {
-    try {
-      return await this.request<CycleResponseDTO>(`/crop-cycles/field/${fieldId}/active`);
-    } catch (err: any) {
-      if (err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('No active crop cycle')) {
-        return null;
-      }
-      throw err;
+  async getCropCycle(cycleId: string): Promise < CycleResponseDTO > {
+      return this.request<CycleResponseDTO>(`/crop-cycles/${cycleId}`);
     }
-  }
+
+      async getActiveCropCycle(fieldId: string): Promise<CycleResponseDTO | null> {
+        try {
+          return await this.request<CycleResponseDTO>(`/crop-cycles/field/${fieldId}/active`);
+        } catch (err: any) {
+          if (err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('No active crop cycle')) {
+            return null;
+          }
+          throw err;
+        }
+      }
 
   async applyFertilizer(scheduleId: number): Promise<FertilizerScheduleDTO> {
-    return this.request<FertilizerScheduleDTO>(`/crop-cycles/fertilizer/${scheduleId}/apply`, {
-      method: 'PUT',
-    });
-  }
+        return this.request<FertilizerScheduleDTO>(`/crop-cycles/fertilizer/${scheduleId}/apply`, {
+          method: 'PUT',
+        });
+      }
 
   async completeIrrigation(scheduleId: number): Promise<IrrigationScheduleDTO> {
-    return this.request<IrrigationScheduleDTO>(`/crop-cycles/irrigation/${scheduleId}/complete`, {
-      method: 'PUT',
-    });
-  }
+        return this.request<IrrigationScheduleDTO>(`/crop-cycles/irrigation/${scheduleId}/complete`, {
+          method: 'PUT',
+        });
+      }
 
   // --- Observations Endpoints ---
   async getObservations(cycleId: string): Promise<ObservationResponseDTO[]> {
-    return this.request<ObservationResponseDTO[]>(`/observations/cycle/${cycleId}`);
-  }
+        return this.request<ObservationResponseDTO[]>(`/observations/cycle/${cycleId}`);
+      }
 
   async uploadObservation(params: UploadObservationParams): Promise<ObservationResponseDTO> {
-    const baseUrl = getBackendBaseUrl();
-    const url = `${baseUrl}/api/v1/observations/`;
+        const baseUrl = getBackendBaseUrl();
+        const url = `${baseUrl}/api/v1/observations/`;
 
-    const formData = new FormData();
-    formData.append('cycle_id', params.cycleId);
-    formData.append('stage_index', String(params.stageIndex));
-    formData.append('stage_name', params.stageName);
-    formData.append('confidence', String(params.confidence));
-    formData.append('pitch_angle_deg', String(params.pitchAngleDeg));
-    formData.append('blur_score', String(params.blurScore));
-    formData.append('das', String(params.das));
+        const formData = new FormData();
+        formData.append('cycle_id', params.cycleId);
+        formData.append('stage_index', String(params.stageIndex));
+        formData.append('stage_name', params.stageName);
+        formData.append('confidence', String(params.confidence));
+        formData.append('pitch_angle_deg', String(params.pitchAngleDeg));
+        formData.append('blur_score', String(params.blurScore));
+        formData.append('das', String(params.das));
 
-    const filename = params.filename || `canopy_${Date.now()}.jpg`;
+        const filename = params.filename || `canopy_${Date.now()}.jpg`;
 
-    // React Native FormData file attachment
-    formData.append('image', {
-      uri: params.imageUri,
-      name: filename,
-      type: 'image/jpeg',
-    } as any);
+        // React Native FormData file attachment
+        formData.append('image', {
+          uri: params.imageUri,
+          name: filename,
+          type: 'image/jpeg',
+        } as any);
 
-    const headers: Record<string, string> = {};
-    if (activeAuthToken) {
-      headers['Authorization'] = `Bearer ${activeAuthToken}`;
-    }
-
-    logger.debug(`API Upload Observation: [POST] ${url}`);
-
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-    } catch (networkErr: any) {
-      logger.warn(`Network unavailable during observation upload to ${url}:`, networkErr?.message || networkErr);
-      throw new BackendUnreachableError(
-        `Unable to reach backend server at ${baseUrl}. Please check your connection or server status.`,
-        baseUrl
-      );
-    }
-
-    if (!res.ok) {
-      let errMsg = `Upload failed with status ${res.status}`;
-      try {
-        const errJson = await res.json();
-        if (errJson.detail) {
-          errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+        const headers: Record<string, string> = {};
+        if (activeAuthToken) {
+          headers['Authorization'] = `Bearer ${activeAuthToken}`;
         }
-      } catch (_) {}
-      logger.warn(`API upload error [${res.status}]:`, errMsg);
-      throw new Error(errMsg);
-    }
 
-    return res.json() as Promise<ObservationResponseDTO>;
-  }
+        logger.debug(`API Upload Observation: [POST] ${url}`);
+
+        let res: Response;
+        try {
+          res = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+        } catch (networkErr: any) {
+          logger.warn(`Network unavailable during observation upload to ${url}:`, networkErr?.message || networkErr);
+          throw new BackendUnreachableError(
+            `Unable to reach backend server at ${baseUrl}. Please check your connection or server status.`,
+            baseUrl
+          );
+        }
+
+        if (!res.ok) {
+          let errMsg = `Upload failed with status ${res.status}`;
+          try {
+            const errJson = await res.json();
+            if (errJson.detail) {
+              errMsg = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+            }
+          } catch (_) { }
+          logger.warn(`API upload error [${res.status}]:`, errMsg);
+          throw new Error(errMsg);
+        }
+
+        return res.json() as Promise<ObservationResponseDTO>;
+      }
 
   // --- Agronomic Advisory Endpoints ---
   async getAdvisoryRules(): Promise<AdvisoryRuleDTO[]> {
-    return this.request<AdvisoryRuleDTO[]>('/advisory/rules');
-  }
+        return this.request<AdvisoryRuleDTO[]>('/advisory/rules');
+      }
 
   async getAdvisoryRule(stageIndex: number): Promise<AdvisoryRuleDTO> {
-    return this.request<AdvisoryRuleDTO>(`/advisory/rules/${stageIndex}`);
-  }
+        return this.request<AdvisoryRuleDTO>(`/advisory/rules/${stageIndex}`);
+      }
 
   // --- Peer Showcase Endpoints ---
   async getShowcasePosts(): Promise<ShowcasePostDTO[]> {
-    return this.request<ShowcasePostDTO[]>('/showcase/');
-  }
+        return this.request<ShowcasePostDTO[]>('/showcase/');
+      }
 
   async getShowcasePost(showcaseId: string): Promise<ShowcasePostDTO> {
-    return this.request<ShowcasePostDTO>(`/showcase/${showcaseId}`);
-  }
+        return this.request<ShowcasePostDTO>(`/showcase/${showcaseId}`);
+      }
 
   async submitShowcase(post: ShowcaseCreateDTO): Promise<ShowcasePostDTO> {
-    return this.request<ShowcasePostDTO>('/showcase/', {
-      method: 'POST',
-      body: JSON.stringify(post),
-    });
-  }
-}
+        return this.request<ShowcasePostDTO>('/showcase/', {
+          method: 'POST',
+          body: JSON.stringify(post),
+        });
+      }
+    }
 
-export const api = new ApiClient();
-export default api;
+    export const api = new ApiClient();
+    export default api;

@@ -246,30 +246,30 @@ export default function AuthScreen() {
         const rawMsg = (err.message || '').toLowerCase();
         let displayMsg = err.message || '';
 
-        // Differentiate: account doesn't exist vs wrong password/pin vs phone registered
-        if (rawMsg.includes('no account') || rawMsg.includes('not found')) {
-          displayMsg = isUrdu
-            ? 'اس موبائل نمبر پر کوئی اکاؤنٹ موجود نہیں ہے۔ براہ کرم "نیا اکاؤنٹ" منتخب کریں۔'
-            : 'No account found with this mobile number. Please check your number or create an account.';
-          setErrors((prev) => ({
-            ...prev,
-            phoneNumber: isUrdu ? 'اکاؤنٹ موجود نہیں' : 'Account not found',
-          }));
-        } else if (rawMsg.includes('invalid pin') || rawMsg.includes('password') || rawMsg.includes('incorrect credentials') || rawMsg.includes('401')) {
-          displayMsg = isUrdu
-            ? 'موبائل نمبر یا پن کوڈ درست نہیں۔ براہ کرم دوبارہ کوشش کریں۔'
-            : 'Incorrect mobile number or PIN entered. Please verify your credentials and try again.';
-          setErrors((prev) => ({
-            ...prev,
-            pin: isUrdu ? 'غلط پن کوڈ' : 'Incorrect PIN',
-          }));
-        } else if (rawMsg.includes('already registered')) {
+        if (rawMsg.includes('already registered')) {
           displayMsg = isUrdu
             ? 'یہ موبائل نمبر پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔'
             : 'This mobile number is already registered. Please sign in instead.';
           setErrors((prev) => ({
             ...prev,
             phoneNumber: isUrdu ? 'پہلے سے رجسٹرڈ ہے' : 'Already registered',
+          }));
+        } else if (
+          rawMsg.includes('incorrect') ||
+          rawMsg.includes('credentials') ||
+          rawMsg.includes('pin') ||
+          rawMsg.includes('password') ||
+          rawMsg.includes('401') ||
+          rawMsg.includes('no account')
+        ) {
+          // Standard security message: do not differentiate between wrong number or wrong PIN
+          displayMsg = isUrdu
+            ? 'موبائل نمبر یا پن کوڈ درست نہیں۔ براہ کرم دوبارہ کوشش کریں۔'
+            : 'Incorrect mobile number or PIN entered. Please verify your credentials and try again.';
+          setErrors((prev) => ({
+            ...prev,
+            phoneNumber: isUrdu ? 'غلط نمبر یا پن' : 'Invalid credentials',
+            pin: isUrdu ? 'غلط نمبر یا پن' : 'Invalid credentials',
           }));
         }
 
@@ -342,14 +342,16 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
 
           {/* ─── Top Illustration Area ─── */}
           <View style={styles.heroSection}>
@@ -689,7 +691,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: Spacing.xxxl,
+    paddingBottom: 80,
   },
 
   // ─── Hero ─────────────────────────────────

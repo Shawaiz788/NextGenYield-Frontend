@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, FieldResponseDTO, FieldCreateDTO, FieldUpdateDTO } from '@/services/api-client';
+import { api, FieldResponseDTO, FieldCreateDTO, FieldUpdateDTO, getAuthToken } from '@/services/api-client';
 import { logger } from '@/services/logger';
 
 export const FIELD_QUERY_KEYS = {
@@ -11,12 +11,15 @@ export const FIELD_QUERY_KEYS = {
  * TanStack Query Hook: Fetch all farm parcels demarcated by the farmer
  */
 export function useFieldsQuery() {
+  const token = getAuthToken();
+
   return useQuery<FieldResponseDTO[], Error>({
     queryKey: FIELD_QUERY_KEYS.all,
     queryFn: async () => {
       logger.debug('Fetching farmer fields from backend');
       return await api.getFields();
     },
+    enabled: !!token,
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });
@@ -26,13 +29,15 @@ export function useFieldsQuery() {
  * TanStack Query Hook: Fetch single field by ID
  */
 export function useFieldQuery(fieldId: string | null | undefined) {
+  const token = getAuthToken();
+
   return useQuery<FieldResponseDTO, Error>({
     queryKey: FIELD_QUERY_KEYS.detail(fieldId || ''),
     queryFn: async () => {
       if (!fieldId) throw new Error('Field ID is required');
       return await api.getField(fieldId);
     },
-    enabled: !!fieldId,
+    enabled: !!fieldId && !!token,
     staleTime: 1000 * 30,
   });
 }
@@ -100,3 +105,4 @@ export function useDeleteFieldMutation() {
     },
   });
 }
+

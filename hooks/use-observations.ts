@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ObservationResponseDTO, UploadObservationParams } from '@/services/api-client';
+import { api, ObservationResponseDTO, UploadObservationParams, getAuthToken } from '@/services/api-client';
 import { logger } from '@/services/logger';
 
 export const OBSERVATION_QUERY_KEYS = {
@@ -10,6 +10,8 @@ export const OBSERVATION_QUERY_KEYS = {
  * TanStack Query Hook: Fetch timeline of canopy observations for a cycle
  */
 export function useObservationsQuery(cycleId: string | null | undefined) {
+  const token = getAuthToken();
+
   return useQuery<ObservationResponseDTO[], Error>({
     queryKey: OBSERVATION_QUERY_KEYS.byCycle(cycleId || ''),
     queryFn: async () => {
@@ -17,7 +19,7 @@ export function useObservationsQuery(cycleId: string | null | undefined) {
       logger.debug('Fetching canopy observations for cycle:', cycleId);
       return await api.getObservations(cycleId);
     },
-    enabled: !!cycleId,
+    enabled: !!cycleId && !!token,
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });
@@ -43,3 +45,4 @@ export function useUploadObservationMutation() {
     },
   });
 }
+
