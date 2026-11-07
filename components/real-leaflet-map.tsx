@@ -281,11 +281,12 @@ export function RealLeafletMap({
       });
     };
 
-    var MUSTAFA_TOWN = [31.4985, 74.2700];
+    // Default center fallback (Indus Basin) if no user GPS or fields exist
+    var DEFAULT_CENTER = [31.4187, 73.0791];
 
     var map = L.map('map', {
-      center: MUSTAFA_TOWN,
-      zoom: 16,
+      center: DEFAULT_CENTER,
+      zoom: 15,
       zoomControl: false,
       attributionControl: false
     });
@@ -373,7 +374,7 @@ export function RealLeafletMap({
         var f = fieldsData.find(function(item) { return item.id === k; });
         if (!f) return;
 
-        if (k === id) {
+        if (id && k === id) {
           p.setStyle({
             color: '#FFFFFF',
             weight: 3.5,
@@ -400,6 +401,7 @@ export function RealLeafletMap({
       });
       polygonLayers = {};
       renderFields();
+      // Preserve current map center and zoom level!
     };
 
     var userLocationMarker = null;
@@ -495,12 +497,12 @@ export function RealLeafletMap({
 
     window.fitAllBounds = function() {
       var keys = Object.keys(polygonLayers);
-      if (keys.length === 0) {
+      if (keys.length > 0) {
+        var group = L.featureGroup(keys.map(function(k) { return polygonLayers[k]; }));
+        map.fitBounds(group.getBounds().pad(0.12));
+      } else {
         window.locateUser();
-        return;
       }
-      var group = L.featureGroup(keys.map(function(k) { return polygonLayers[k]; }));
-      map.fitBounds(group.getBounds().pad(0.12));
     };
 
     // Drawing Logic
@@ -708,7 +710,14 @@ export function RealLeafletMap({
 
     setTimeout(function() {
       map.invalidateSize();
-    }, 250);
+      // On initial startup only, center on user location if no fields are present
+      var fieldCount = Object.keys(polygonLayers).length;
+      if (fieldCount > 0) {
+        window.fitAllBounds();
+      } else {
+        window.locateUser();
+      }
+    }, 300);
   </script>
 </body>
 </html>
@@ -732,6 +741,25 @@ export function RealLeafletMap({
       // Ignore parse error
     }
   };
+
+  // Auto-locate once on component mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          sendMapAction('flyToLocation', {
+            lat: loc.coords.latitude,
+            lng: loc.coords.longitude,
+            accuracy: loc.coords.accuracy || 25,
+          });
+        }
+      } catch (_) {}
+    })();
+  }, []);
 
   return (
     <View style={styles.container}>
