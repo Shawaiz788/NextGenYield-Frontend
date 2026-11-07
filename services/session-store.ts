@@ -90,3 +90,4 @@ export const sessionStore = {
     await Promise.all([this.removeToken(), this.removeUserProfile()]);
   },
 };
+
