@@ -36,7 +36,7 @@ export default function FarmMapScreen() {
   const [isDrawModeOpen, setIsDrawModeOpen] = useState(false);
   const [selectedShape, setSelectedShape] = useState<'polygon' | 'rectangle' | 'square' | 'circle'>('polygon');
   const [fieldCodeInput, setFieldCodeInput] = useState('PK-FSD-05');
-  const [fieldNameInput, setFieldNameInput] = useState('Mustafa Town West · Canal Block');
+  const [fieldNameInput, setFieldNameInput] = useState('');
   const [acresInput, setAcresInput] = useState('3.8');
   const [soilTextureInput, setSoilTextureInput] = useState('Sandy Loam');
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([]);
@@ -48,7 +48,8 @@ export default function FarmMapScreen() {
 
   const liveMapFields = React.useMemo<MapFieldItem[]>(() => {
     if (!fieldsQuery.data || fieldsQuery.data.length === 0) {
-      return mapFields;
+      // If user has not demarcated any fields yet or is offline, only display user's local added fields (no hardcoded Mustafa Town fields)
+      return mapFields.filter((m) => m.isMine && !m.id.startsWith('field_0'));
     }
     const backendItems: MapFieldItem[] = fieldsQuery.data.map((f, idx) => {
       let coords: [number, number][] = [];
@@ -75,8 +76,7 @@ export default function FarmMapScreen() {
       };
     });
 
-    const regional = mapFields.filter((m) => !m.isMine);
-    return [...backendItems, ...regional];
+    return backendItems;
   }, [fieldsQuery.data, mapFields]);
 
 
@@ -193,7 +193,7 @@ export default function FarmMapScreen() {
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
-                {language === 'ur' ? '📍 مصطفیٰ ٹاؤن، لاہور · حقیقی جی آئی ایس' : '📍 Mustafa Town, Lahore · Real GIS'}
+                {language === 'ur' ? '📍 حقیقی سیٹلائٹ و کیڈسٹرل نقشہ' : '📍 Satellite & Cadastral GIS'}
               </Text>
             </View>
           </View>
@@ -415,7 +415,7 @@ export default function FarmMapScreen() {
                 {language === 'ur' ? 'نیا کھیت محفوظ کریں' : 'Configure New Field'}
               </Text>
               <Text style={styles.addFieldSub}>
-                {language === 'ur' ? 'مصطفیٰ ٹاؤن کے نقشے پر باؤنڈری تیار ہے' : 'Boundary placed on Mustafa Town satellite view'}
+                {language === 'ur' ? 'نقشے پر مطلوبہ باؤنڈری تیار ہے' : 'Boundary placed on satellite view'}
               </Text>
             </View>
             <View style={styles.acresLiveBadge}>
@@ -541,9 +541,7 @@ export default function FarmMapScreen() {
               <View style={styles.unstartedBanner}>
                 <Ionicons name="time-outline" size={16} color="#B45309" style={{ marginTop: 1 }} />
                 <Text style={styles.unstartedBannerText}>
-                  {language === 'ur'
-                    ? 'باؤنڈری مصطفیٰ ٹاؤن میں درج ہے۔ بیج اور کھاد منتخب کریں۔'
-                    : 'Boundary registered in Mustafa Town. Choose variant & fertilizer to start.'}
+                  {language === 'ur' ? 'کھیت کی باؤنڈری درج ہو چکی ہے۔ بیج اور کھاد منتخب کر کے فصل شروع کریں۔' : 'Boundary registered. Choose variant & fertilizer to start crop tracking.'}
                 </Text>
               </View>
 

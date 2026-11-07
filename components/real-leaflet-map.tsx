@@ -98,6 +98,7 @@ export function RealLeafletMap({
   const handleZoomIn = () => sendMapAction('zoomIn');
   const handleZoomOut = () => sendMapAction('zoomOut');
   const handleFitBounds = () => sendMapAction('fitBounds');
+  const handleLocateMe = () => sendMapAction('locateMe');
 
   // HTML content for Leaflet
   const leafletHtml = `
@@ -349,10 +350,77 @@ export function RealLeafletMap({
       renderFields();
     };
 
+    var userLocationMarker = null;
+    var userLocationCircle = null;
+
+    window.locateUser = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            var acc = pos.coords.accuracy || 20;
+
+            if (userLocationMarker) map.removeLayer(userLocationMarker);
+            if (userLocationCircle) map.removeLayer(userLocationCircle);
+
+            userLocationCircle = L.circle([lat, lng], {
+              radius: acc,
+              color: '#3B82F6',
+              fillColor: '#3B82F6',
+              fillOpacity: 0.15,
+              weight: 1
+            }).addTo(map);
+
+            userLocationMarker = L.circleMarker([lat, lng], {
+              radius: 8,
+              color: '#FFFFFF',
+              fillColor: '#2563EB',
+              fillOpacity: 1,
+              weight: 2.5
+            }).addTo(map);
+
+            userLocationMarker.bindTooltip('Your Location', { permanent: false, direction: 'top' });
+            map.flyTo([lat, lng], 17, { duration: 1.2 });
+            postToParent({ type: 'location_found', lat: lat, lng: lng });
+          },
+          function(err) {
+            map.locate({ setView: true, maxZoom: 17 });
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else {
+        map.locate({ setView: true, maxZoom: 17 });
+      }
+    };
+
+    map.on('locationfound', function(e) {
+      if (userLocationMarker) map.removeLayer(userLocationMarker);
+      if (userLocationCircle) map.removeLayer(userLocationCircle);
+
+      userLocationCircle = L.circle(e.latlng, {
+        radius: e.accuracy || 20,
+        color: '#3B82F6',
+        fillColor: '#3B82F6',
+        fillOpacity: 0.15,
+        weight: 1
+      }).addTo(map);
+
+      userLocationMarker = L.circleMarker(e.latlng, {
+        radius: 8,
+        color: '#FFFFFF',
+        fillColor: '#2563EB',
+        fillOpacity: 1,
+        weight: 2.5
+      }).addTo(map);
+
+      map.flyTo(e.latlng, 17, { duration: 1.2 });
+    });
+
     window.fitAllBounds = function() {
       var keys = Object.keys(polygonLayers);
       if (keys.length === 0) {
-        map.setView(MUSTAFA_TOWN, 16);
+        window.locateUser();
         return;
       }
       var group = L.featureGroup(keys.map(function(k) { return polygonLayers[k]; }));
@@ -548,6 +616,8 @@ export function RealLeafletMap({
         map.zoomIn();
       } else if (data.action === 'zoomOut') {
         map.zoomOut();
+      } else if (data.action === 'locateMe') {
+        window.locateUser();
       }
     };
 
@@ -615,8 +685,11 @@ export function RealLeafletMap({
         />
       )}
 
-      {/* Floating Map Zoom & Center Control Buttons */}
+      {/* Floating Map Zoom, Center & Locate Me Control Buttons */}
       <View style={styles.mapToolsCol}>
+        <TouchableOpacity style={styles.mapToolBtn} onPress={handleLocateMe} activeOpacity={0.85}>
+          <Ionicons name="locate" size={17} color="#22C55E" />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.mapToolBtn} onPress={handleZoomIn} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color="#FFFFFF" />
         </TouchableOpacity>
