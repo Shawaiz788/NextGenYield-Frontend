@@ -13,6 +13,7 @@ import { useFieldsQuery } from '@/hooks/use-fields';
 import { setAuthToken } from '@/services/api-client';
 import { sessionStore } from '@/services/session-store';
 import { logger } from '@/services/logger';
+import { speechService } from '@/services/speech-service';
 
 export const FALLBACK_EMPTY_FIELD: FieldData = {
   id: '',
@@ -126,7 +127,7 @@ interface AppContextType {
   toggleFontScale: () => void;
   fontMultiplier: number;
   playingAudioId: string | null;
-  playAudio: (id: string) => void;
+  playAudio: (id: string, textToSpeak?: string) => void;
   stopAudio: () => void;
 }
 
@@ -298,6 +299,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleLanguage = () => {
+    speechService.stop();
+    setPlayingAudioId(null);
     setLanguage((prev) => (prev === 'en' ? 'ur' : 'en'));
   };
 
@@ -305,18 +308,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFontScale((prev) => (prev === 'normal' ? 'large' : 'normal'));
   };
 
-  const playAudio = (id: string) => {
+  const playAudio = (id: string, textToSpeak?: string) => {
+    // If user taps the active playing audio button, toggle off and stop speech
     if (playingAudioId === id) {
+      speechService.stop();
       setPlayingAudioId(null);
-    } else {
-      setPlayingAudioId(id);
-      setTimeout(() => {
-        setPlayingAudioId((current) => (current === id ? null : current));
-      }, 6000);
+      return;
     }
+
+    setPlayingAudioId(id);
+
+    // Resolve text to speak offline based on active language and displayed content
+    let speechContent = textToSpeak;
+    if (!speechContent || speechContent.trim() === '') {
+      const isUrdu = language === 'ur';
+      if (id === 'camera_guidance') {
+        speechContent = isUrdu
+          ? 'کیمرے کو گندم کی فصل کی طرف پینتالیس سے ساٹھ ڈگری کے زاویے پر نیچے جھکائیں۔ جب زاویہ درست ہو جائے تو تصویر بنائیں۔'
+          : 'Tilt the camera forty-five to sixty degrees down towards the wheat canopy. When the indicator turns green, capture the photo.';
+      } else if (id === 'dashboard_advice') {
+        const water = selectedField.advisory.irrigationGuidance;
+        const nutrient = selectedField.advisory.nutrientGuidance;
+        const alertMsg = selectedField.advisory.riskAlerts?.[0] || '';
+        speechContent = isUrdu
+          ? `فصل کی رہنمائی۔ آبپاشی: ${water}۔ کھاد: ${nutrient}۔ ${alertMsg}`
+          : `Crop guidance. Irrigation: ${water}. Fertilizer: ${nutrient}. ${alertMsg}`;
+      } else {
+        speechContent = isUrdu ? 'زرعی فیصلہ سازی کی رہنمائی' : 'Agricultural decision support guidance';
+      }
+    }
+
+    speechService.speak(speechContent, {
+      language,
+      onDone: () => setPlayingAudioId(null),
+      onStopped: () => setPlayingAudioId(null),
+      onError: () => setPlayingAudioId(null),
+    });
   };
 
   const stopAudio = () => {
+    speechService.stop();
     setPlayingAudioId(null);
   };
 

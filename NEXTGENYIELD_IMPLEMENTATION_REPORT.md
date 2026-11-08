@@ -331,8 +331,12 @@ All text is mediated through centralized translation tables (`constants/translat
 | `cropStageResult`| `"Crop Stage Result"` | `"فصل کی جانچ کا نتیجہ"` |
 | `saveToTimeline` | `"Save to Field Timeline"` | `"کھیت کے ریکارڈ میں محفوظ کریں"` |
 
-### 9.2 Single-Tap Spoken Voice Guidance
-To ensure accessibility for low-literacy farmers, critical screens feature an audio narration trigger. Spoken Urdu advice instructs the user on optimal camera angle, irrigation timing, and disease prevention without requiring textual literacy.
+### 9.2 Single-Tap Spoken Voice Guidance (100% Offline Device TTS)
+To ensure accessibility for low-literacy farmers in remote rural regions with zero cellular reception, NextGenYield implements a fully offline client-side Text-to-Speech (TTS) architecture via `expo-speech` (`services/speech-service.ts`):
+- **Engine**: Native hardware speech synthesizer (Android Speech Services / Apple `AVSpeechSynthesizer`). Zero network latency, zero data consumption, and 100% offline.
+- **Language Locales**: `ur-PK` (Pakistani Urdu) and `en-US` (English).
+- **Acoustic Tuning**: Speech rate is calibrated to `0.85` for Urdu and `0.90` for English to ensure clear comprehension under windy, noisy field environments.
+- **Dynamic Content Synthesis**: Regardless of whether agronomic suggestions originate from local rule tables or live FastAPI backend endpoints, the spoken audio is synthesized dynamically from the exact advice strings rendered on the screen (e.g., watering instructions, nutrient dosages, disease alerts, or camera tilt reticle alignment).
 
 ---
 

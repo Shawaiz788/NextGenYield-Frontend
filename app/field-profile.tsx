@@ -328,7 +328,7 @@ export default function FieldProfileScreen() {
                         </Text>
                       </TouchableOpacity>
                     </View>
-                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{irrig.stage_name} · {irrig.water_depth_inches}" Depth</Text>
+                    <Text style={[styles.ledgerType, { fontSize: 13 * fontMultiplier }]}>{irrig.stage_name} · {irrig.water_depth_inches}&quot; Depth</Text>
                     <Text style={styles.ledgerDate}>📅 Target DAS: Day {irrig.target_das}</Text>
                   </View>
                 ))

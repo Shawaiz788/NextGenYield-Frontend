@@ -458,7 +458,28 @@ export default function DashboardScreen() {
 
             {/* Voice Audio Readout Button */}
             <TouchableOpacity
-              onPress={() => playAudio('dashboard_advice')}
+              onPress={() => {
+                const isUrdu = language === 'ur';
+                const stageTitle = stageNames[selectedField.currentStageIndex] || 'Wheat';
+
+                const irrigationText = isUrdu
+                  ? 'گوبھ کا مرحلہ پانی کے لیے نہایت اہم ہے۔ زمین میں نمی برقرار رکھیں تاکہ سٹے میں دانوں کی تعداد کم نہ ہو۔'
+                  : (activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance);
+
+                const fertilizerText = isUrdu
+                  ? 'اس مرحلے پر یوریا کھاد کا اضافی استعمال مت کریں تاکہ پودا گرنے سے محفوظ رہے، اور جھنڈا پتے کی صحت کا خیال رکھیں۔'
+                  : (activeStageRule ? `${activeStageRule.critical_nutrient}. ${activeStageRule.primary_action}` : selectedField.advisory.nutrientGuidance);
+
+                const diseaseText = isUrdu
+                  ? 'پتوں پر زرد کنگی کا معائنہ کریں اور صبح کی دھند میں روزانہ چیک کریں۔'
+                  : (selectedField.advisory.riskAlerts?.[0] || 'Inspect leaves for early rust spots.');
+
+                const fullSpeech = isUrdu
+                  ? `فصل کا مرحلہ: ${stageTitle}۔ آبپاشی کی رہنمائی: ${irrigationText}۔ کھاد کا مشورہ: ${fertilizerText}۔ بیماری سے بچاؤ: ${diseaseText}`
+                  : `Current growth stage: ${stageTitle}. Water advice: ${irrigationText}. Fertilizer advice: ${fertilizerText}. Disease watch: ${diseaseText}`;
+
+                playAudio('dashboard_advice', fullSpeech);
+              }}
               style={[styles.voiceButton, isAudioActive && styles.voiceButtonActive]}
               activeOpacity={0.8}>
               <Ionicons

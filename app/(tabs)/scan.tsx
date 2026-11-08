@@ -44,6 +44,7 @@ export default function CameraScanScreen() {
     fontMultiplier,
     playingAudioId,
     playAudio,
+    stopAudio,
   } = useApp();
 
   const isUrdu = language === 'ur';
@@ -349,7 +350,12 @@ export default function CameraScanScreen() {
           {/* Audio Spoken Guide for Farmer */}
           <TouchableOpacity
             style={[styles.audioPillBtn, isCameraAudioActive && styles.audioPillBtnActive]}
-            onPress={() => playAudio('camera_guidance')}
+            onPress={() => {
+              const guidanceText = isUrdu
+                ? 'کیمرے کو گندم کی فصل کی طرف پینتالیس سے ساٹھ ڈگری کے زاویے پر نیچے جھکائیں۔ جب زاویہ درست ہو جائے تو کیمرے کا بٹن دبائیں۔'
+                : 'Tilt camera forty-five to sixty degrees down towards the canopy. When the indicator turns green, tap the shutter to capture.';
+              playAudio('camera_guidance', guidanceText);
+            }}
             activeOpacity={0.8}>
             <Ionicons
               name={isCameraAudioActive ? 'volume-high' : 'volume-medium-outline'}
@@ -460,7 +466,12 @@ export default function CameraScanScreen() {
                 </Text>
                 <Text style={styles.modalSubtitle}>FoMo4Wheat ViT-B/14 · {selectedField.code}</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowResultSheet(false)} style={styles.modalCloseBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  stopAudio();
+                  setShowResultSheet(false);
+                }}
+                style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -587,7 +598,21 @@ export default function CameraScanScreen() {
                   <View style={styles.advisoryHeaderRow}>
                     <Text style={styles.sectionHeading}>{t.aiAgronomicAdvisory}</Text>
                     <TouchableOpacity
-                      onPress={() => playAudio('result_advice')}
+                      onPress={() => {
+                        if (!prediction) return;
+                        const stageTitle = isUrdu ? prediction.advisory.display_name : prediction.stage_name;
+                        const objective = prediction.advisory.primary_objective;
+                        const water = prediction.advisory.irrigation_guidance;
+                        const nutrient = prediction.advisory.nutrient_guidance;
+                        const protection = prediction.advisory.protection_guidance;
+                        const riskAlerts = prediction.advisory.risk_alerts?.join('. ') || '';
+
+                        const speechText = isUrdu
+                          ? `تشخیص شدہ مرحلہ: ${stageTitle}۔ بنیادی مقصد: ${objective}۔ آبپاشی: ${water}۔ کھاد کا استعمال: ${nutrient}۔ بیماری سے بچاؤ: ${protection}۔ ضروری انتباہ: ${riskAlerts}`
+                          : `Predicted stage: ${stageTitle}. Primary objective: ${objective}. Water management: ${water}. Fertilizer guidance: ${nutrient}. Crop protection: ${protection}. Risk alert: ${riskAlerts}`;
+
+                        playAudio('result_advice', speechText);
+                      }}
                       style={[styles.miniAudioBtn, isResultAudioActive && styles.miniAudioBtnActive]}
                       activeOpacity={0.8}>
                       <Ionicons
@@ -662,7 +687,10 @@ export default function CameraScanScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => setShowResultSheet(false)}
+                    onPress={() => {
+                      stopAudio();
+                      setShowResultSheet(false);
+                    }}
                     style={styles.retakeBtn}
                     activeOpacity={0.8}>
                     <Text style={styles.retakeBtnText}>{t.retakePhoto}</Text>
