@@ -29,9 +29,10 @@ export function RealLeafletMap({
 }: RealLeafletMapProps) {
   const webViewRef = useRef<WebView>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // Helper to send action to Leaflet (works on both Web and React Native WebView)
-  const sendMapAction = (action: string, payload: any = {}) => {
+  const sendMapAction = React.useCallback((action: string, payload: any = {}) => {
     const dataObj = { action, ...payload };
     const jsonStr = JSON.stringify(dataObj);
 
@@ -47,27 +48,27 @@ export function RealLeafletMap({
         true;
       `);
     }
-  };
+  }, []);
 
   // Sync Layer Type
   useEffect(() => {
     sendMapAction('switchLayer', { type: mapType });
-  }, [mapType]);
+  }, [mapType, isMapReady, sendMapAction]);
 
   // Sync Field Selection
   useEffect(() => {
     sendMapAction('highlightField', { id: selectedFieldId });
-  }, [selectedFieldId]);
+  }, [selectedFieldId, isMapReady, sendMapAction]);
 
   // Sync Draw Mode
   useEffect(() => {
     sendMapAction('setDrawMode', { isDraw: isDrawMode, shape: drawShape });
-  }, [isDrawMode, drawShape]);
+  }, [isDrawMode, drawShape, isMapReady, sendMapAction]);
 
   // Sync Fields
   useEffect(() => {
     sendMapAction('updateFields', { fields });
-  }, [fields]);
+  }, [fields, isMapReady, sendMapAction]);
 
   // Web Listener for iframe messages
   useEffect(() => {
@@ -78,7 +79,9 @@ export function RealLeafletMap({
         const raw = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (!raw || typeof raw !== 'object') return;
 
-        if (raw.type === 'field_selected') {
+        if (raw.type === 'map_ready') {
+          setIsMapReady(true);
+        } else if (raw.type === 'field_selected') {
           onSelectField(raw.id);
         } else if (raw.type === 'boundary_updated' && onBoundaryUpdated) {
           onBoundaryUpdated({
@@ -152,8 +155,8 @@ export function RealLeafletMap({
     }
   };
 
-  // HTML content for Leaflet
-  const leafletHtml = `
+  // HTML content for Leaflet (memoized statically so WebView never reloads from scratch)
+  const leafletHtml = React.useMemo(() => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -325,14 +328,15 @@ export function RealLeafletMap({
       }
     };
 
-    var fieldsData = ${JSON.stringify(fields)};
+    var fieldsData = [];
     var polygonLayers = {};
+    var currentSelectedFieldId = '';
 
     function renderFields() {
       fieldsData.forEach(function(f) {
         if (!f.coordinates || f.coordinates.length < 3) return;
 
-        var isSelected = f.id === '${selectedFieldId}';
+        var isSelected = f.id === currentSelectedFieldId;
         var color = f.color || '#16A34A';
         var fillColor = f.cycleStatus === 'not_started' ? '#64748B' : color;
 
@@ -369,6 +373,7 @@ export function RealLeafletMap({
     renderFields();
 
     window.highlightField = function(id) {
+      currentSelectedFieldId = id || '';
       Object.keys(polygonLayers).forEach(function(k) {
         var p = polygonLayers[k];
         var f = fieldsData.find(function(item) { return item.id === k; });
@@ -384,9 +389,12 @@ export function RealLeafletMap({
           p.bringToFront();
           map.panTo(p.getBounds().getCenter(), { animate: true, duration: 0.5 });
         } else {
+          var color = f.color || '#16A34A';
+          var fillColor = f.cycleStatus === 'not_started' ? '#64748B' : color;
           p.setStyle({
-            color: f.color || '#16A34A',
+            color: color,
             weight: 2,
+            fillColor: fillColor,
             fillOpacity: 0.28,
             dashArray: null
           });
@@ -401,7 +409,13 @@ export function RealLeafletMap({
       });
       polygonLayers = {};
       renderFields();
-      // Preserve current map center and zoom level!
+      if (currentSelectedFieldId) {
+        window.highlightField(currentSelectedFieldId);
+      }
+      var keys = Object.keys(polygonLayers);
+      if (keys.length > 0) {
+        window.fitAllBounds();
+      }
     };
 
     var userLocationMarker = null;
@@ -506,8 +520,8 @@ export function RealLeafletMap({
     };
 
     // Drawing Logic
-    window.isDrawing = ${isDrawMode};
-    var currentShape = '${drawShape}';
+    window.isDrawing = false;
+    var currentShape = 'polygon';
     var drawPoints = [];
     var drawMarkers = [];
     var tempPolygon = null;
@@ -717,16 +731,19 @@ export function RealLeafletMap({
       } else {
         window.locateUser();
       }
-    }, 300);
+      postToParent({ type: 'map_ready' });
+    }, 250);
   </script>
 </body>
 </html>
-  `;
+  `, []);
 
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'field_selected') {
+      if (data.type === 'map_ready') {
+        setIsMapReady(true);
+      } else if (data.type === 'field_selected') {
         onSelectField(data.id);
       } else if (data.type === 'boundary_updated' && onBoundaryUpdated) {
         onBoundaryUpdated({

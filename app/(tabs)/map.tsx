@@ -26,10 +26,10 @@ import { ActivityIndicator } from 'react-native';
 
 
 export default function FarmMapScreen() {
-  const { setSelectedFieldId, mapFields, addNewField, t, language, fontMultiplier } = useApp();
+  const { fields, setSelectedFieldId, mapFields, addNewField, t, language, fontMultiplier } = useApp();
 
   const [showLegend, setShowLegend] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'booting' | 'fallow'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [selectedMapField, setSelectedMapField] = useState<MapFieldItem | null>(null);
 
   // Add Field / Real Draw Boundary State
@@ -47,11 +47,20 @@ export default function FarmMapScreen() {
   const [saveError, setSaveError] = useState<Error | null>(null);
 
   const liveMapFields = React.useMemo<MapFieldItem[]>(() => {
-    if (!fieldsQuery.data || fieldsQuery.data.length === 0) {
-      // If user has not demarcated any fields yet or is offline, only display user's local added fields (no hardcoded Mustafa Town fields)
+    // Prefer fieldsQuery.data, fallback to context fields
+    const rawList = (fieldsQuery.data && fieldsQuery.data.length > 0)
+      ? fieldsQuery.data
+      : (fields.length > 0 ? fields : []);
+
+    if (rawList.length === 0) {
       return mapFields.filter((m) => m.isMine && !m.id.startsWith('field_0'));
     }
-    const backendItems: MapFieldItem[] = fieldsQuery.data.map((f, idx) => {
+
+    return rawList.map((f: any, idx: number) => {
+      const fieldId = f.field_id || f.id;
+      const contextField = fields.find((cf) => cf.id === fieldId);
+      const localMapField = mapFields.find((mf) => mf.id === fieldId);
+
       let coords: [number, number][] = [];
       try {
         if (f.boundary_geojson?.type === 'Polygon' && f.boundary_geojson.coordinates?.[0]) {
@@ -59,26 +68,42 @@ export default function FarmMapScreen() {
         }
       } catch (_) {}
 
+      if (coords.length === 0 && localMapField?.coordinates) {
+        coords = localMapField.coordinates;
+      }
+      if (coords.length === 0 && contextField?.coordinates) {
+        const { latitude, longitude } = contextField.coordinates;
+        coords = [
+          [latitude - 0.0015, longitude - 0.0015],
+          [latitude + 0.0015, longitude - 0.0015],
+          [latitude + 0.0015, longitude + 0.0015],
+          [latitude - 0.0015, longitude + 0.0015],
+        ];
+      }
+
+      const isCycleActive = Boolean(f.current_cycle_id || contextField?.cycleStatus === 'active');
+      const stageIdx = contextField?.currentStageIndex ?? 0;
+      const stageInfo = STAGE_CONFIG[stageIdx] || STAGE_CONFIG[0];
+      const stageName = isCycleActive ? stageInfo.name : 'Fallow';
+      const color = isCycleActive ? stageInfo.color : '#64748B';
+
       return {
-        id: f.field_id,
-        code: f.field_code || ("PK-FSD-0" + (idx + 1)),
-        name: f.field_name,
-        stageIndex: 2,
-        stageName: f.current_cycle_id ? 'Active Cycle' : 'Fallow',
-        variety: 'Akbar-2019',
-        yieldKgSqm: 0.38,
-        color: f.current_cycle_id ? '#16A34A' : '#EAB308',
-        acres: f.area_acres,
+        id: fieldId,
+        code: f.field_code || contextField?.code || ("PK-FSD-0" + (idx + 1)),
+        name: f.field_name || contextField?.displayName || ('Field ' + (idx + 1)),
+        stageIndex: isCycleActive ? stageIdx : 0,
+        stageName,
+        variety: contextField?.wheatVariety || 'Akbar-2019',
+        yieldKgSqm: contextField?.yieldReturnKgSqm || 0.38,
+        color,
+        acres: f.area_acres || contextField?.areaAcres || 3.8,
         isMine: true,
-        shapeType: (f.shape_type as any) || 'polygon',
-        cycleStatus: f.current_cycle_id ? 'active' : 'not_started',
-        coordinates: coords.length > 0 ? coords : undefined,
+        shapeType: (f.shape_type as any) || (contextField as any)?.shapeType || 'polygon',
+        cycleStatus: isCycleActive ? 'active' : 'not_started',
+        coordinates: coords.length >= 3 ? coords : undefined,
       };
     });
-
-    return backendItems;
-  }, [fieldsQuery.data, mapFields]);
-
+  }, [fieldsQuery.data, fields, mapFields]);
 
   const handleSelectShape = (shape: 'polygon' | 'rectangle' | 'square' | 'circle') => {
     setSelectedShape(shape);
@@ -91,11 +116,50 @@ export default function FarmMapScreen() {
   // Start Crop Cycle Modal State
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
 
-  const filteredFields = liveMapFields.filter((f) => {
-    if (activeFilter === 'booting') return f.stageName === 'Booting';
-    if (activeFilter === 'fallow') return f.cycleStatus === 'not_started';
-    return true;
-  });
+  // Compute dynamic filter options based on actual field stages present
+  const filterOptions = React.useMemo(() => {
+    const list: { id: string; labelEn: string; labelUr: string; count: number; color?: string }[] = [
+      { id: 'all', labelEn: 'All Plots', labelUr: 'تمام رقبے', count: liveMapFields.length },
+    ];
+
+    const fallowFields = liveMapFields.filter((f) => f.cycleStatus === 'not_started');
+    if (fallowFields.length > 0) {
+      list.push({
+        id: 'fallow',
+        labelEn: 'Fallow / Ready',
+        labelUr: 'تیار زمین',
+        count: fallowFields.length,
+        color: '#64748B',
+      });
+    }
+
+    const stagesSeen = new Set<string>();
+    liveMapFields.forEach((f) => {
+      if (f.cycleStatus === 'active' && f.stageName && f.stageName !== 'Fallow') {
+        stagesSeen.add(f.stageName);
+      }
+    });
+
+    stagesSeen.forEach((stName) => {
+      const count = liveMapFields.filter((f) => f.stageName === stName).length;
+      const stageObj = STAGE_CONFIG.find((s) => s.name.toLowerCase() === stName.toLowerCase());
+      list.push({
+        id: stName.toLowerCase(),
+        labelEn: `${stName} Stage`,
+        labelUr: stageObj ? ((t as any)[`stage${stageObj.index}Name`] || stName) : stName,
+        count,
+        color: stageObj?.color || '#16A34A',
+      });
+    });
+
+    return list;
+  }, [liveMapFields, t]);
+
+  const filteredFields = React.useMemo(() => {
+    if (activeFilter === 'all') return liveMapFields;
+    if (activeFilter === 'fallow') return liveMapFields.filter((f) => f.cycleStatus === 'not_started');
+    return liveMapFields.filter((f) => f.stageName.toLowerCase() === activeFilter.toLowerCase());
+  }, [liveMapFields, activeFilter]);
 
   const handleSelectField = (fieldId: string) => {
     const f = liveMapFields.find((item) => item.id === fieldId);
@@ -248,36 +312,28 @@ export default function FarmMapScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Filter Pills */}
+        {/* Dynamic Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterPillsRow}>
-          <TouchableOpacity
-            onPress={() => setActiveFilter('all')}
-            style={[styles.filterPill, activeFilter === 'all' && styles.filterPillActive]}>
-            <Text style={[styles.filterPillText, activeFilter === 'all' && styles.filterPillTextActive]}>
-              {language === 'ur' ? 'تمام رقبے' : 'All Plots'} ({mapFields.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setActiveFilter('booting')}
-            style={[styles.filterPill, activeFilter === 'booting' && styles.filterPillActive]}>
-            <View style={[styles.filterDot, { backgroundColor: '#4F46E5' }]} />
-            <Text style={[styles.filterPillText, activeFilter === 'booting' && styles.filterPillTextActive]}>
-              {language === 'ur' ? 'گوبھ (Booting)' : 'Booting Stage'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setActiveFilter('fallow')}
-            style={[styles.filterPill, activeFilter === 'fallow' && styles.filterPillActive]}>
-            <View style={[styles.filterDot, { backgroundColor: '#64748B' }]} />
-            <Text style={[styles.filterPillText, activeFilter === 'fallow' && styles.filterPillTextActive]}>
-              {language === 'ur' ? 'تیار زمین' : 'Fallow / Ready'}
-            </Text>
-          </TouchableOpacity>
+          {filterOptions.map((opt) => {
+            const isActive = activeFilter === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => setActiveFilter(opt.id)}
+                style={[styles.filterPill, isActive && styles.filterPillActive]}
+                activeOpacity={0.75}>
+                {opt.color && (
+                  <View style={[styles.filterDot, { backgroundColor: opt.color }]} />
+                )}
+                <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                  {language === 'ur' ? opt.labelUr : opt.labelEn} ({opt.count})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
