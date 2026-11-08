@@ -210,6 +210,7 @@ export interface ShowcaseCreateDTO {
 // Auth Token & URL Management
 // ==========================================
 let activeAuthToken: string | null = null;
+let customBackendUrl: string | null = null;
 
 export function setAuthToken(token: string | null) {
   activeAuthToken = token;
@@ -219,12 +220,22 @@ export function getAuthToken(): string | null {
   return activeAuthToken;
 }
 
+export function setBackendBaseUrl(url: string | null) {
+  customBackendUrl = url ? url.trim().replace(/\/+$/, '') : null;
+}
+
 export function getBackendBaseUrl(): string {
-  const envUrl = process.env.EXPO_PUBLIC_BACKEND_API_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (customBackendUrl) {
+    return customBackendUrl;
+  }
+  const envUrl =
+    process.env.EXPO_PUBLIC_BACKEND_API_URL ||
+    process.env.EXPO_PUBLIC_BACKEND_URL ||
+    process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return 'http://192.168.2.146:8000';
+  return 'https://nextgenyield-backend.onrender.com';
 }
 
 interface RequestOptions extends RequestInit {
