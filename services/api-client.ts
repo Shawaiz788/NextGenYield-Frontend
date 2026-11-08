@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { logger } from './logger';
+import { sessionStore } from './session-store';
 
 export class BackendUnreachableError extends Error {
   public baseUrl: string;
@@ -254,6 +255,10 @@ class ApiClient {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
+
+    if (!activeAuthToken) {
+      activeAuthToken = await sessionStore.getToken();
+    }
 
     if (activeAuthToken) {
       headers['Authorization'] = `Bearer ${activeAuthToken}`;
