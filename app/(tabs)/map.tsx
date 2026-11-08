@@ -139,7 +139,7 @@ export default function FarmMapScreen() {
 
     try {
       const createdField = await createFieldMutation.mutateAsync({
-        field_name: fieldNameInput.trim() || 'Mustafa Town Wheat Parcel',
+        field_name: fieldNameInput.trim() || 'Wheat Parcel',
         shape_type: selectedShape,
         area_acres: acresNum,
         boundary_geojson,
@@ -149,7 +149,7 @@ export default function FarmMapScreen() {
       addNewField({
         id: createdField.field_id,
         code: createdField?.field_code || 'PK-FSD-01',
-        displayName: fieldNameInput || 'Mustafa Town West Parcel',
+        displayName: fieldNameInput || 'Wheat Parcel',
         areaAcres: acresNum,
         shapeType: selectedShape,
         soilTexture: soilTextureInput,

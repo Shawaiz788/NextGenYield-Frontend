@@ -14,12 +14,12 @@ export function useFieldsQuery() {
   const token = getAuthToken();
 
   return useQuery<FieldResponseDTO[], Error>({
-    queryKey: FIELD_QUERY_KEYS.all,
+    queryKey: [...FIELD_QUERY_KEYS.all, token || 'unauthenticated'] as const,
     queryFn: async () => {
       logger.debug('Fetching farmer fields from backend');
       return await api.getFields();
     },
-    enabled: !!token,
+    enabled: !!token && token.trim() !== '',
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });

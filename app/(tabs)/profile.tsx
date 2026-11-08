@@ -268,7 +268,7 @@ export default function ProfileScreen() {
                 {isUrdu ? 'آپ کے رجسٹرڈ رقبے' : 'Registered Field Parcels'}
               </Text>
               <Text style={styles.sectionSub}>
-                {isUrdu ? 'مصطفیٰ ٹاؤن اور کینال بلاک' : 'Mustafa Town & Canal Sector Parcels'}
+                {isUrdu ? (userProfile.district || 'رجسٹرڈ زرعی رقبے') : (userProfile.district || 'Active Farm Parcels')}
               </Text>
             </View>
             <TouchableOpacity

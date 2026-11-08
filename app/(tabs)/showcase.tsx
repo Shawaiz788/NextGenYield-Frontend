@@ -43,7 +43,7 @@ export default function BestPracticeShowcaseScreen() {
 
   // Form states for new showcase post
   const [newTitle, setNewTitle] = useState('Chaudhry Record Plot');
-  const [newFieldName, setNewFieldName] = useState('Mustafa Town Canal Block');
+  const [newFieldName, setNewFieldName] = useState('Canal Block Parcel');
   const [newRegion, setNewRegion] = useState('Lahore');
   const [newVariety, setNewVariety] = useState('Akbar-2019');
   const [newYield, setNewYield] = useState('61.5');
@@ -519,7 +519,7 @@ export default function BestPracticeShowcaseScreen() {
               <TextInput
                 value={newFieldName}
                 onChangeText={setNewFieldName}
-                placeholder="e.g. Mustafa Town West"
+                placeholder="e.g. Canal Block Parcel"
                 style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
               />
 

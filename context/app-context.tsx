@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   MOCK_FIELDS,
   PEER_BENCHMARK_SHOWCASE,
@@ -9,7 +10,7 @@ import {
   FieldObservation,
 } from '@/constants/mock-data';
 import { TRANSLATIONS, Language } from '@/constants/translations';
-import { useFieldsQuery } from '@/hooks/use-fields';
+import { useFieldsQuery, FIELD_QUERY_KEYS } from '@/hooks/use-fields';
 import { setAuthToken } from '@/services/api-client';
 import { sessionStore } from '@/services/session-store';
 import { logger } from '@/services/logger';
@@ -134,6 +135,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [fields, setFields] = useState<FieldData[]>([]);
   const [selectedFieldId, setSelectedFieldIdState] = useState<string>('');
   const [peerShowcase] = useState<PeerShowcaseField[]>(PEER_BENCHMARK_SHOWCASE);
@@ -147,7 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     fullName: 'Chaudhry Muhammad Akram',
     phoneNumber: '0300 8472910',
-    district: 'Lahore / Mustafa Town',
+    district: 'Punjab, Pakistan',
     role: 'Progressive Wheat & Mustard Farmer',
     wheatAcreage: 18.5,
     totalFields: 3,
@@ -171,6 +173,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               setUserProfile((prev) => ({ ...prev, ...storedProfile }));
             }
           }
+          // Actively invalidate and trigger fresh query fetch for restored user
+          queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
           logger.info('Restored authenticated session from secure storage.');
         } else {
           logger.info('No active session token found in secure storage.');
@@ -187,7 +191,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [queryClient]);
 
   const { data: backendFields } = useFieldsQuery();
 
@@ -279,12 +283,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return next;
       });
     }
+    queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
   };
 
   const logout = async () => {
     setIsAuthenticated(false);
     setAuthToken(null);
     await sessionStore.clearSession();
+    setFields([]);
+    setSelectedFieldIdState('');
+    queryClient.clear();
   };
 
   // Farmer Accessibility State

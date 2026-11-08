@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/app-context';
@@ -20,26 +20,92 @@ import { useFieldsQuery } from '@/hooks/use-fields';
 import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
 import { useObservationsQuery } from '@/hooks/use-observations';
-import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { useUserLocation } from '@/hooks/use-user-location';
 
 
 export default function DashboardScreen() {
   const theme = Colors.light;
   const {
     fields,
-    selectedField,
+    selectedField: contextSelectedField,
     setSelectedFieldId,
     t,
     language,
     fontMultiplier,
     playingAudioId,
     playAudio,
+    isAuthLoading,
   } = useApp();
+
+  const userLocation = useUserLocation(language);
 
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [inspectedStageIndex, setInspectedStageIndex] = useState<number | null>(null);
-  const { data: backendFields, isLoading: isFieldsLoading, isFetching: isFieldsFetching } = useFieldsQuery();
-  const isFieldDemarcated = fields.length > 0 && !!selectedField && selectedField.id !== '';
+  const {
+    data: backendFields,
+    isLoading: isFieldsLoading,
+    isFetching: isFieldsFetching,
+    refetch: refetchFields,
+  } = useFieldsQuery();
+
+  // Re-fetch automatically whenever this tab receives focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchFields();
+    }, [refetchFields])
+  );
+
+  // Unified active fields list: if context fields haven't synced yet, immediately derive from backendFields
+  const activeFields = React.useMemo(() => {
+    if (fields.length > 0) return fields;
+    if (backendFields && backendFields.length > 0) {
+      return backendFields.map((bf) => ({
+        id: bf.field_id,
+        code: bf.field_code || 'PK-FSD-01',
+        displayName: bf.field_name,
+        areaAcres: bf.area_acres,
+        areaSqm: bf.area_acres * 4046.86,
+        wheatVariety: bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted',
+        seedCompany: '',
+        fertilizerCompany: '',
+        sowingDate: bf.current_cycle_id ? 'In Season' : 'Not Started',
+        sowingMethod: 'Drill Sowing (9 inch)',
+        soilTexture: bf.soil_texture || 'Sandy Loam',
+        district: 'Faisalabad',
+        currentStageIndex: 0,
+        stageConfidence: 0.0,
+        lastUpdated: 'Recently updated',
+        isUserField: true,
+        cycleStatus: (bf.current_cycle_id ? 'active' : 'not_started') as any,
+        yieldReturnKgSqm: 0.0,
+        yieldMaundsPerAcre: 0.0,
+        coordinates: { latitude: 31.42, longitude: 73.08 },
+        polygonCoords: [],
+        history: [],
+        fertilizerPlan: [],
+        irrigationPlan: [],
+        advisory: {
+          summary: bf.current_cycle_id
+            ? 'Active wheat crop cycle in progress.'
+            : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
+          irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
+          nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
+          riskAlerts: ['Ensure soil moisture check before sowing.'],
+          actionRequired: !bf.current_cycle_id,
+        },
+      }));
+    }
+    return [];
+  }, [fields, backendFields]);
+
+  const selectedField = React.useMemo(() => {
+    if (contextSelectedField && contextSelectedField.id !== '') return contextSelectedField;
+    if (activeFields.length > 0) return activeFields[0];
+    return contextSelectedField;
+  }, [contextSelectedField, activeFields]);
+
+  const isFieldDemarcated = activeFields.length > 0;
+  const isDashboardLoading = isAuthLoading || isFieldsLoading || (isFieldsFetching && activeFields.length === 0);
   const { data: activeCycle, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const { data: advisoryRules } = useAdvisoryRulesQuery();
   const { data: cycleObservations } = useObservationsQuery(activeCycle?.cycle_id);
@@ -133,7 +199,7 @@ export default function DashboardScreen() {
                 </View>
               </View>
               <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.appLocation, { fontSize: 10.5 * fontMultiplier }]}>
-                {language === 'ur' ? '📍 مصطفیٰ ٹاؤن · 28°C ☀️' : '📍 Mustafa Town · 28°C ☀️'}
+                {userLocation.displayText}
               </Text>
             </View>
           </View>
@@ -153,12 +219,12 @@ export default function DashboardScreen() {
         </View>
 
         {/* Field Switcher Carousel */}
-        {fields.length > 0 && (
+        {activeFields.length > 0 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.fieldChipsList}>
-            {fields.map((f) => {
+            {activeFields.map((f) => {
               const active = f.id === selectedField.id;
               const isFallow = f.cycleStatus === 'not_started';
               const varietyLabel = isFallow
@@ -214,7 +280,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
-        {(isFieldsLoading || (isFieldsFetching && fields.length === 0)) ? (
+        {isDashboardLoading ? (
           /* ─── Loading State: Animated Skeletons ─── */
           <DashboardFieldsSkeleton />
         ) : !isFieldDemarcated ? (
