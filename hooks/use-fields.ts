@@ -20,7 +20,8 @@ export function useFieldsQuery() {
       return await api.getFields();
     },
     enabled: !!token && token.trim() !== '',
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 60 * 15, // 15 minutes: serve immediately from cache
+    gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days persistent cache
     retry: 1,
   });
 }
@@ -39,7 +40,8 @@ export function useFieldQuery(fieldId: string | null | undefined) {
       return await api.getField(fieldId!);
     },
     enabled: isValid && !!token,
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 }
 

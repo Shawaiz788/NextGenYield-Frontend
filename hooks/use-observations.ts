@@ -20,7 +20,8 @@ export function useObservationsQuery(cycleId: string | null | undefined) {
       return await api.getObservations(cycleId);
     },
     enabled: !!cycleId && !!token,
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 60 * 15, // 15 minutes: serve immediately from cache
+    gcTime: 1000 * 60 * 60 * 24 * 7,
     retry: 1,
   });
 }

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp, MapFieldItem } from '@/context/app-context';
 import { FieldData } from '@/constants/mock-data';
 import { useStartCropCycleMutation } from '@/hooks/use-crop-cycles';
@@ -62,6 +63,7 @@ const SOWING_METHODS = [
 ];
 
 export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCycleModalProps) {
+  const insets = useSafeAreaInsets();
   const { startCropCycle, language, fontMultiplier, t } = useApp();
 
   const [selectedVariety, setSelectedVariety] = useState('Akbar-2019');
@@ -151,7 +153,7 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom + 20, 32) }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconCircle}>
@@ -401,7 +403,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 18,
     paddingHorizontal: 18,
-    paddingBottom: 28,
     maxHeight: '92%',
   },
   header: {
@@ -452,7 +453,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   scrollArea: {
-    maxHeight: 460,
+    maxHeight: 440,
+    flexShrink: 1,
   },
   section: {
     marginBottom: 16,

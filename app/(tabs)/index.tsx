@@ -48,13 +48,6 @@ export default function DashboardScreen() {
     refetch: refetchFields,
   } = useFieldsQuery();
 
-  // Re-fetch automatically whenever this tab receives focus
-  useFocusEffect(
-    React.useCallback(() => {
-      refetchFields();
-    }, [refetchFields])
-  );
-
   // Unified active fields list: if context fields haven't synced yet, immediately derive from backendFields
   const activeFields = React.useMemo(() => {
     if (fields.length > 0) return fields;
@@ -97,6 +90,15 @@ export default function DashboardScreen() {
     }
     return [];
   }, [fields, backendFields]);
+
+  // Only trigger refetch if there are no cached fields present
+  useFocusEffect(
+    React.useCallback(() => {
+      if (activeFields.length === 0) {
+        refetchFields();
+      }
+    }, [activeFields.length, refetchFields])
+  );
 
   const selectedField = React.useMemo(() => {
     if (contextSelectedField && contextSelectedField.id !== '') return contextSelectedField;

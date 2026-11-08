@@ -23,13 +23,25 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { AppProvider, useApp } from '@/context/app-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'NEXTGENYIELD_TANSTACK_QUERY_CACHE',
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      staleTime: 1000 * 60 * 15, // 15 minutes: serve immediately from cache
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days: retain in persistent offline cache
       refetchOnWindowFocus: false,
+      refetchOnMount: false, // Serve from cache if fresh; never force-refetch on mount
+      refetchOnReconnect: true,
+      retry: 1,
     },
   },
 });
@@ -78,7 +90,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days cache validity
+        }}>
         <AppProvider>
           <ThemeProvider value={DefaultTheme}>
             <StatusBar style="dark" backgroundColor="#FFFFFF" />
@@ -102,7 +119,7 @@ export default function RootLayout() {
             </Stack>
           </ThemeProvider>
         </AppProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

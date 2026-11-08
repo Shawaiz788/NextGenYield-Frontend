@@ -30,7 +30,8 @@ export function useActiveCropCycleQuery(fieldId: string | null | undefined) {
       return await api.getActiveCropCycle(fieldId!);
     },
     enabled: isValid && !!token,
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
     retry: 1,
   });
 }
@@ -49,7 +50,8 @@ export function useCropCycleQuery(cycleId: string | null | undefined) {
       return await api.getCropCycle(cycleId);
     },
     enabled: !!cycleId && !!token,
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 }
 
