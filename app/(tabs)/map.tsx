@@ -24,6 +24,8 @@ import { BackendReachabilityBanner } from '@/components/backend-reachability-ban
 import { logger } from '@/services/logger';
 import { ActivityIndicator } from 'react-native';
 
+const MAX_FIELD_ACRES = 5000;
+
 
 export default function FarmMapScreen() {
   const { fields, setSelectedFieldId, mapFields, addNewField, t, language, fontMultiplier } = useApp();
@@ -187,6 +189,9 @@ export default function FarmMapScreen() {
     setDrawnCoords(data.coords);
   };
 
+  const parsedAcres = parseFloat(acresInput) || 0;
+  const isAreaTooLarge = drawnCoords.length >= 3 && parsedAcres > MAX_FIELD_ACRES;
+
   const handleSaveDrawnField = async () => {
     if (drawnCoords.length < 3) {
       Alert.alert(
@@ -199,6 +204,15 @@ export default function FarmMapScreen() {
     }
 
     const acresNum = parseFloat(acresInput) || 3.8;
+    if (acresNum <= 0 || acresNum > MAX_FIELD_ACRES) {
+      Alert.alert(
+        language === 'ur' ? 'رقبہ بہت زیادہ ہے' : 'Field Area Too Large',
+        language === 'ur'
+          ? `منتخب کردہ رقبہ (${acresNum.toLocaleString()} ایکڑ) زیادہ سے زیادہ حد ${MAX_FIELD_ACRES.toLocaleString()} ایکڑ سے زیادہ ہے۔ براہ کرم صاف کریں دبا کر چھوٹا کھیت منتخب کریں۔`
+          : `Selected area (${acresNum.toLocaleString()} acres) exceeds the ${MAX_FIELD_ACRES.toLocaleString()}-acre maximum limit. Tap Clear and demarcate a smaller farm parcel.`
+      );
+      return;
+    }
     const ring = drawnCoords.map(([lat, lng]) => [lng, lat]);
     ring.push([drawnCoords[0][1], drawnCoords[0][0]]);
 
@@ -500,8 +514,10 @@ export default function FarmMapScreen() {
                 {language === 'ur' ? 'نقشے پر مطلوبہ باؤنڈری تیار ہے' : 'Boundary placed on satellite view'}
               </Text>
             </View>
-            <View style={styles.acresLiveBadge}>
-              <Text style={styles.acresLiveText}>{acresInput} Ac</Text>
+            <View style={[styles.acresLiveBadge, isAreaTooLarge && styles.acresLiveBadgeError]}>
+              <Text style={[styles.acresLiveText, isAreaTooLarge && styles.acresLiveTextError]}>
+                {acresInput} Ac
+              </Text>
             </View>
           </View>
 
@@ -539,6 +555,17 @@ export default function FarmMapScreen() {
             </View>
           </View>
 
+          {isAreaTooLarge && (
+            <View style={styles.areaErrorBanner}>
+              <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6, marginTop: 1 }} />
+              <Text style={styles.areaErrorText}>
+                {language === 'ur'
+                  ? `منتخب کردہ رقبہ (${parsedAcres.toLocaleString()} ایکڑ) ${MAX_FIELD_ACRES.toLocaleString()} ایکڑ کی حد سے زیادہ ہے۔ براہ کرم "صاف کریں" دبا کر چھوٹا رقبہ منتخب کریں۔`
+                  : `Selected area (${parsedAcres.toLocaleString()} ac) exceeds the ${MAX_FIELD_ACRES.toLocaleString()} ac limit. Tap Clear and draw a smaller farm parcel.`}
+              </Text>
+            </View>
+          )}
+
           {saveError && (
             <BackendReachabilityBanner
               isUrdu={language === 'ur'}
@@ -558,7 +585,8 @@ export default function FarmMapScreen() {
 
             <TouchableOpacity
               onPress={handleSaveDrawnField}
-              style={styles.saveFieldBtn}
+              disabled={saveStatus !== 'idle' || isAreaTooLarge}
+              style={[styles.saveFieldBtn, (saveStatus !== 'idle' || isAreaTooLarge) && styles.saveFieldBtnDisabled]}
               activeOpacity={0.85}>
               <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
               {saveStatus === 'saving' ? (
@@ -1069,6 +1097,35 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.extraBold,
     fontSize: 13,
     color: '#FFFFFF',
+  },
+  acresLiveBadgeError: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  acresLiveTextError: {
+    color: '#DC2626',
+  },
+  areaErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: Radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  areaErrorText: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: 11.5,
+    color: '#B91C1C',
+    lineHeight: 16,
+  },
+  saveFieldBtnDisabled: {
+    opacity: 0.5,
   },
   fieldNameInputGroup: {
     marginBottom: 10,
