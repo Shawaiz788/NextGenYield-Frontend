@@ -1,3 +1,4 @@
+import { Alert, Platform } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, FieldResponseDTO, FieldCreateDTO, FieldUpdateDTO, getAuthToken } from '@/services/api-client';
 import { logger } from '@/services/logger';
@@ -107,5 +108,35 @@ export function useDeleteFieldMutation() {
       logger.warn('Failed to delete field:', err.message);
     },
   });
+}
+
+/**
+ * Prompts the user to confirm permanent deletion of a field across Native and Web.
+ */
+export function confirmFieldDeletion(
+  fieldName: string,
+  isUrdu: boolean,
+  onConfirm: () => void
+) {
+  const title = isUrdu ? 'کھیت حذف کریں؟' : 'Delete Field?';
+  const message = isUrdu
+    ? `کیا آپ واقعی "${fieldName}" اور اس کا تمام فصل و مشاہداتی ریکارڈ ہمیشہ کے لیے حذف کرنا چاہتے ہیں؟`
+    : `Are you sure you want to permanently delete "${fieldName}" along with its crop cycles and observations?`;
+
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    if (window.confirm(`${title}\n\n${message}`)) {
+      onConfirm();
+    }
+    return;
+  }
+
+  Alert.alert(title, message, [
+    { text: isUrdu ? 'منسوخ' : 'Cancel', style: 'cancel' },
+    {
+      text: isUrdu ? 'حذف کریں' : 'Delete',
+      style: 'destructive',
+      onPress: onConfirm,
+    },
+  ]);
 }
 

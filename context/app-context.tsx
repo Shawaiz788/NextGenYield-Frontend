@@ -183,6 +183,7 @@ interface AppContextType {
   setGyroSimulatedAngle: (angle: number) => void;
   mapFields: MapFieldItem[];
   addNewField: (input: NewFieldInput) => void;
+  removeField: (fieldId: string) => void;
   startCropCycle: (input: StartCycleInput) => void;
   // Authentication & Profile
   isAuthLoading: boolean;
@@ -480,6 +481,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMapFields((prev) => [newMapField, ...prev.filter((m) => m.id !== newId)]);
   };
 
+  const removeField = (fieldId: string) => {
+    setFields((prev) => {
+      const remaining = prev.filter((f) => f.id !== fieldId);
+      setSelectedFieldIdState((prevSelected) =>
+        prevSelected === fieldId ? remaining[0]?.id || '' : prevSelected
+      );
+      return remaining;
+    });
+    setMapFields((prev) => prev.filter((m) => m.id !== fieldId));
+  };
+
   const startCropCycle = (input: StartCycleInput) => {
     const yieldMaunds = input.targetYieldMaunds || 55.0;
     const yieldKg = yieldMaunds / 100;
@@ -615,6 +627,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setGyroSimulatedAngle,
         mapFields,
         addNewField,
+        removeField,
         startCropCycle,
         isAuthLoading,
         isAuthenticated,

@@ -5,6 +5,8 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,19 +17,36 @@ import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/
 import { AccessibilityControls } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { useActiveCropCycleQuery, useApplyFertilizerMutation, useCompleteIrrigationMutation } from '@/hooks/use-crop-cycles';
+import { useDeleteFieldMutation, confirmFieldDeletion } from '@/hooks/use-fields';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
-import { ActivityIndicator } from 'react-native';
 
 
 export default function FieldProfileScreen() {
   const theme = Colors.light;
-  const { selectedField, t, language, fontMultiplier } = useApp();
+  const { selectedField, removeField, t, language, fontMultiplier } = useApp();
 
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'timeline' | 'fertilizer' | 'irrigation'>('timeline');
   const { data: activeCycle, isLoading: isCycleLoading, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const applyFertilizerMutation = useApplyFertilizerMutation(selectedField?.id, activeCycle?.cycle_id);
   const completeIrrigationMutation = useCompleteIrrigationMutation(selectedField?.id, activeCycle?.cycle_id);
+  const deleteFieldMutation = useDeleteFieldMutation();
+
+  const handleDeleteField = () => {
+    if (!selectedField?.id || deleteFieldMutation.isPending) return;
+    confirmFieldDeletion(selectedField.displayName, language === 'ur', async () => {
+      try {
+        await deleteFieldMutation.mutateAsync(selectedField.id);
+        removeField(selectedField.id);
+        router.back();
+      } catch (err: any) {
+        Alert.alert(
+          language === 'ur' ? 'حذف کرنے میں خرابی' : 'Delete Failed',
+          err?.message || 'Unable to delete field. Please try again.'
+        );
+      }
+    });
+  };
 
   const isCycleActive = Boolean((activeCycle && activeCycle.is_active) || selectedField?.cycleStatus === 'active');
   const currentStage = STAGE_CONFIG[selectedField?.currentStageIndex || 0] || STAGE_CONFIG[0];
@@ -131,6 +150,25 @@ export default function FieldProfileScreen() {
                 <Text style={[styles.gridVal, { color: '#D97706' }]}>{isCycleActive ? `${selectedField.yieldReturnKgSqm} kg/m²` : '--'}</Text>
               </View>
             </View>
+
+            {selectedField.isUserField && !!selectedField.id && (
+              <TouchableOpacity
+                onPress={handleDeleteField}
+                disabled={deleteFieldMutation.isPending}
+                style={[styles.deleteFieldBtn, deleteFieldMutation.isPending && { opacity: 0.6 }]}
+                activeOpacity={0.8}>
+                {deleteFieldMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#DC2626" style={{ marginRight: 6 }} />
+                ) : (
+                  <Ionicons name="trash-outline" size={15} color="#DC2626" style={{ marginRight: 6 }} />
+                )}
+                <Text style={styles.deleteFieldBtnText}>
+                  {deleteFieldMutation.isPending
+                    ? (language === 'ur' ? 'حذف ہو رہا ہے...' : 'Deleting Field...')
+                    : (language === 'ur' ? 'کھیت حذف کریں' : 'Delete Field')}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -705,5 +743,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.light.textSecondary,
     marginTop: 2,
+  },
+  deleteFieldBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+  },
+  deleteFieldBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: '#DC2626',
   },
 });

@@ -19,7 +19,12 @@ import { STAGE_CONFIG, FontFamily, Colors, Spacing, Radius } from '@/constants/t
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { RealLeafletMap } from '@/components/real-leaflet-map';
-import { useFieldsQuery, useCreateFieldMutation } from '@/hooks/use-fields';
+import {
+  useFieldsQuery,
+  useCreateFieldMutation,
+  useDeleteFieldMutation,
+  confirmFieldDeletion,
+} from '@/hooks/use-fields';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 import { logger } from '@/services/logger';
 import { ActivityIndicator } from 'react-native';
@@ -28,7 +33,7 @@ const MAX_FIELD_ACRES = 5000;
 
 
 export default function FarmMapScreen() {
-  const { fields, setSelectedFieldId, mapFields, addNewField, t, language, fontMultiplier } = useApp();
+  const { fields, setSelectedFieldId, mapFields, addNewField, removeField, t, language, fontMultiplier } = useApp();
 
   const [showLegend, setShowLegend] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -46,6 +51,7 @@ export default function FarmMapScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fieldsQuery = useFieldsQuery();
   const createFieldMutation = useCreateFieldMutation();
+  const deleteFieldMutation = useDeleteFieldMutation();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
   const [saveError, setSaveError] = useState<Error | null>(null);
 
@@ -180,6 +186,29 @@ export default function FarmMapScreen() {
         setSelectedFieldId(f.id);
       }
     }
+  };
+
+  const handleDeleteMapField = () => {
+    if (!selectedMapField || !selectedMapField.isMine || deleteFieldMutation.isPending) return;
+    const target = selectedMapField;
+    confirmFieldDeletion(target.name, language === 'ur', async () => {
+      try {
+        await deleteFieldMutation.mutateAsync(target.id);
+        removeField(target.id);
+        setSelectedMapField(null);
+        setToastMessage(
+          language === 'ur'
+            ? `${target.name} حذف کر دیا گیا ہے!`
+            : `Field "${target.name}" deleted.`
+        );
+        setTimeout(() => setToastMessage(null), 3500);
+      } catch (err: any) {
+        Alert.alert(
+          language === 'ur' ? 'حذف کرنے میں خرابی' : 'Delete Failed',
+          err?.message || 'Unable to delete field. Please try again.'
+        );
+      }
+    });
   };
 
   const handleBoundaryUpdated = (data: { acres: number; areaSqm: number; coords: [number, number][] }) => {
@@ -661,15 +690,31 @@ export default function FarmMapScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                onPress={() => setIsStartCycleOpen(true)}
-                style={styles.startCycleMainBtn}
-                activeOpacity={0.85}>
-                <MaterialCommunityIcons name="sprout" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={[styles.startCycleMainBtnText, { fontSize: 15 * fontMultiplier }]}>
-                  {language === 'ur' ? 'فصل شروع کریں' : 'Start Crop Cycle'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.selectedFieldActionsRow}>
+                <TouchableOpacity
+                  onPress={() => setIsStartCycleOpen(true)}
+                  style={[styles.startCycleMainBtn, { flex: 1 }]}
+                  activeOpacity={0.85}>
+                  <MaterialCommunityIcons name="sprout" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.startCycleMainBtnText, { fontSize: 15 * fontMultiplier }]}>
+                    {language === 'ur' ? 'فصل شروع کریں' : 'Start Crop Cycle'}
+                  </Text>
+                </TouchableOpacity>
+                {selectedMapField.isMine && (
+                  <TouchableOpacity
+                    onPress={handleDeleteMapField}
+                    disabled={deleteFieldMutation.isPending}
+                    style={styles.deleteFieldIconBtn}
+                    activeOpacity={0.8}
+                    accessibilityLabel="Delete Field">
+                    {deleteFieldMutation.isPending ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ) : (
             <>
@@ -692,13 +737,29 @@ export default function FarmMapScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity
-                onPress={() => router.push('/field-profile')}
-                style={styles.inspectBtn}
-                activeOpacity={0.85}>
-                <Text style={[styles.inspectBtnText, { fontSize: 14 * fontMultiplier }]}>{t.viewFullProfile}</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-              </TouchableOpacity>
+              <View style={styles.selectedFieldActionsRow}>
+                <TouchableOpacity
+                  onPress={() => router.push('/field-profile')}
+                  style={[styles.inspectBtn, { flex: 1 }]}
+                  activeOpacity={0.85}>
+                  <Text style={[styles.inspectBtnText, { fontSize: 14 * fontMultiplier }]}>{t.viewFullProfile}</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+                {selectedMapField.isMine && (
+                  <TouchableOpacity
+                    onPress={handleDeleteMapField}
+                    disabled={deleteFieldMutation.isPending}
+                    style={styles.deleteFieldIconBtn}
+                    activeOpacity={0.8}
+                    accessibilityLabel="Delete Field">
+                    {deleteFieldMutation.isPending ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
             </>
           )}
         </View>
@@ -1349,6 +1410,21 @@ const styles = StyleSheet.create({
   inspectBtnText: {
     fontFamily: FontFamily.bold,
     color: '#FFFFFF',
+  },
+  selectedFieldActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  deleteFieldIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Unstarted Cycle Box
