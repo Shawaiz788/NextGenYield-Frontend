@@ -40,6 +40,7 @@ export default function FarmMapScreen() {
   const [acresInput, setAcresInput] = useState('3.8');
   const [soilTextureInput, setSoilTextureInput] = useState('Sandy Loam');
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([]);
+  const [clearTrigger, setClearTrigger] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fieldsQuery = useFieldsQuery();
   const createFieldMutation = useCreateFieldMutation();
@@ -108,6 +109,14 @@ export default function FarmMapScreen() {
   const handleSelectShape = (shape: 'polygon' | 'rectangle' | 'square' | 'circle') => {
     setSelectedShape(shape);
     setDrawnCoords([]);
+    setAcresInput('3.8');
+    setClearTrigger((prev) => prev + 1);
+  };
+
+  const handleClearDrawnArea = () => {
+    setDrawnCoords([]);
+    setAcresInput('3.8');
+    setClearTrigger((prev) => prev + 1);
   };
 
   // Map layer controls: Satellite (Esri) vs Cadastral (OSM standard) — ZERO API KEYS
@@ -346,6 +355,7 @@ export default function FarmMapScreen() {
           mapType={mapType}
           isDrawMode={isDrawModeOpen}
           drawShape={selectedShape}
+          clearTrigger={clearTrigger}
           onBoundaryUpdated={handleBoundaryUpdated}
           language={language}
         />
@@ -419,6 +429,21 @@ export default function FarmMapScreen() {
                   </TouchableOpacity>
                 );
               })}
+
+              <TouchableOpacity
+                onPress={handleClearDrawnArea}
+                style={styles.clearShapeChip}
+                activeOpacity={0.8}>
+                <Ionicons
+                  name="trash-outline"
+                  size={12}
+                  color="#FCA5A5"
+                  style={{ marginRight: 3 }}
+                />
+                <Text style={styles.clearShapeChipText}>
+                  {language === 'ur' ? 'صاف کریں' : 'Clear'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -927,12 +952,28 @@ const styles = StyleSheet.create({
   },
   topShapeChipText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#94A3B8',
   },
   topShapeChipTextActive: {
     color: '#FFFFFF',
     fontFamily: FontFamily.bold,
+  },
+  clearShapeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderRadius: Radius.sm,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.5)',
+  },
+  clearShapeChipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: '#FCA5A5',
   },
 
   // Collapsible Legend Overlay

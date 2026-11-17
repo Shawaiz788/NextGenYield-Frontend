@@ -13,6 +13,7 @@ interface RealLeafletMapProps {
   mapType: 'satellite' | 'cadastral';
   isDrawMode?: boolean;
   drawShape?: 'polygon' | 'rectangle' | 'square' | 'circle';
+  clearTrigger?: number;
   onBoundaryUpdated?: (data: { acres: number; areaSqm: number; coords: [number, number][] }) => void;
   language?: string;
 }
@@ -24,6 +25,7 @@ export function RealLeafletMap({
   mapType,
   isDrawMode = false,
   drawShape = 'polygon',
+  clearTrigger = 0,
   onBoundaryUpdated,
   language = 'en',
 }: RealLeafletMapProps) {
@@ -64,6 +66,13 @@ export function RealLeafletMap({
   useEffect(() => {
     sendMapAction('setDrawMode', { isDraw: isDrawMode, shape: drawShape });
   }, [isDrawMode, drawShape, isMapReady, sendMapAction]);
+
+  // Clear Drawn Boundary Markers & Polygon
+  useEffect(() => {
+    if (clearTrigger > 0 && isMapReady) {
+      sendMapAction('clearDrawing');
+    }
+  }, [clearTrigger, isMapReady, sendMapAction]);
 
   // Sync Fields
   useEffect(() => {
@@ -556,6 +565,13 @@ export function RealLeafletMap({
       });
     }
 
+    function clearDrawingLayers() {
+      drawMarkers.forEach(function(m) { map.removeLayer(m); });
+      drawMarkers = [];
+      drawPoints = [];
+      if (tempPolygon) { map.removeLayer(tempPolygon); tempPolygon = null; }
+    }
+
     window.setDrawMode = function(isDraw, shape) {
       window.isDrawing = isDraw;
       currentShape = shape || 'polygon';
@@ -572,10 +588,7 @@ export function RealLeafletMap({
       } else {
         if (hint) hint.style.display = 'none';
         if (crosshair) crosshair.style.display = 'none';
-        drawMarkers.forEach(function(m) { map.removeLayer(m); });
-        drawMarkers = [];
-        drawPoints = [];
-        if (tempPolygon) { map.removeLayer(tempPolygon); tempPolygon = null; }
+        clearDrawingLayers();
       }
     };
 
@@ -712,6 +725,8 @@ export function RealLeafletMap({
         window.locateUser();
       } else if (data.action === 'flyToLocation') {
         window.showNativeLocation(data.lat, data.lng, data.accuracy);
+      } else if (data.action === 'clearDrawing') {
+        clearDrawingLayers();
       }
     };
 

@@ -11,10 +11,81 @@ import {
 } from '@/constants/mock-data';
 import { TRANSLATIONS, Language } from '@/constants/translations';
 import { useFieldsQuery, FIELD_QUERY_KEYS } from '@/hooks/use-fields';
-import { setAuthToken } from '@/services/api-client';
+import { setAuthToken, FieldResponseDTO } from '@/services/api-client';
 import { sessionStore } from '@/services/session-store';
 import { logger } from '@/services/logger';
 import { speechService } from '@/services/speech-service';
+
+/**
+ * Maps a backend FieldResponseDTO to the frontend FieldData shape,
+ * resolving coordinates from center_latitude/center_longitude or GeoJSON fallback.
+ */
+export function mapBackendFieldToFieldData(
+  bf: FieldResponseDTO,
+  existing?: FieldData
+): FieldData {
+  let lat = Number(bf.center_latitude);
+  let lng = Number(bf.center_longitude);
+  const hasCenter =
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    (lat !== 0 || lng !== 0);
+
+  if (!hasCenter) {
+    lat = 31.42;
+    lng = 73.08;
+    try {
+      if (bf.boundary_geojson?.type === 'Polygon' && bf.boundary_geojson.coordinates?.[0]) {
+        const ring = bf.boundary_geojson.coordinates[0] as [number, number][];
+        if (ring.length > 0) {
+          lat = ring[0][1];
+          lng = ring[0][0];
+        }
+      }
+    } catch (_) {}
+  }
+
+  return {
+    id: bf.field_id,
+    code: bf.field_code || 'PK-FSD-01',
+    displayName: bf.field_name,
+    areaAcres: bf.area_acres,
+    areaSqm: bf.area_acres * 4046.86,
+    wheatVariety: existing?.wheatVariety || (bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted'),
+    seedCompany: existing?.seedCompany || '',
+    fertilizerCompany: existing?.fertilizerCompany || '',
+    sowingDate: existing?.sowingDate || (bf.current_cycle_id ? 'In Season' : 'Not Started'),
+    sowingMethod: existing?.sowingMethod || 'Drill Sowing (9 inch)',
+    soilTexture: bf.soil_texture || 'Sandy Loam',
+    district: 'Faisalabad',
+    currentStageIndex: existing?.currentStageIndex ?? 0,
+    stageConfidence: existing?.stageConfidence ?? 0.0,
+    lastUpdated: existing?.lastUpdated || 'Recently updated',
+    isUserField: true,
+    cycleStatus: (existing?.cycleStatus || (bf.current_cycle_id ? 'active' : 'not_started')) as any,
+    yieldReturnKgSqm: existing?.yieldReturnKgSqm || 0.0,
+    yieldMaundsPerAcre: existing?.yieldMaundsPerAcre || 0.0,
+    coordinates: { latitude: lat, longitude: lng },
+    polygonCoords: [
+      { x: 50, y: 50 },
+      { x: 120, y: 50 },
+      { x: 120, y: 120 },
+      { x: 50, y: 120 },
+    ],
+    history: existing?.history || [],
+    fertilizerPlan: existing?.fertilizerPlan || [],
+    irrigationPlan: existing?.irrigationPlan || [],
+    advisory: existing?.advisory || {
+      summary: bf.current_cycle_id
+        ? 'Active wheat crop cycle in progress.'
+        : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
+      irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
+      nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
+      riskAlerts: ['Ensure soil moisture check before sowing.'],
+      actionRequired: !bf.current_cycle_id,
+    },
+  };
+}
 
 export const FALLBACK_EMPTY_FIELD: FieldData = {
   id: '',
@@ -202,64 +273,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFields([]);
         setSelectedFieldIdState('');
       } else {
-        setFields((prevFields) => {
-          return backendFields.map((bf) => {
-            const existing = prevFields.find((f) => f.id === bf.field_id);
-            let lat = 31.42;
-            let lng = 73.08;
-            let coordsArr: [number, number][] = [];
-            try {
-              if (bf.boundary_geojson?.type === 'Polygon' && bf.boundary_geojson.coordinates?.[0]) {
-                coordsArr = bf.boundary_geojson.coordinates[0].map((pt: [number, number]) => [pt[1], pt[0]]);
-                if (coordsArr.length > 0) {
-                  lat = coordsArr[0][0];
-                  lng = coordsArr[0][1];
-                }
-              }
-            } catch (_) {}
-
-            return {
-              id: bf.field_id,
-              code: bf.field_code || 'PK-FSD-01',
-              displayName: bf.field_name,
-              areaAcres: bf.area_acres,
-              areaSqm: bf.area_acres * 4046.86,
-              wheatVariety: existing?.wheatVariety || (bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted'),
-              seedCompany: existing?.seedCompany || '',
-              fertilizerCompany: existing?.fertilizerCompany || '',
-              sowingDate: existing?.sowingDate || (bf.current_cycle_id ? 'In Season' : 'Not Started'),
-              sowingMethod: existing?.sowingMethod || 'Drill Sowing (9 inch)',
-              soilTexture: bf.soil_texture || 'Sandy Loam',
-              district: 'Faisalabad',
-              currentStageIndex: existing?.currentStageIndex ?? 0,
-              stageConfidence: existing?.stageConfidence ?? 0.0,
-              lastUpdated: existing?.lastUpdated || 'Recently updated',
-              isUserField: true,
-              cycleStatus: (existing?.cycleStatus || (bf.current_cycle_id ? 'active' : 'not_started')) as any,
-              yieldReturnKgSqm: existing?.yieldReturnKgSqm || 0.0,
-              yieldMaundsPerAcre: existing?.yieldMaundsPerAcre || 0.0,
-              coordinates: { latitude: lat, longitude: lng },
-              polygonCoords: [
-                { x: 50, y: 50 },
-                { x: 120, y: 50 },
-                { x: 120, y: 120 },
-                { x: 50, y: 120 },
-              ],
-              history: existing?.history || [],
-              fertilizerPlan: existing?.fertilizerPlan || [],
-              irrigationPlan: existing?.irrigationPlan || [],
-              advisory: existing?.advisory || {
-                summary: bf.current_cycle_id
-                  ? 'Active wheat crop cycle in progress.'
-                  : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
-                irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
-                nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
-                riskAlerts: ['Ensure soil moisture check before sowing.'],
-                actionRequired: !bf.current_cycle_id,
-              },
-            };
-          });
-        });
+        setFields((prevFields) =>
+          backendFields.map((bf) =>
+            mapBackendFieldToFieldData(
+              bf,
+              prevFields.find((f) => f.id === bf.field_id)
+            )
+          )
+        );
 
         setSelectedFieldIdState((prevId) => {
           const exists = backendFields.some((f) => f.field_id === prevId);

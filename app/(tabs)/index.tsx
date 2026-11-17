@@ -11,7 +11,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useApp } from '@/context/app-context';
+import { useApp, mapBackendFieldToFieldData } from '@/context/app-context';
 import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
@@ -21,6 +21,7 @@ import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
 import { useObservationsQuery } from '@/hooks/use-observations';
 import { useUserLocation } from '@/hooks/use-user-location';
+import { useFieldWeatherQuery } from '@/hooks/use-field-weather';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 
 
@@ -56,41 +57,7 @@ export default function DashboardScreen() {
   const activeFields = React.useMemo(() => {
     if (fields.length > 0) return fields;
     if (backendFields && backendFields.length > 0) {
-      return backendFields.map((bf) => ({
-        id: bf.field_id,
-        code: bf.field_code || 'PK-FSD-01',
-        displayName: bf.field_name,
-        areaAcres: bf.area_acres,
-        areaSqm: bf.area_acres * 4046.86,
-        wheatVariety: bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted',
-        seedCompany: '',
-        fertilizerCompany: '',
-        sowingDate: bf.current_cycle_id ? 'In Season' : 'Not Started',
-        sowingMethod: 'Drill Sowing (9 inch)',
-        soilTexture: bf.soil_texture || 'Sandy Loam',
-        district: 'Faisalabad',
-        currentStageIndex: 0,
-        stageConfidence: 0.0,
-        lastUpdated: 'Recently updated',
-        isUserField: true,
-        cycleStatus: (bf.current_cycle_id ? 'active' : 'not_started') as any,
-        yieldReturnKgSqm: 0.0,
-        yieldMaundsPerAcre: 0.0,
-        coordinates: { latitude: 31.42, longitude: 73.08 },
-        polygonCoords: [],
-        history: [],
-        fertilizerPlan: [],
-        irrigationPlan: [],
-        advisory: {
-          summary: bf.current_cycle_id
-            ? 'Active wheat crop cycle in progress.'
-            : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
-          irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
-          nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
-          riskAlerts: ['Ensure soil moisture check before sowing.'],
-          actionRequired: !bf.current_cycle_id,
-        },
-      }));
+      return backendFields.map((bf) => mapBackendFieldToFieldData(bf));
     }
     return [];
   }, [fields, backendFields]);
@@ -111,6 +78,10 @@ export default function DashboardScreen() {
   }, [contextSelectedField, activeFields]);
 
   const isFieldDemarcated = activeFields.length > 0;
+  const { data: fieldWeather, isLoading: isWeatherLoading } = useFieldWeatherQuery(
+    isFieldDemarcated ? selectedField?.coordinates?.latitude : undefined,
+    isFieldDemarcated ? selectedField?.coordinates?.longitude : undefined
+  );
   const isDashboardLoading =
     isAuthLoading ||
     isFieldsLoading ||
@@ -209,7 +180,9 @@ export default function DashboardScreen() {
                 </View>
               </View>
               <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.appLocation, { fontSize: 10.5 * fontMultiplier }]}>
-                {userLocation.displayText}
+                {fieldWeather
+                  ? `${userLocation.displayText} · ${fieldWeather.temperatureC}°C ${fieldWeather.emoji}`
+                  : userLocation.displayText}
               </Text>
             </View>
           </View>
@@ -485,41 +458,64 @@ export default function DashboardScreen() {
                   <View style={[styles.telemetryIcon, { backgroundColor: '#FEF3C7' }]}>
                     <Ionicons name="thermometer" size={15} color="#D97706" />
                   </View>
-                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 13 * fontMultiplier }]}>
-                    28°C
+                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 12.5 * fontMultiplier }]}>
+                    {fieldWeather ? `${fieldWeather.temperatureC}°C` : isWeatherLoading ? '...' : '--'}
                   </Text>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 10 * fontMultiplier }]}>
-                    {language === 'ur' ? 'درجہ حرارت' : 'Temp · Sunny'}
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 9.5 * fontMultiplier }]}>
+                    {fieldWeather
+                      ? (language === 'ur' ? fieldWeather.conditionUr : fieldWeather.conditionEn)
+                      : (language === 'ur' ? 'درجہ حرارت' : 'Temp')}
                   </Text>
                 </View>
 
                 <View style={styles.telemetryDivider} />
 
-                {/* 2. Wind Speed */}
+                {/* 2. Humidity */}
+                <View style={styles.telemetryItem}>
+                  <View style={[styles.telemetryIcon, { backgroundColor: '#EDE9FE' }]}>
+                    <Ionicons name="water-outline" size={15} color="#7C3AED" />
+                  </View>
+                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 12.5 * fontMultiplier }]}>
+                    {fieldWeather ? `${fieldWeather.humidityPct}%` : isWeatherLoading ? '...' : '--'}
+                  </Text>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 9.5 * fontMultiplier }]}>
+                    {language === 'ur' ? 'نمی' : 'Humidity'}
+                  </Text>
+                </View>
+
+                <View style={styles.telemetryDivider} />
+
+                {/* 3. Wind Speed */}
                 <View style={styles.telemetryItem}>
                   <View style={[styles.telemetryIcon, { backgroundColor: '#E0F2FE' }]}>
                     <MaterialCommunityIcons name="weather-windy" size={15} color="#0284C7" />
                   </View>
-                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 13 * fontMultiplier }]}>
-                    9 km/h
+                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 12.5 * fontMultiplier }]}>
+                    {fieldWeather ? `${fieldWeather.windSpeedKmh} km/h` : isWeatherLoading ? '...' : '--'}
                   </Text>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 10 * fontMultiplier }]}>
-                    {language === 'ur' ? 'پرسکون ہوا' : 'Wind · Calm'}
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 9.5 * fontMultiplier }]}>
+                    {fieldWeather
+                      ? (language === 'ur' ? fieldWeather.windLabelUr : fieldWeather.windLabelEn)
+                      : (language === 'ur' ? 'ہوا' : 'Wind')}
                   </Text>
                 </View>
 
                 <View style={styles.telemetryDivider} />
 
-                {/* 3. Rain / Weather Prediction */}
+                {/* 4. Rain / Weather Prediction */}
                 <View style={styles.telemetryItem}>
                   <View style={[styles.telemetryIcon, { backgroundColor: '#DCFCE7' }]}>
                     <Ionicons name="rainy-outline" size={15} color="#16A34A" />
                   </View>
-                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 13 * fontMultiplier }]}>
-                    0% Rain
+                  <Text numberOfLines={1} style={[styles.telemetryValue, { fontSize: 12.5 * fontMultiplier }]}>
+                    {fieldWeather ? `${fieldWeather.rainProbabilityPct}%` : isWeatherLoading ? '...' : '--'}
                   </Text>
-                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 10 * fontMultiplier }]}>
-                    {language === 'ur' ? '5 دن خشک' : '5-Day Dry'}
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.telemetryLabel, { fontSize: 9.5 * fontMultiplier }]}>
+                    {fieldWeather
+                      ? (fieldWeather.fiveDayMaxRainPct >= 40
+                          ? (language === 'ur' ? 'بارش کا امکان' : 'Rain Likely')
+                          : (language === 'ur' ? '5 دن خشک' : '5-Day Dry'))
+                      : (language === 'ur' ? 'بارش' : 'Rain')}
                   </Text>
                 </View>
               </View>

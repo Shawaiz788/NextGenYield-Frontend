@@ -92,7 +92,7 @@ export function useUserLocation(language: 'en' | 'ur' = 'en'): UserLocationState
         ? '📍 لوکیشن کی اجازت درکار ہے'
         : '📍 Location permission not granted';
   } else if (locationName) {
-    displayText = `📍 ${locationName} · 28°C ☀️`;
+    displayText = `📍 ${locationName}`;
   } else {
     displayText =
       language === 'ur'
