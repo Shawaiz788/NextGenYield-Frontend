@@ -10,7 +10,7 @@ export const FIELD_QUERY_KEYS = {
 /**
  * TanStack Query Hook: Fetch all farm parcels demarcated by the farmer
  */
-export function useFieldsQuery() {
+export function useFieldsQuery(authEnabled: boolean = true) {
   const token = getAuthToken();
 
   return useQuery<FieldResponseDTO[], Error>({
@@ -19,7 +19,7 @@ export function useFieldsQuery() {
       logger.debug('Fetching farmer fields from backend');
       return await api.getFields();
     },
-    enabled: !!token && token.trim() !== '',
+    enabled: !!token && token.trim() !== '' && authEnabled,
     staleTime: 1000 * 60 * 15, // 15 minutes: serve immediately from cache
     gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days persistent cache
     retry: 1,

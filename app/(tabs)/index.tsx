@@ -21,6 +21,7 @@ import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { useAdvisoryRulesQuery } from '@/hooks/use-advisory';
 import { useObservationsQuery } from '@/hooks/use-observations';
 import { useUserLocation } from '@/hooks/use-user-location';
+import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 
 
 export default function DashboardScreen() {
@@ -29,12 +30,13 @@ export default function DashboardScreen() {
     fields,
     selectedField: contextSelectedField,
     setSelectedFieldId,
+    isAuthLoading,
+    isAuthenticated,
     t,
     language,
     fontMultiplier,
     playingAudioId,
     playAudio,
-    isAuthLoading,
   } = useApp();
 
   const userLocation = useUserLocation(language);
@@ -45,8 +47,10 @@ export default function DashboardScreen() {
     data: backendFields,
     isLoading: isFieldsLoading,
     isFetching: isFieldsFetching,
+    isError: isFieldsError,
+    error: fieldsError,
     refetch: refetchFields,
-  } = useFieldsQuery();
+  } = useFieldsQuery(isAuthenticated && !isAuthLoading);
 
   // Unified active fields list: if context fields haven't synced yet, immediately derive from backendFields
   const activeFields = React.useMemo(() => {
@@ -94,10 +98,10 @@ export default function DashboardScreen() {
   // Only trigger refetch if there are no cached fields present
   useFocusEffect(
     React.useCallback(() => {
-      if (activeFields.length === 0) {
+      if (isAuthenticated && !isAuthLoading && activeFields.length === 0) {
         refetchFields();
       }
-    }, [activeFields.length, refetchFields])
+    }, [isAuthenticated, isAuthLoading, activeFields.length, refetchFields])
   );
 
   const selectedField = React.useMemo(() => {
@@ -107,7 +111,11 @@ export default function DashboardScreen() {
   }, [contextSelectedField, activeFields]);
 
   const isFieldDemarcated = activeFields.length > 0;
-  const isDashboardLoading = isAuthLoading || isFieldsLoading || (isFieldsFetching && activeFields.length === 0);
+  const isDashboardLoading =
+    isAuthLoading ||
+    isFieldsLoading ||
+    (isFieldsFetching && activeFields.length === 0) ||
+    (isAuthenticated && backendFields === undefined && !isFieldsError);
   const { data: activeCycle, isError: isCycleError, error: cycleError, refetch: refetchCycle } = useActiveCropCycleQuery(selectedField?.id);
   const { data: advisoryRules } = useAdvisoryRulesQuery();
   const { data: cycleObservations } = useObservationsQuery(activeCycle?.cycle_id);
@@ -285,6 +293,12 @@ export default function DashboardScreen() {
         {isDashboardLoading ? (
           /* ─── Loading State: Animated Skeletons ─── */
           <DashboardFieldsSkeleton />
+        ) : isFieldsError && activeFields.length === 0 ? (
+          <BackendReachabilityBanner
+            isUrdu={language === 'ur'}
+            error={fieldsError}
+            onRetry={() => refetchFields()}
+          />
         ) : !isFieldDemarcated ? (
           /* ─── Empty State: No Demarcated Fields ─── */
           <View style={styles.emptyFieldsCard}>

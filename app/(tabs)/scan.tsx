@@ -33,6 +33,11 @@ import { GrowthStagePrediction } from '@/services/growth-stage-api';
 import { useUploadObservationMutation } from '@/hooks/use-observations';
 import { useActiveCropCycleQuery } from '@/hooks/use-crop-cycles';
 import { logger } from '@/services/logger';
+import {
+  useLaplacianBlurChecker,
+  LaplacianBlurResult,
+  BLUR_VARIANCE_THRESHOLD,
+} from '@/components/laplacian-blur-checker';
 
 
 export default function CameraScanScreen() {
@@ -62,15 +67,21 @@ export default function CameraScanScreen() {
 
   const isFocused = useIsFocused();
 
-  // ─── Sensor Downward Pitch Angle ─────────────────────────────────────────
+  // ─── Sensor Downward Pitch Angle & Motion Stability ─────────────────────
   // Target sweet spot: 45° to 60°
   const [downwardAngle, setDownwardAngle] = useState<number>(52);
+  const [isShaky, setIsShaky] = useState<boolean>(false);
   const isAngleGood = downwardAngle >= 45 && downwardAngle <= 60;
   const prevAngleGoodRef = useRef<boolean>(false);
+  const lastAccelRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const steadySampleCountRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isFocused) {
       prevAngleGoodRef.current = false;
+      lastAccelRef.current = null;
+      steadySampleCountRef.current = 0;
+      setIsShaky(false);
       return;
     }
 
@@ -82,6 +93,24 @@ export default function CameraScanScreen() {
       const pitchDeg = Math.round((pitchRad * 180) / Math.PI);
       const clamped = Math.max(0, Math.min(90, pitchDeg));
       setDownwardAngle(clamped);
+
+      // Motion stability check to warn of handshake blur risk
+      if (lastAccelRef.current) {
+        const dx = x - lastAccelRef.current.x;
+        const dy = y - lastAccelRef.current.y;
+        const dz = z - lastAccelRef.current.z;
+        const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (delta > 0.09) {
+          steadySampleCountRef.current = 0;
+          setIsShaky(true);
+        } else if (delta < 0.06) {
+          steadySampleCountRef.current += 1;
+          if (steadySampleCountRef.current >= 3) {
+            setIsShaky(false);
+          }
+        }
+      }
+      lastAccelRef.current = { x, y, z };
 
       // Light haptic feedback once entering the good range (only when active screen)
       const inRange = clamped >= 45 && clamped <= 60;
@@ -95,10 +124,15 @@ export default function CameraScanScreen() {
 
     return () => {
       subscription.remove();
+      lastAccelRef.current = null;
+      steadySampleCountRef.current = 0;
     };
   }, [isFocused]);
 
-  // ─── Analysis & Prediction State ─────────────────────────────────────────
+  // ─── Laplacian Blur Guard & Prediction State ─────────────────────────────
+  const { checkBlur, BlurCheckerBridge } = useLaplacianBlurChecker();
+  const [isCheckingBlur, setIsCheckingBlur] = useState(false);
+  const [blurResult, setBlurResult] = useState<LaplacianBlurResult | null>(null);
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<GrowthStagePrediction | null>(null);
   const [inferenceError, setInferenceError] = useState<string | null>(null);
@@ -139,6 +173,33 @@ export default function CameraScanScreen() {
     );
   };
 
+  // ─── Pre-Flight Laplacian Blur Evaluation ────────────────────────────────
+  const handleProcessCapturedImage = async (
+    imageUri: string,
+    base64?: string | null
+  ) => {
+    setCapturedImageUri(imageUri);
+    setPrediction(null);
+    setInferenceError(null);
+    setBlurResult(null);
+    setIsCheckingBlur(true);
+    setShowResultSheet(true);
+
+    const measured = await checkBlur(imageUri, base64);
+    setBlurResult(measured);
+    setIsCheckingBlur(false);
+
+    if (measured?.isBlurry) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+      logger.warn('[NextGenYield:Scan]', 'Blurred image flagged before inference:', measured);
+      return;
+    }
+
+    runAiAnalysis(imageUri);
+  };
+
   // ─── Capture via Camera ──────────────────────────────────────────────────
   const handleCapturePhoto = async () => {
     if (!cameraRef.current) return;
@@ -148,11 +209,12 @@ export default function CameraScanScreen() {
       }
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
+        base64: true,
         skipProcessing: false,
       });
 
       if (photo?.uri) {
-        runAiAnalysis(photo.uri);
+        await handleProcessCapturedImage(photo.uri, photo.base64);
       }
     } catch (err: any) {
       Alert.alert(
@@ -169,10 +231,12 @@ export default function CameraScanScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.85,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        runAiAnalysis(result.assets[0].uri);
+        const asset = result.assets[0];
+        await handleProcessCapturedImage(asset.uri, asset.base64);
       }
     } catch (err: any) {
       Alert.alert('Gallery Error', err?.message || 'Could not open image library');
@@ -183,12 +247,15 @@ export default function CameraScanScreen() {
   const handleSaveObservation = async () => {
     if (!prediction || !capturedImageUri) return;
 
+    const measuredSharpness = blurResult?.sharpnessScore ?? 95;
+    const measuredVariance = blurResult?.laplacianVariance ?? 95.0;
+
     addScanObservation({
       stageIndex: prediction.stage_index,
       stageName: isUrdu ? prediction.advisory.display_name : prediction.stage_name,
       confidence: prediction.confidence,
       imageUri: capturedImageUri,
-      sharpnessScore: 95,
+      sharpnessScore: measuredSharpness,
       angleScore: downwardAngle,
     });
 
@@ -205,7 +272,7 @@ export default function CameraScanScreen() {
           stageName: prediction.stage_name,
           confidence: prediction.confidence,
           pitchAngleDeg: downwardAngle,
-          blurScore: 95.0,
+          blurScore: measuredVariance,
           das,
           imageUri: capturedImageUri,
         });
@@ -242,10 +309,13 @@ export default function CameraScanScreen() {
     ? getConfidenceBadgeColor(prediction.confidence_rating, prediction.confidence)
     : null;
 
-  // ─── Fallback Permission Screen ──────────────────────────────────────────
-  if (permission && !permission.granted && Platform.OS !== 'web') {
-    return (
-      <SafeAreaView style={styles.permissionSafeArea}>
+  const showPermissionPrompt = Boolean(permission && !permission.granted && Platform.OS !== 'web');
+
+  return (
+    <SafeAreaView
+      style={showPermissionPrompt ? styles.permissionSafeArea : styles.safeArea}
+      edges={['top', 'bottom']}>
+      {showPermissionPrompt ? (
         <View style={styles.permissionCard}>
           <View style={styles.permissionIconCircle}>
             <Ionicons name="camera-outline" size={42} color="#16A34A" />
@@ -280,13 +350,8 @@ export default function CameraScanScreen() {
             <Text style={styles.permBackBtnText}>{t.cancel}</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      {/* ─── Real Camera Viewfinder ─── */}
+      ) : (
+      /* ─── Real Camera Viewfinder ─── */
       <View style={styles.cameraContainer}>
         {Platform.OS === 'web' ? (
           <View style={styles.webFallbackContainer}>
@@ -407,6 +472,19 @@ export default function CameraScanScreen() {
             <Ionicons name="speedometer-outline" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
             <Text style={styles.angleBadgeText}>{downwardAngle}°</Text>
           </TouchableOpacity>
+
+          {/* Live Motion / Hand-Shake Blur Guard Indicator */}
+          <View style={[styles.motionBadge, isShaky ? styles.motionBadgeShaky : styles.motionBadgeSteady]}>
+            <Ionicons
+              name={isShaky ? 'hand-left-outline' : 'aperture-outline'}
+              size={12}
+              color="#FFFFFF"
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.motionBadgeText}>
+              {isShaky ? t.hudShakyBadge : t.hudSteadyBadge}
+            </Text>
+          </View>
         </View>
 
         {/* ─── Bottom Shutter & Controls ─── */}
@@ -451,6 +529,7 @@ export default function CameraScanScreen() {
           </Text>
         </View>
       </View>
+      )}
 
       {/* ─── AI Prediction Result Modal Sheet ─── */}
       <Modal visible={showResultSheet} animationType="slide" transparent>
@@ -477,7 +556,79 @@ export default function CameraScanScreen() {
             </View>
 
             {/* Content Body */}
-            {predictMutation.isPending ? (
+            {isCheckingBlur ? (
+              <View style={styles.inferenceLoadingBox}>
+                <ActivityIndicator size="large" color="#16A34A" />
+                <Text style={styles.loadingTitle}>{t.blurChecking}</Text>
+                <Text style={styles.loadingSubtitle}>
+                  {isUrdu
+                    ? 'تصویر کا 2D لیپلاسین ویریئنس جانچا جا رہا ہے...'
+                    : 'Evaluating 2D Laplacian variance across canopy image...'}
+                </Text>
+              </View>
+            ) : blurResult?.isBlurry && !predictMutation.isPending && !prediction && !inferenceError ? (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+                {capturedImageUri && (
+                  <View style={styles.resultImageWrap}>
+                    <Image source={{ uri: capturedImageUri }} style={styles.resultImage} />
+                    <View style={styles.resultImageBlurBadgeFail}>
+                      <Ionicons name="warning" size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.resultImageTagText}>{t.blurFailedBadge}</Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.blurWarningCard}>
+                  <View style={styles.blurWarningIconCircle}>
+                    <Ionicons name="eye-off-outline" size={30} color="#DC2626" />
+                  </View>
+                  <Text style={[styles.blurWarningTitleText, { fontSize: 16 * fontMultiplier }]}>
+                    {t.blurWarningTitle}
+                  </Text>
+                  <Text style={[styles.blurWarningDescText, { fontSize: 12.5 * fontMultiplier }]}>
+                    {t.blurWarningDesc}
+                  </Text>
+
+                  <View style={styles.blurMetricsGrid}>
+                    <View style={styles.blurMetricBox}>
+                      <Text style={styles.blurMetricLabel}>{t.blurStatusLabel}</Text>
+                      <Text style={[styles.blurMetricValue, { color: '#DC2626' }]}>
+                        {t.blurStatusBlurry}
+                      </Text>
+                    </View>
+                    <View style={styles.blurMetricRow}>
+                      <View style={[styles.blurMetricBox, { flex: 1 }]}>
+                        <Text style={styles.blurMetricLabel}>{t.blurLaplacianScore}</Text>
+                        <Text style={styles.blurMetricValue}>
+                          {blurResult.laplacianVariance.toFixed(1)} (min: {BLUR_VARIANCE_THRESHOLD})
+                        </Text>
+                      </View>
+                      <View style={[styles.blurMetricBox, { flex: 1 }]}>
+                        <Text style={styles.blurMetricLabel}>{t.blurSharpnessLabel}</Text>
+                        <Text style={styles.blurMetricValue}>{blurResult.sharpnessScore}%</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.blurActionsRow}>
+                    <TouchableOpacity
+                      style={styles.blurRetakePrimaryBtn}
+                      onPress={() => setShowResultSheet(false)}
+                      activeOpacity={0.85}>
+                      <Ionicons name="camera" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.blurRetakePrimaryText}>{t.retakePhoto}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.blurOverrideBtn}
+                      onPress={() => capturedImageUri && runAiAnalysis(capturedImageUri)}
+                      activeOpacity={0.85}>
+                      <Text style={styles.blurOverrideText}>{t.blurAnalyzeAnyway}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            ) : predictMutation.isPending ? (
               <View style={styles.inferenceLoadingBox}>
                 <ActivityIndicator size="large" color="#16A34A" />
                 <Text style={styles.loadingTitle}>{t.aiAnalyzing}</Text>
@@ -526,6 +677,55 @@ export default function CameraScanScreen() {
                       <Ionicons name="compass" size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
                       <Text style={styles.resultImageTagText}>{downwardAngle}° Downward Angle</Text>
                     </View>
+                    {blurResult && (
+                      <View
+                        style={
+                          blurResult.isBlurry
+                            ? styles.resultImageBlurBadgeFail
+                            : styles.resultImageBlurBadgePass
+                        }>
+                        <Ionicons
+                          name={blurResult.isBlurry ? 'warning' : 'checkmark-circle'}
+                          size={11}
+                          color="#FFFFFF"
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={styles.resultImageTagText}>
+                          {blurResult.isBlurry ? t.blurFailedBadge : t.blurPassedBadge}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Laplacian Image Quality Check Summary */}
+                {blurResult && (
+                  <View
+                    style={[
+                      styles.blurCheckResultCard,
+                      blurResult.isBlurry
+                        ? styles.blurCheckResultBlurry
+                        : styles.blurCheckResultSharp,
+                    ]}>
+                    <View style={styles.blurCheckResultHeader}>
+                      <Ionicons
+                        name={blurResult.isBlurry ? 'alert-circle' : 'checkmark-circle'}
+                        size={16}
+                        color={blurResult.isBlurry ? '#D97706' : '#16A34A'}
+                      />
+                      <Text
+                        style={[
+                          styles.blurCheckResultStatus,
+                          { color: blurResult.isBlurry ? '#B45309' : '#15803D' },
+                        ]}>
+                        {t.blurStatusLabel}:{' '}
+                        {blurResult.isBlurry ? t.blurStatusBlurry : t.blurStatusSharp}
+                      </Text>
+                    </View>
+                    <Text style={styles.blurCheckResultMeta}>
+                      {t.blurLaplacianScore}: {blurResult.laplacianVariance.toFixed(1)} ·{' '}
+                      {t.blurSharpnessLabel}: {blurResult.sharpnessScore}%
+                    </Text>
                   </View>
                 )}
 
@@ -738,6 +938,8 @@ export default function CameraScanScreen() {
           </View>
         </View>
       </Modal>
+
+      {BlurCheckerBridge}
     </SafeAreaView>
   );
 }
@@ -1011,6 +1213,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FFFFFF',
   },
+  motionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  motionBadgeSteady: {
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.7)',
+  },
+  motionBadgeShaky: {
+    backgroundColor: 'rgba(220, 38, 38, 0.55)',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  motionBadgeText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    color: '#FFFFFF',
+  },
 
   // ─── Bottom Area ─────────────────────────────────────────────────────────
   bottomArea: {
@@ -1251,6 +1476,153 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     color: '#FFFFFF',
     fontSize: 10,
+  },
+  resultImageBlurBadgePass: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(22, 163, 74, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  resultImageBlurBadgeFail: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(220, 38, 38, 0.92)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+
+  // Blur Check Warning & Result Summary
+  blurWarningCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 16,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  blurWarningIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  blurWarningTitleText: {
+    fontFamily: FontFamily.bold,
+    color: '#991B1B',
+    textAlign: 'center',
+  },
+  blurWarningDescText: {
+    fontFamily: FontFamily.medium,
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  blurMetricsGrid: {
+    width: '100%',
+    gap: 8,
+    marginTop: 14,
+  },
+  blurMetricRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  blurMetricBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  blurMetricLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10.5,
+    color: '#64748B',
+  },
+  blurMetricValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12.5,
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  blurActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+    marginTop: 16,
+  },
+  blurRetakePrimaryBtn: {
+    flex: 1.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    paddingVertical: 11,
+    borderRadius: Radius.md,
+  },
+  blurRetakePrimaryText: {
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  blurOverrideBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingVertical: 11,
+    borderRadius: Radius.md,
+  },
+  blurOverrideText: {
+    fontFamily: FontFamily.bold,
+    color: '#475569',
+    fontSize: 12.5,
+  },
+  blurCheckResultCard: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 10,
+  },
+  blurCheckResultSharp: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  blurCheckResultBlurry: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  blurCheckResultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  blurCheckResultStatus: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+  },
+  blurCheckResultMeta: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: '#475569',
+    marginTop: 2,
   },
 
   // Detected Stage Banner Card

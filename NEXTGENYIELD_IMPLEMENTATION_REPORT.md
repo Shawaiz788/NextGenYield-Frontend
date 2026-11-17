@@ -14,6 +14,8 @@
 7. [Screen Responsiveness & Consolidated Navigation](#7-screen-responsiveness--consolidated-navigation)
 8. [Data Models & Schema Specifications](#8-data-models--schema-specifications)
 9. [Bilingual Localization & Farmer Accessibility Architecture](#9-bilingual-localization--farmer-accessibility-architecture)
+10. [On-Device Laplacian Blur Detection & Motion Guard](#10-on-device-laplacian-blur-detection--motion-guard)
+11. [Persistent Session Restoration & Field Synchronization](#11-persistent-session-restoration--field-synchronization)
 
 ---
 
@@ -337,6 +339,33 @@ To ensure accessibility for low-literacy farmers in remote rural regions with ze
 - **Language Locales**: `ur-PK` (Pakistani Urdu) and `en-US` (English).
 - **Acoustic Tuning**: Speech rate is calibrated to `0.85` for Urdu and `0.90` for English to ensure clear comprehension under windy, noisy field environments.
 - **Dynamic Content Synthesis**: Regardless of whether agronomic suggestions originate from local rule tables or live FastAPI backend endpoints, the spoken audio is synthesized dynamically from the exact advice strings rendered on the screen (e.g., watering instructions, nutrient dosages, disease alerts, or camera tilt reticle alignment).
+
+---
+
+## 10. On-Device Laplacian Blur Detection & Motion Guard
+
+### 10.1 Pre-Flight 2D Laplacian Variance Formulation
+To prevent out-of-focus or motion-blurred wheat canopy photos from degrading ViT-B/14 classification accuracy, the Scan tab (`app/(tabs)/scan.tsx`) evaluates image sharpness locally prior to dispatching the AI inference request (`components/laplacian-blur-checker.tsx`):
+
+1. **Resolution & Grayscale Luminance**: The captured or gallery-selected image is resized onto an off-screen $256 \times 256$ HTML5 `<canvas>` and converted from RGBA to luminance grayscale:
+   $$Y = 0.299R + 0.587G + 0.114B$$
+2. **Discrete 3×3 Laplacian Convolution**: For interior pixels $(x, y)$, the second-order spatial derivative is computed using the kernel $K = \begin{bmatrix} 0 & 1 & 0 \\ 1 & -4 & 1 \\ 0 & 1 & 0 \end{bmatrix}$:
+   $$L(x, y) = Y(x, y-1) + Y(x, y+1) + Y(x-1, y) + Y(x+1, y) - 4Y(x, y)$$
+3. **Two-Pass Variance & Thresholding**: The variance $\sigma^2 = \frac{1}{N}\sum(L - \mu)^2$ is compared against `BLUR_VARIANCE_THRESHOLD = 100` (and `SHARP_VARIANCE_THRESHOLD = 180`):
+   - $\sigma^2 < 100 \implies \text{blurry}$ (triggers warning haptic, pauses AI upload, displays Laplacian variance & sharpness %, and offers **Retake Photo** or **Analyze Anyway**).
+   - $100 \le \sigma^2 < 180 \implies \text{acceptable}$, $\sigma^2 \ge 180 \implies \text{sharp}$ (proceeds directly to ViT-B/14 inference and attaches measured `sharpnessScore` and `laplacianVariance` to the saved observation).
+
+### 10.2 Cross-Platform Off-Screen Bridge & Live HUD Stability
+- **Unified Canvas Bridge**: Uses a hidden `<WebView>` (`react-native-webview`) on Android/iOS with 256 KB chunked `injectJavaScript` payloads (and a 1500 ms timeout fallback), and a hidden `<iframe srcDoc>` on Web.
+- **Accelerometer Hand-Shake Indicator**: In parallel with downward pitch angle tracking, frame-to-frame acceleration delta $\Delta a = \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}$ flags motion-blur risk on the viewfinder HUD when $\Delta a > 0.09g$ and stabilizes after 3 consecutive steady readings ($< 0.06g$).
+
+---
+
+## 11. Persistent Session Restoration & Field Synchronization
+
+- **Secure Storage**: Authentication JWT tokens and user profiles are persisted via `services/session-store.ts` (`expo-secure-store` on iOS/Android and `localStorage` on Web).
+- **Reactive Query Invalidation**: `AppProvider` (`context/app-context.tsx`) restores the bearer token before enabling `useFieldsQuery(isAuthenticated)` and explicitly invalidates `FIELD_QUERY_KEYS.all` on session restore and login, while clearing query caches on logout.
+- **Home Screen Loading & Error States**: `DashboardScreen` (`app/(tabs)/index.tsx`) gates on `isAuthLoading` and `isAuthenticated`, displaying `DashboardFieldsSkeleton` while fields are syncing and `BackendReachabilityBanner` with a retry trigger if the backend is unreachable—preventing premature `"No Fields Demarcated Yet"` empty states on app startup.
 
 ---
 

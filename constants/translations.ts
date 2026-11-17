@@ -158,6 +158,21 @@ export const TRANSLATIONS = {
     aiLowConfidenceWarning: 'Image uncertain. Please retake photo from directly above the canopy without blur or harsh shadow.',
     aiDemoMode: 'Demo Simulation Mode',
     aiLiveServer: 'Live NVIDIA RTX 5070 Backend',
+    // Laplacian Blur Check
+    blurChecking: 'Checking image sharpness (Laplacian)...',
+    blurPassedBadge: 'Sharp Image · Not Blurred',
+    blurFailedBadge: 'Blurred Image Detected',
+    blurWarningTitle: 'Image is Blurred (Low Sharpness)',
+    blurWarningDesc:
+      'Laplacian blur check detected out-of-focus or motion blur on the wheat canopy. Blurry photos can reduce AI stage accuracy. Please hold the phone steady and retake.',
+    blurAnalyzeAnyway: 'Analyze Anyway',
+    blurLaplacianScore: 'Laplacian Variance',
+    blurSharpnessLabel: 'Sharpness Score',
+    blurStatusLabel: 'Blur Check Status',
+    blurStatusSharp: 'Not Blurred (Clear)',
+    blurStatusBlurry: 'Blurred (Retake Recommended)',
+    hudSteadyBadge: 'Steady · Blur Guard Active',
+    hudShakyBadge: 'Hand Shake · Motion Blur Risk',
   },
   ur: {
     appName: 'نیکسٹ جنریشن پیداوار',
@@ -316,5 +331,20 @@ export const TRANSLATIONS = {
     aiLowConfidenceWarning: 'تصویر واضح نہیں ہے۔ براہ کرم فصل کے اوپر سے بغیر دھندلاہٹ اور سائے کے دوبارہ تصویر بنائیں۔',
     aiDemoMode: 'ڈیمو موڈ',
     aiLiveServer: 'لائیو آر ٹی ایکس 5070 بیک اینڈ',
+    // Laplacian Blur Check
+    blurChecking: 'تصویر کی صفائی اور دھندلاہٹ چیک ہو رہی ہے...',
+    blurPassedBadge: 'واضح تصویر · دھندلی نہیں ہے',
+    blurFailedBadge: 'تصویر دھندلی ہے',
+    blurWarningTitle: 'تصویر دھندلی ہے (کم صفائی)',
+    blurWarningDesc:
+      'لیپلاسین چیک کے مطابق گندم کی تصویر دھندلی ہے۔ دھندلی تصویر سے اے آئی تشخیص متاثر ہو سکتی ہے۔ براہ کرم فون کو مستحکم رکھ کر دوبارہ واضح تصویر لیں۔',
+    blurAnalyzeAnyway: 'پھر بھی تجزیہ کریں',
+    blurLaplacianScore: 'لیپلاسین ویریئنس',
+    blurSharpnessLabel: 'تصویر کی صفائی',
+    blurStatusLabel: 'دھندلاہٹ چیک کا نتیجہ',
+    blurStatusSharp: 'واضح (دھندلی نہیں)',
+    blurStatusBlurry: 'دھندلی (دوبارہ تصویر لیں)',
+    hudSteadyBadge: 'ہاتھ مستحکم ہے · بلر گارڈ فعال',
+    hudShakyBadge: 'ہاتھ ہل رہا ہے · تصویر دھندلی ہو سکتی ہے',
   },
 };

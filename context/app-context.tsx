@@ -174,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           }
           // Actively invalidate and trigger fresh query fetch for restored user
-          queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
+          await queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
           logger.info('Restored authenticated session from secure storage.');
         } else {
           logger.info('No active session token found in secure storage.');
@@ -193,7 +193,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [queryClient]);
 
-  const { data: backendFields } = useFieldsQuery();
+  const { data: backendFields } = useFieldsQuery(isAuthenticated);
 
   // Sync backend fields to AppContext
   useEffect(() => {
@@ -283,12 +283,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return next;
       });
     }
-    queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
+    await queryClient.invalidateQueries({ queryKey: FIELD_QUERY_KEYS.all });
   };
 
   const logout = async () => {
     setIsAuthenticated(false);
     setAuthToken(null);
+    setFields([]);
+    setSelectedFieldIdState('');
+    setMapFields([]);
+    queryClient.removeQueries({ queryKey: FIELD_QUERY_KEYS.all });
     await sessionStore.clearSession();
     setFields([]);
     setSelectedFieldIdState('');
