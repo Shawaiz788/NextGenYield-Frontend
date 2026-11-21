@@ -67,16 +67,25 @@ export default function TabLayout() {
         options={{
           title: isUrdu ? 'نقشہ' : 'Map',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'map' : 'map-outline'} size={23} color={color} />
+            <Ionicons name={focused ? 'map' : 'map-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="showcase"
+        name="community"
         options={{
-          title: isUrdu ? 'پیداوار' : 'Yields',
+          title: isUrdu ? 'کمیونٹی' : 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'trophy' : 'trophy-outline'} size={23} color={color} />
+            <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="marketplace"
+        options={{
+          title: isUrdu ? 'مارکیٹ' : 'Market',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'cart' : 'cart-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -85,8 +94,14 @@ export default function TabLayout() {
         options={{
           title: isUrdu ? 'پروفائل' : 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={23} color={color} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="showcase"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

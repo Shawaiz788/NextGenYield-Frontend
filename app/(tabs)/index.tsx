@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -23,6 +24,8 @@ import { useObservationsQuery } from '@/hooks/use-observations';
 import { useUserLocation } from '@/hooks/use-user-location';
 import { useFieldWeatherQuery } from '@/hooks/use-field-weather';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
+import { SoilPrepGuideModal } from '@/components/soil-prep-guide';
+import { FarmTeamModal } from '@/components/farm-team-manager';
 
 
 export default function DashboardScreen() {
@@ -43,7 +46,29 @@ export default function DashboardScreen() {
   const userLocation = useUserLocation(language);
 
   const [isStartCycleOpen, setIsStartCycleOpen] = useState(false);
+  const [isSoilPrepOpen, setIsSoilPrepOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [inspectedStageIndex, setInspectedStageIndex] = useState<number | null>(null);
+
+  const handleStartCyclePress = () => {
+    Alert.alert(
+      language === 'ur' ? 'زمین کی تیاری کا جائزہ' : 'Soil Pre-processing Guide',
+      language === 'ur'
+        ? 'کیا آپ بوائی سے قبل زمین کی تیاری اور لیزر لیولنگ مشینری کا معلوماتی ٹیوٹوریل دیکھنا چاہتے ہیں؟'
+        : 'Before sowing, would you like to review the Soil Pre-processing Guide & rent equipment (Laser leveler, rotavator)?',
+      [
+        {
+          text: language === 'ur' ? 'براہ راست بوائی' : 'Skip to Sowing',
+          style: 'cancel',
+          onPress: () => setIsStartCycleOpen(true),
+        },
+        {
+          text: language === 'ur' ? 'زمین کی تیاری دیکھیں' : 'View Soil Guide',
+          onPress: () => setIsSoilPrepOpen(true),
+        },
+      ]
+    );
+  };
   const {
     data: backendFields,
     isLoading: isFieldsLoading,
@@ -263,6 +288,85 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
+        {/* Quick Agri Platform Services Bar */}
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 8,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              elevation: 1,
+            }}
+            onPress={() => setIsSoilPrepOpen(true)}>
+            <MaterialCommunityIcons name="tractor" size={20} color="#D97706" />
+            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+              {language === 'ur' ? 'زمین و مشینری' : 'Soil & Hire'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 8,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              elevation: 1,
+            }}
+            onPress={() => setIsTeamModalOpen(true)}>
+            <Ionicons name="people-outline" size={20} color="#0284C7" />
+            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+              {language === 'ur' ? 'فارم ٹیم' : 'Farm Team'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 8,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              elevation: 1,
+            }}
+            onPress={() => router.push('/(tabs)/marketplace' as any)}>
+            <Ionicons name="cart-outline" size={20} color="#16A34A" />
+            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+              {language === 'ur' ? 'مارکیٹ' : 'Market'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 8,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              elevation: 1,
+            }}
+            onPress={() => router.push('/(tabs)/community' as any)}>
+            <Ionicons name="chatbubbles-outline" size={20} color="#9333EA" />
+            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+              {language === 'ur' ? 'کمیونٹی' : 'Community'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {isDashboardLoading ? (
           /* ─── Loading State: Animated Skeletons ─── */
           <DashboardFieldsSkeleton />
@@ -327,7 +431,17 @@ export default function DashboardScreen() {
               </Text>
 
               <TouchableOpacity
-                onPress={() => setIsStartCycleOpen(true)}
+                onPress={() => setIsSoilPrepOpen(true)}
+                style={[styles.startCycleButton, { backgroundColor: '#D97706', marginBottom: 10 }]}
+                activeOpacity={0.85}>
+                <MaterialCommunityIcons name="tractor" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={[styles.startCycleButtonText, { fontSize: 14 * fontMultiplier }]}>
+                  {language === 'ur' ? 'زمین کی تیاری اور مشینری کرایہ' : 'Soil Prep & Machinery Rentals'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleStartCyclePress}
                 style={styles.startCycleButton}
                 activeOpacity={0.85}>
                 <MaterialCommunityIcons name="sprout" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
@@ -734,6 +848,19 @@ export default function DashboardScreen() {
           onClose={() => setIsStartCycleOpen(false)}
         />
       )}
+
+      {/* Soil Pre-processing Guide & Machinery Hire Modal */}
+      <SoilPrepGuideModal
+        visible={isSoilPrepOpen}
+        onClose={() => setIsSoilPrepOpen(false)}
+        onStartCycle={() => setIsStartCycleOpen(true)}
+      />
+
+      {/* Farm Team & Employee Delegation Modal */}
+      <FarmTeamModal
+        visible={isTeamModalOpen}
+        onClose={() => setIsTeamModalOpen(false)}
+      />
     </SafeAreaView>
   );
 }

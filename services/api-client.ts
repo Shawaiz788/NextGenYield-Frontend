@@ -208,6 +208,199 @@ export interface ShowcaseCreateDTO {
 }
 
 // ==========================================
+// Machinery DTOs
+// ==========================================
+export interface MachineryBookingDTO {
+  booking_id: string;
+  machinery_id: string;
+  renter_id: string;
+  start_date: string;
+  end_date: string;
+  total_hours?: number | null;
+  total_amount_pkr: number;
+  status: string;
+  purpose_step?: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface MachineryListingDTO {
+  machinery_id: string;
+  owner_id: string;
+  title: string;
+  machinery_type: string;
+  brand_model?: string | null;
+  horsepower?: number | null;
+  hourly_rate_pkr?: number | null;
+  daily_rate_pkr: number;
+  district: string;
+  location_address?: string | null;
+  contact_phone: string;
+  description?: string | null;
+  image_url?: string | null;
+  is_available: boolean;
+  created_at: string;
+  bookings?: MachineryBookingDTO[];
+}
+
+export interface MachineryListingCreateDTO {
+  title: string;
+  machinery_type: string;
+  brand_model?: string;
+  horsepower?: number;
+  hourly_rate_pkr?: number;
+  daily_rate_pkr: number;
+  district: string;
+  location_address?: string;
+  contact_phone: string;
+  description?: string;
+  image_url?: string;
+}
+
+export interface MachineryBookingCreateDTO {
+  start_date: string;
+  end_date: string;
+  total_hours?: number;
+  purpose_step?: string;
+  notes?: string;
+}
+
+// ==========================================
+// Employee / Farm Team DTOs
+// ==========================================
+export interface FieldAssignmentDTO {
+  assignment_id: string;
+  employee_record_id: string;
+  field_id: string;
+  field_name?: string | null;
+  can_scan: boolean;
+  can_edit_schedule: boolean;
+  assigned_at: string;
+}
+
+export interface FarmEmployeeDTO {
+  employee_record_id: string;
+  owner_id: string;
+  employee_user_id?: string | null;
+  employee_name: string;
+  employee_phone: string;
+  role: string;
+  status: string;
+  access_all_fields: boolean;
+  created_at: string;
+  assigned_fields?: FieldAssignmentDTO[];
+}
+
+export interface EmployeeCreateDTO {
+  employee_name: string;
+  employee_phone: string;
+  role: string;
+  access_all_fields?: boolean;
+  assigned_field_ids?: string[];
+}
+
+export interface AssignFieldsDTO {
+  field_ids: string[];
+  access_all_fields?: boolean;
+}
+
+// ==========================================
+// Community & Chat DTOs
+// ==========================================
+export interface CommunityPostDTO {
+  post_id: string;
+  user_id: string;
+  author_name: string;
+  author_district: string;
+  category: string;
+  title: string;
+  content: string;
+  image_url?: string | null;
+  likes_count: number;
+  comments_count: number;
+  is_liked_by_me?: boolean;
+  created_at: string;
+}
+
+export interface PostCreateDTO {
+  title: string;
+  category: string;
+  content: string;
+  image_url?: string;
+}
+
+export interface PostCommentDTO {
+  comment_id: string;
+  post_id: string;
+  user_id: string;
+  author_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface UserConnectionDTO {
+  connection_id: string;
+  user_id: string;
+  full_name: string;
+  district: string;
+  role: string;
+  status: string;
+  created_at: string;
+}
+
+export interface ChatMessageDTO {
+  message_id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name?: string | null;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ChatConversationDTO {
+  conversation_id: string;
+  other_user_id: string;
+  other_user_name: string;
+  other_user_district?: string | null;
+  last_message?: string | null;
+  last_message_at: string;
+  unread_count: number;
+}
+
+// ==========================================
+// Marketplace DTOs
+// ==========================================
+export interface MarketplaceItemDTO {
+  item_id: string;
+  seller_id: string;
+  seller_name: string;
+  seller_phone: string;
+  title: string;
+  category: string;
+  price_pkr: number;
+  condition: string;
+  district: string;
+  location_address?: string | null;
+  description: string;
+  image_url?: string | null;
+  is_sold: boolean;
+  created_at: string;
+}
+
+export interface MarketplaceItemCreateDTO {
+  title: string;
+  category: string;
+  price_pkr: number;
+  condition?: string;
+  district: string;
+  location_address?: string;
+  contact_phone: string;
+  description: string;
+  image_url?: string;
+}
+
+// ==========================================
 // Auth Token & URL Management
 // ==========================================
 let activeAuthToken: string | null = null;
@@ -516,6 +709,174 @@ class ApiClient {
           body: JSON.stringify(post),
         });
       }
+
+  // --- Machinery Rental & Booking Endpoints ---
+  async getMachineryListings(params?: { machinery_type?: string; district?: string; available_only?: boolean }): Promise<MachineryListingDTO[]> {
+    const query = new URLSearchParams();
+    if (params?.machinery_type) query.append('machinery_type', params.machinery_type);
+    if (params?.district) query.append('district', params.district);
+    if (params?.available_only !== undefined) query.append('available_only', String(params.available_only));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return this.request<MachineryListingDTO[]>(`/machinery/${qs}`);
+  }
+
+  async createMachineryListing(data: MachineryListingCreateDTO): Promise<MachineryListingDTO> {
+    return this.request<MachineryListingDTO>('/machinery/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyMachineryListings(): Promise<MachineryListingDTO[]> {
+    return this.request<MachineryListingDTO[]>('/machinery/user/my-listings');
+  }
+
+  async bookMachinerySlot(machineryId: string, data: MachineryBookingCreateDTO): Promise<MachineryBookingDTO> {
+    return this.request<MachineryBookingDTO>(`/machinery/${machineryId}/book`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyMachineryBookings(): Promise<MachineryBookingDTO[]> {
+    return this.request<MachineryBookingDTO[]>('/machinery/user/my-bookings');
+  }
+
+  // --- Farm Employee & Delegation Endpoints ---
+  async getEmployees(): Promise<FarmEmployeeDTO[]> {
+    return this.request<FarmEmployeeDTO[]>('/employees/');
+  }
+
+  async addEmployee(data: EmployeeCreateDTO): Promise<FarmEmployeeDTO> {
+    return this.request<FarmEmployeeDTO>('/employees/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async assignFieldsToEmployee(employeeRecordId: string, data: AssignFieldsDTO): Promise<FarmEmployeeDTO> {
+    return this.request<FarmEmployeeDTO>(`/employees/${employeeRecordId}/assign-fields`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEmployee(employeeRecordId: string): Promise<void> {
+    return this.request<void>(`/employees/${employeeRecordId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAssignedToMeFields(): Promise<FieldResponseDTO[]> {
+    return this.request<FieldResponseDTO[]>('/employees/assigned-to-me');
+  }
+
+  // --- Community, Social Feed & Chat Endpoints ---
+  async getCommunityPosts(category?: string): Promise<CommunityPostDTO[]> {
+    const qs = category && category !== 'all' ? `?category=${encodeURIComponent(category)}` : '';
+    return this.request<CommunityPostDTO[]>(`/community/posts${qs}`);
+  }
+
+  async createCommunityPost(data: PostCreateDTO): Promise<CommunityPostDTO> {
+    return this.request<CommunityPostDTO>('/community/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async togglePostLike(postId: string): Promise<{ post_id: string; liked: boolean; likes_count: number }> {
+    return this.request<{ post_id: string; liked: boolean; likes_count: number }>(`/community/posts/${postId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  async getPostComments(postId: string): Promise<PostCommentDTO[]> {
+    return this.request<PostCommentDTO[]>(`/community/posts/${postId}/comments`);
+  }
+
+  async addPostComment(postId: string, content: string): Promise<PostCommentDTO> {
+    return this.request<PostCommentDTO>(`/community/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async getFarmers(): Promise<UserConnectionDTO[]> {
+    return this.request<UserConnectionDTO[]>('/community/farmers');
+  }
+
+  async connectWithFarmer(targetUserId: string): Promise<{ status: string; connection_id: string }> {
+    return this.request<{ status: string; connection_id: string }>(`/community/farmers/${targetUserId}/connect`, {
+      method: 'POST',
+    });
+  }
+
+  async getConversations(): Promise<ChatConversationDTO[]> {
+    return this.request<ChatConversationDTO[]>('/community/conversations');
+  }
+
+  async startOrGetConversation(recipientId: string, content: string): Promise<ChatConversationDTO> {
+    return this.request<ChatConversationDTO>('/community/conversations/start', {
+      method: 'POST',
+      body: JSON.stringify({ recipient_id: recipientId, content }),
+    });
+  }
+
+  async getConversationMessages(conversationId: string): Promise<ChatMessageDTO[]> {
+    return this.request<ChatMessageDTO[]>(`/community/conversations/${conversationId}/messages`);
+  }
+
+  async sendMessage(conversationId: string, content: string): Promise<ChatMessageDTO> {
+    return this.request<ChatMessageDTO>(`/community/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // --- Agricultural Marketplace Endpoints ---
+  async getMarketplaceItems(params?: {
+    category?: string;
+    district?: string;
+    search?: string;
+    min_price?: number;
+    max_price?: number;
+  }): Promise<MarketplaceItemDTO[]> {
+    const query = new URLSearchParams();
+    if (params?.category) query.append('category', params.category);
+    if (params?.district) query.append('district', params.district);
+    if (params?.search) query.append('search', params.search);
+    if (params?.min_price !== undefined) query.append('min_price', String(params.min_price));
+    if (params?.max_price !== undefined) query.append('max_price', String(params.max_price));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return this.request<MarketplaceItemDTO[]>(`/marketplace/items${qs}`);
+  }
+
+  async createMarketplaceItem(data: MarketplaceItemCreateDTO): Promise<MarketplaceItemDTO> {
+    return this.request<MarketplaceItemDTO>('/marketplace/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMarketplaceItem(itemId: string): Promise<MarketplaceItemDTO> {
+    return this.request<MarketplaceItemDTO>(`/marketplace/items/${itemId}`);
+  }
+
+  async toggleMarketplaceItemSold(itemId: string): Promise<MarketplaceItemDTO> {
+    return this.request<MarketplaceItemDTO>(`/marketplace/items/${itemId}/sold`, {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteMarketplaceItem(itemId: string): Promise<void> {
+    return this.request<void>(`/marketplace/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getMyMarketplaceItems(): Promise<MarketplaceItemDTO[]> {
+    return this.request<MarketplaceItemDTO[]>('/marketplace/user/my-items');
+  }
     }
 
     export const api = new ApiClient();

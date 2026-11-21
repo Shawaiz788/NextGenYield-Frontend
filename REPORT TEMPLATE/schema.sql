@@ -130,3 +130,158 @@ CREATE INDEX idx_field_observations_cycle_id ON field_observations(cycle_id);
 CREATE INDEX idx_fertilizer_schedules_cycle_id ON fertilizer_schedules(cycle_id);
 CREATE INDEX idx_irrigation_schedules_cycle_id ON irrigation_schedules(cycle_id);
 CREATE INDEX idx_advisory_rules_stage_index ON agronomic_advisory_rules(stage_index);
+
+-- ============================================================================
+-- Expansion Modules: Soil Prep & Machinery, Team, Community & Marketplace
+-- ============================================================================
+
+-- 9. Machinery Listings Table (tab:machinery_table)
+CREATE TABLE machinery_listings (
+    machinery_id VARCHAR(50) PRIMARY KEY,
+    owner_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    machinery_type VARCHAR(40) NOT NULL, -- laser_leveler, tractor, rotavator, seed_drill, chisel_plow
+    brand_model VARCHAR(80),
+    horsepower DECIMAL(6, 1),
+    hourly_rate_pkr DECIMAL(10, 2),
+    daily_rate_pkr DECIMAL(10, 2) NOT NULL,
+    district VARCHAR(50) NOT NULL,
+    location_address VARCHAR(200),
+    contact_phone VARCHAR(20) NOT NULL,
+    description TEXT,
+    image_url VARCHAR(255),
+    is_available BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_machinery_type_district ON machinery_listings(machinery_type, district);
+
+-- 10. Machinery Bookings Table (tab:machinery_booking_table)
+CREATE TABLE machinery_bookings (
+    booking_id VARCHAR(50) PRIMARY KEY,
+    machinery_id VARCHAR(50) NOT NULL REFERENCES machinery_listings(machinery_id) ON DELETE CASCADE,
+    renter_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    total_hours DECIMAL(6, 1),
+    total_amount_pkr DECIMAL(10, 2) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, confirmed, in_progress, completed, cancelled
+    purpose_step VARCHAR(50), -- laser_leveling, plowing, rauni, rotavating
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_machinery_bookings_mach_id ON machinery_bookings(machinery_id);
+CREATE INDEX idx_machinery_bookings_renter ON machinery_bookings(renter_id);
+
+-- 11. Farm Employees Table (tab:farm_employee_table)
+CREATE TABLE farm_employees (
+    employee_record_id VARCHAR(50) PRIMARY KEY,
+    owner_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    employee_user_id VARCHAR(50) REFERENCES users(user_id) ON DELETE SET NULL,
+    employee_name VARCHAR(60) NOT NULL,
+    employee_phone VARCHAR(20) NOT NULL,
+    role VARCHAR(30) NOT NULL DEFAULT 'farmhand', -- farmhand, operator, agronomist, manager
+    status VARCHAR(20) NOT NULL DEFAULT 'active', -- active, invited, suspended
+    access_all_fields BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_farm_employees_owner ON farm_employees(owner_id);
+CREATE INDEX idx_farm_employees_phone ON farm_employees(employee_phone);
+
+-- 12. Field Assignments Table (tab:field_assignment_table)
+CREATE TABLE field_assignments (
+    assignment_id VARCHAR(50) PRIMARY KEY,
+    employee_record_id VARCHAR(50) NOT NULL REFERENCES farm_employees(employee_record_id) ON DELETE CASCADE,
+    field_id VARCHAR(50) NOT NULL REFERENCES fields(field_id) ON DELETE CASCADE,
+    can_scan BOOLEAN NOT NULL DEFAULT TRUE,
+    can_edit_schedule BOOLEAN NOT NULL DEFAULT FALSE,
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_field_assignments_emp ON field_assignments(employee_record_id);
+CREATE INDEX idx_field_assignments_field ON field_assignments(field_id);
+
+-- 13. Community Posts Table (tab:community_post_table)
+CREATE TABLE community_posts (
+    post_id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    author_name VARCHAR(60) NOT NULL,
+    author_district VARCHAR(50) NOT NULL,
+    category VARCHAR(30) NOT NULL DEFAULT 'general', -- agronomy_tips, disease_alert, machinery, market_prices, general
+    title VARCHAR(120) NOT NULL,
+    content TEXT NOT NULL,
+    image_url VARCHAR(255),
+    likes_count INTEGER NOT NULL DEFAULT 0,
+    comments_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_community_posts_cat ON community_posts(category);
+
+-- 14. Post Comments Table (tab:post_comment_table)
+CREATE TABLE post_comments (
+    comment_id VARCHAR(50) PRIMARY KEY,
+    post_id VARCHAR(50) NOT NULL REFERENCES community_posts(post_id) ON DELETE CASCADE,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    author_name VARCHAR(60) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_post_comments_post_id ON post_comments(post_id);
+
+-- 15. Post Likes Table (tab:post_like_table)
+CREATE TABLE post_likes (
+    like_id VARCHAR(50) PRIMARY KEY,
+    post_id VARCHAR(50) NOT NULL REFERENCES community_posts(post_id) ON DELETE CASCADE,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_post_user_like UNIQUE (post_id, user_id)
+);
+
+-- 16. User Connections Table (tab:user_connection_table)
+CREATE TABLE user_connections (
+    connection_id VARCHAR(50) PRIMARY KEY,
+    requester_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    target_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL DEFAULT 'accepted',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_connections_req_target ON user_connections(requester_id, target_id);
+
+-- 17. Chat Conversations Table (tab:chat_conversation_table)
+CREATE TABLE chat_conversations (
+    conversation_id VARCHAR(50) PRIMARY KEY,
+    user1_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user2_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    last_message TEXT,
+    last_message_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_chat_conv_users ON chat_conversations(user1_id, user2_id);
+
+-- 18. Chat Messages Table (tab:chat_message_table)
+CREATE TABLE chat_messages (
+    message_id VARCHAR(50) PRIMARY KEY,
+    conversation_id VARCHAR(50) NOT NULL REFERENCES chat_conversations(conversation_id) ON DELETE CASCADE,
+    sender_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_chat_msg_conv ON chat_messages(conversation_id);
+
+-- 19. Marketplace Items Table (tab:marketplace_item_table)
+CREATE TABLE marketplace_items (
+    item_id VARCHAR(50) PRIMARY KEY,
+    seller_id VARCHAR(50) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    seller_name VARCHAR(60) NOT NULL,
+    seller_phone VARCHAR(20) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    category VARCHAR(40) NOT NULL, -- seeds, fertilizer, machinery, wheat_grain, pesticides, land_lease, other
+    price_pkr DECIMAL(12, 2) NOT NULL,
+    condition VARCHAR(20) NOT NULL DEFAULT 'new',
+    district VARCHAR(50) NOT NULL,
+    location_address VARCHAR(200),
+    description TEXT NOT NULL,
+    image_url VARCHAR(255),
+    is_sold BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_marketplace_cat_district ON marketplace_items(category, district);

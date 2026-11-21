@@ -1,0 +1,1881 @@
+\documentclass{FastFyp}
+
+\begin{document}
+\newcommand{\supervisor}{Dr. Mirza Mubasher Baig}
+\newcommand{\university}{National University of Computer and Emerging Sciences, Lahore}
+\newcommand{\fyptitle}{NextGenYield}
+\newcommand{\degree}{BS}
+\newcommand{\Studentone}{Shawaiz Ali Rehman     23L-0510    BS(CS)} 
+\newcommand{\Studenttwo}{Aimen Abdul Rehman     23L-0670    BS(CS)}
+\newcommand{\Studentthree}{Hassan Khan     23L-0800    BS(CS)}
+\date{\today}
+\renewcommand{\contentsname}{Table of Contents}
+
+\makeatletter
+    \begin{titlepage}
+        \includegraphics[width=0.2\linewidth]{Figures/nulogo.png}\hfill
+        \includegraphics[width=0.2\linewidth]{Figures/fast.png}\\
+        \begin{center} 
+            {\large\bfseries \university}\\[7ex]
+            \includegraphics[width=0.4\linewidth]{Figures/fastlogo.png}\\[8ex]
+            {\huge \bfseries  \fyptitle }\\[10ex] 
+            {\Studentone}\\{\Studenttwo}\\{\Studentthree}\\[4ex] 
+            {Supervisor: \supervisor} \\ [10ex]
+            {Final Year Project}\\
+            {\large \@date}
+        \end{center}
+    \end{titlepage}    
+\makeatother
+\frontmatter
+
+\newpage \thispagestyle{empty} \mbox{} \newpage %Aatira
+
+\pagestyle{empty}  %Aatira
+\section*{\begin{center}{Anti-Plagiarism Declaration} \end{center}} %Aatira
+This is to declare that the above publication was produced under the:
+\begin{flushleft}
+\bf Title: \fyptitle
+\end{flushleft}
+
+is the sole contribution of the author(s) and no part hereof has been reproduced as it is the basis (cut and paste) that can be considered Plagiarism. All referenced parts have been used to argue the idea and cited properly. I/We will be responsible and liable for any consequence if a violation of this declaration is determined.
+\\[4ex]
+%% FYPTODO add the date and your names here
+Date: 18/11/2026
+
+\begin{flushright}
+Name: Shawaiz Ali Rehman
+\\[3ex]
+Signature:\includegraphics[width=2cm]{Figures/shawaiz_signature.jpg}
+\\[6ex]
+Name: Aimen Abdul Rehman
+\\[3ex]
+Signature: \includegraphics[width=2cm]{Figures/aimen_signature.png}
+\\[6ex]
+Name: Hassan Khan
+\\[3ex]
+Signature: \includegraphics[width=2cm]{Figures/hassan_signature.jpg}
+
+\end{flushright} 
+
+\vspace{3.1 cm} %Aatira
+ 
+\hrule %Aatira
+
+\section*{Author's Declaration}
+This states Authors’ declaration that the work presented in the report is their own and has not been submitted/presented previously to any other institution or organization.
+\pagebreak
+\section*{Abstract}
+Well-timed detection of crop developmental stages is essential for improving agriculture management practices and reducing potential yield losses. This study proposes an intelligent crop monitoring system and system for decision making , utilizing the FoMO4Wheat agriculture, a self supervised model trained on extensive wheat imagery. A classification layer is added to the frozen transformer features  to divide wheat canopy imagery into six key growth stages, from tillering to complete growth. These sequential observations are recorded into a temporal growth timeline, which is then used by a rule-based agronomic system to provide guidance on scheduling , nutrient application and possible crop risks. By combining visual crop analysis with practical farming recommendations , the proposed system provides an easy to use , data driven tool for precision crop management. 
+\pagebreak 
+
+\section*{Executive Summary}
+Wheat is a staple crop in Pakistan . Pakistan’s national food security and livelihoods are dependent on wheat. Although wheat farmers contribute significantly to the economy , they often suffer severe gaps in the yield as per international benchmarks. This is majorly caused due to guesswork in irrigation and fertilising . Traditional services of agriculture support have limited reach in rural areas. At the same time other solutions using drones and IoT are usually very expensive. Although general AI models are now available, they are text generators and are inconsistent and can be inaccurate with the information they provide which can result negatively while making decisions. NextGenYield introduces a solution to this problem by providing an affordable and reliable solution based on smartphones. for wheat growth monitoring and decision making. 
+
+NextGenYield uses a vision model and rule based knowledge of agriculture to help wheat farmers, landowners and agricultural workers in monitoring wheat growth and receive reliable guidance. The backbone model is FoMo4Wheat, it is a Vision Transformer (ViT) that is trained on 2.5 million images of wheat canopies of more than 2000 varieties of wheat. NextGenYield uses this model to extract 768 features then uses its own trained layer to classify the image into 6 stages of wheat’s growth cycle. The stages are :tillering, jointing, booting, anthesis, grain filling and maturity.
+To reduce the difference in results achieved from a high quality image taken in a laboratory and an image that is taken from a smartphone in the field, the mobile app gives basic guidance during image capture. The app uses the phone's gyroscope and accelerometer to make sure the angle camera is held at is ideal and so that the user can be guided to hold it at a suitable angle. Basic image quality check may also be used to prevent use of blurry or unsuitable images.
+
+After starting a cycle , NextGenYield saves and tracks the information on a 140 day timeline. This timeline is based on Days after Sowing. Instead of using AI generated advice which can be incorrect  the system uses a deterministic rule based agricultural system that is verified on the guidelines of agriculture. The system considers growth stage, crop age, seed variety and type of fertiliser to give recommendations for irrigation , fertilizer and possible rust risks during the season. For better accessibility the recommendations are available in both text and audio in English and Urdu.
+
+The system allows farmers to add their fields by selecting the boundary of their fields directly on satellite maps. They can draw the field using a square ,polygon, or circle. The system also calculates the total area of the field and may use it as well for future estimations. At the regional level, a map shows the growth stage of nearby fields using different colors but it makes sure to protect the privacy of the user by not showing any personal information of the user of the field. Farmers can also view fields on the app that produce record breaking yields and user can use their 140-day farming schedules as a guide to manage their own crop.
+
+NextGenYield uses a multi-layer system with a cross platform mobile framework (React Native or Flutter) , FastAPI backend and PostgreSQL database for storing data. The system is made in a way so that it works in areas with bad internet as well. Important information like field boundaries, farming advice and crop observations, are stored on the phone locally and then automatically synchronized with the backend server when an internet connection becomes available.
+
+This FYP report covers the complete development of NextGenYield. It explains the problems that are related to the project and also tells about the connection to the United Nations 2 (Zero Hunger). It also reviews sixteen research studies , gives the system requirements, presents the important use cases and also explains the overall architecture of the system by using diagrams and tables. All together, these sections give a clear foundation for the design , development and evaluation of the system. 
+
+\pagebreak
+
+
+\pagestyle{fancy} %Aatira
+\tableofcontents
+
+\pagebreak
+\listoffigures	% comment this if there are no figures
+\addcontentsline{toc}{chapter}{List of Figures}
+\pagebreak
+\listoftables % comment this if there are no tables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+\mainmatter
+
+
+\chapter{Introduction}
+In traditional farming wheat production depends upon visual observation and fixed schedule dates. However, field decisions require knowing the exact growth stage of the crop, which does not always follow a calendar. These methods may not consider changes in the temperature ,weather and the growth of crops which can have farmers giving wrong inputs at the wrong time ,this results in wasting the resources and reduces crop production.
+
+To solve this problem, this project develops an intelligent crop monitoring system which is NextGenYield. It is based on FoMo4Wheat, a vision model trained on nearly 2.5 million wheat canopy pictures. This system identifies 6 important wheat growth stages using a classification layer. The photos are smartphone photos. It also tracks the growth of the crop and gives farmers simple recommendations for fertilizing and usage of water percentage at the right time with preventing crop hazards.
+
+ 
+\section{Purpose of this Document}
+
+The main purpose of this document is to give the details of the development and evaluation of our Final year project, NextGenYield. The document mentions the technological methodology,data pipeline and field validation needed to turn advanced computer vision models into a reliable smartphone app for farmers. The document answers the question: " Can a wheat vision model which is trained using research images , accurately detect the wheat growth stages from ordinary photos taken in real farm condition ? "
+Also it takes into consideration whether adding a simple classification layer can improve the model and allow it to be more useful in terms of giving useful recommendations to farmers. This report includes the completion of the system, its methods ,architecture, testing ,implementation ,limitations and testing with the possible improvement of the future work.
+
+ 
+\section{Intended Audience}
+The main audience for this report are the panel reviewing this FYP, agriculture experts interested in crop monitoring and tech developers working on mobile apps for farmers and researchers interested in using image based models to study the crop growth. 
+
+\section{Definitions, Acronyms and Abbreviations}
+
+\textbf{FYP}: Final Year Project  
+
+\textbf{AI}: Artificial Intelligence   
+
+\textbf{ViT}: Vision Transformer  
+
+\textbf{FoMo4Wheat}: Foundation Model for Wheat  
+
+\textbf{WGSP}: Wheat Growth Stage Prediction  
+
+\textbf{API}: Application Programming Interface  
+
+\textbf{REST}: Representational State Transfer  
+
+\textbf{UI}: User Interface  
+
+\textbf{NDVI}: Normalized Difference Vegetation Index
+
+\textbf{GIS}: Geographic Information System
+
+\textbf{GeoJSON}: Geographic JavaScript Object Notation
+
+\textbf{GPS}: Global Positioning System
+
+\textbf{CNN}: Convolutional Neural Network
+
+\textbf{LSTM}: Long Short-Term Memory
+
+\textbf{LLM}: Large Language Model
+
+\textbf{HUD}: Heads-Up Display
+
+\textbf{GPU}: Graphics Processing Unit
+
+\textbf{IOS}: iPhone Operating System
+
+\textbf{LTE}: Long Term Evolution
+
+\textbf{SDG}: Sustainable Development Goal
+
+ 
+
+ 
+\section{Conclusion}
+The first chapter introduces our project. It tells about NextGenYield that is an intelligent wheat monitoring app. The report also tells about the main purpose and concept of the project , its users and the definition and abbreviations of the important terms included in this report. The second chapter focuses more on the need of this kind of smart crop system, its goals and objectives of this project along with its scope and development goals. This also discusses the limitations of this project and business opportunities. The third chapter talks about the detailed analysis of the work and research related to this project. It provides a summary of its reviewed studies and a literature review table at the end. The fourth chapter tells us about the software requirements and it tells us about the features of the app , its functional and non functional requirements , its other attributes and the user interface also with the use cases and hardware requirements. It also shows the design of the database and the ER diagram , data dictionary and finally the risk analysis. Then the fifth chapter focuses on the system design and it presents both the high level and low level design of this project including its architecture and domain models. The sixth chapter tells about how the prototype is implemented. It tells about the detail of how the mobile app uses mobile's sensors to guide user , it tells about the services of the backend and about the classification head we trained on our foundation model. Finally the seventh chapter concludes the report and gives the summary of our work and tells about the future plans we have for the work we will do in FYP-II.
+
+
+ 
+\chapter{Project Vision}
+Traditional farmers check their crops by checking them manually and with fixed date schedules. But due to the recent inventions in AI and computer vision has provided us with new ways to make farming easy and smarter. Our project aims to use these technologies to make a smart and much more intelligent crop monitoring system.This system will provide us with a strong foundation which can later be used to support different crops and various useful decision making for farmers. The aim of this chapter is to address the agriculture problems. 
+\section{Problem Domain Overview}
+Wheat is the most needed and powerful crop in the world.it is a part of a major source of calories and protein for people all around the world. Therefore, wheat farming is very important for farming countries. During its growth it passes through several stages like stem elongation,booting and tillering. Each stage is in different needs of soil,water and nutrients. Changes in weather,seed and temperature affect the growth rate of wheat. And due to this farmers cannot rely on fixed dates to determine the stage of wheat. Therefore, regular monitoring is very important for the production of the yield crop. 
+\section{Problem Statement}
+Wheat yield improvement requires adequate provision of water, fertilizers and treatment required during specific biological stages of growth. Nevertheless, conventional methods involve visual inspection or fixed calendar days, which manage weather driven growth variations and often cause mistimed inputs, crop loss and resource waste. In addition, current solutions do not possess advanced visualization skills to monitor temporal changes and rarely provide reliable ,evidence based recommendations.   
+
+\section{Problem Elaboration}
+Smart crop monitoring only works in real fields if one big farming problem and a few technical ones are solved. The main problem is that farmers give water and fertilizers at the wrong time because they cannot detect the growth stage of the wheat. On the technical side, phone cameras struggle outdoors because sunlight changes through the day, pictures are taken at awkward angles and the soil in the background is cluttered, so older CNN models get confused. Stages that come one after another also look almost the same and separating them requires noticing more than 700 tiny details of plant form that standard vision models cannot catch. There is also very little labeled phone imagery from real local farms, so models have too few examples to train on. Lastly , the tools that already exist just look at one picture and they do not keep track of the growth of wheat over a time period. This means that those tools can not tell the farmers about when to water the crops , when to add fertilizer or when to protect the crops. 
+\section{Goals and Objectives}
+The NextGenYield project aims to create a mobile app that utilizes AI to assist wheat farmers in monitoring and tracking their crop yields. The system will deploy computer vision to identify and recognise the wheat growth stages through a photo-clicked with a smartphone and help the farmers to decide on the field actions.
+
+\begin{itemize}
+    \item Build a simple classification layer on top of the existing foundation model, which can identify six important wheat growth stages from the images of the crop.
+    \item Test and assess the model on realistic smartphone photographs and vegetable farm images from Pakistan to ensure performance of the system on farms.
+    \item Produce a temporal tracking system that records field observations on a timeline and illustrates how wheat technology changes across stages, which assists with wheat farming interventions.
+    \item Construct a farming rule system that functions in a fixed and rule-based manner in a deterministic manner and uses the detected growth stage to give timely advice about irrigation, fertilizer application and crop protection.
+    \item Create a simple to use mobile application that shows models confidence and gives reliable information to empower farmers to make better decisions for crop management.
+\end{itemize}
+ 
+\section{Project Scope}
+The scope of this project is a mobile application for wheat farmers,which monitors the growth stages of the crop and gives timely suggestions and decision support. 
+
+The application will allow farmers to:
+\begin{itemize}
+    \item Take wheat canopy images and upload to the app using ordinary camera of the smartphone
+    \item Classify the six important stages of wheat's growth which includes stages of (tillering, jointing, booting, anthesis, grain filling and maturity)
+    \item Visualise and track growth timelines for each field across the chronological observations.
+    \item Receive rule-based and deterministic suggestions for irrigation timing, fertilizer scheduling and hazard prevention.
+\end{itemize}
+ For the Ai inference pipeline Python and PyTorch will be used. A pretrained vision model will be used as a foundation and a special layer for classification will be trained on top of it. This will be combined with a mobile framework such as React Native or Flutter for the frontend. The application will use REST API to communicate with the backend. Agile development principles will be used while developing the project and management of the project will be done iteratively.
+ 
+ The project deliverables will include:
+
+\begin{itemize}
+    \item A functional mobile application and backend service for wheat growth-stage monitoring and farmer decision support
+    \item A trained and validated downstream classification pipeline evaluated on realistic field imagery
+    \item Comprehensive documentation of the design, implementation and experimental testing process
+\end{itemize}
+
+ The project does not include the following: 
+ 
+\begin{itemize}
+    \item Utilising of autonomous drone or automated robotic hardware
+    \item Estimating direct crop yield in absolute quantities (such as kilograms per hectare)
+    \item Using Large Language Models to suggest unverified chemical dosage
+    \item Use, deployment and maintenance of IoT sensors network.
+\end{itemize}
+
+\section{Sustainable Development Goal (SDG)}
+NextGenYield supports sustainable farming as it helps the farmers grow more crops and produce more food reliably. Ultimately, the project’s goal is to strengthen harvest resilience and promote food security by helping ensure access to healthy and fresh food. As shown in Figure~\ref{fig:sdg}, this represents our targeted sustainable development goal which is Zero Hunger.
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1in]{Figures/sdg2.jpg}
+{\caption {\label{fig:sdg}{\textbf{Sustainable Development Goal}}}}  
+\end{figure}
+
+\section{Constraints}
+The following are the main constraints of the system’s design and implementation:
+
+\begin{itemize}
+    \item The image will strictly limit the functional scope to wheat growth staging with timeline tracking and decision support. No physical drones / IoT hardware nor direct yield forecasting.
+    \item  Model adaptation and inference are limited to one of the local workstations of a member which has an Rtx 5070 Graphics card.
+    \item Each phase of development follows a timeline , testing and documentation must happen within 2 semesters (9-12 months). 
+    \item  In a group of three members, Engineering tasks, model experimentation and UI design are done in the project.
+    \item  Recommendations should be given based on deterministic agronomic rules that are verified and validated. They must not come from a text generation model. AI techniques such as LLM or numerical AI can give wrong recommendations.
+    \item  The app should be accessible and lightweight , intuitive and easily operable for farmers.
+\end{itemize}
+
+ 
+\section{Business Opportunity}
+The potential for the app to commercially become a standalone business in the precision agriculture sector is very high. The business model can adopt a freemium approach providing basic growth-stage tracking for free while monetizing individual farmers by charging them their subscription fee for premium features. The premium features will include advanced timeline tracking, risk alerts, customised irrigation and fertiliser schedules specific to each field of a farmer.
+NextGen Yield can also be licensed as an enterprise B2B software or an API which can be used by agriculture corporations, fertilizer companies and crop insurance firms. Through periodic visits and photographs, the organisation can monitor large areas of farmland that they have contracted. 
+
+ 
+\section{Stakeholders Description/ User Characteristics}
+The stakeholder that will use the system are the following:
+
+\begin{itemize}
+    \item The primary users of the system are small scale and large scale farmers designed to use photographs of the wheat canopy captured via smartphones to estimate the developmental stage and growth process of crops as well as receive recommendations regarding irrigation and fertilization.
+    \item  Landowners and farm managers of multiple agriculture plot who use the platform for remote monitoring of the growth process and farm activity to ensure high yields.
+    \item Agronomists (Agriculture Extension Officers) who provide agronomic consultations to farmers living in the countryside based on the unified information about crop developmental stage and predefined recommendation rules.
+    \item Agribusinesses and insurance providers such as seed producers, fertilizer suppliers, crop insurance providers who can use the information about crop development and the API of the platform to estimate the crop development stage.
+\end{itemize}
+
+ 
+\subsection{Stakeholders Summary}
+Achieving NextGenYield's desired outcomes requires collective effort from all stakeholders.The System Administrators are contributing through stabilizing the system with consistent operational health. The farmers and landowners are the end-users of the model and hence their contribution will be in the form of observing the effectiveness of the model in the fields and getting guidance from the model. The Landowners and Farm Managers will contribute through observing the development of crops and activities happening in various plots. The Agricultural Extension Officers will contribute through giving recommendations using the results generated by the model.
+
+ \subsection{Key High-Level Goals and Problems of Stakeholders}
+The key goal of NextGenYield is to remove subjective guesswork that come along while farming wheat through the use of accurate growth stage identification and timely agronomic guidance. The objective is to make the best of water and fertilizer usage, safeguard crops from seasonal risks and boost crop yield for farmers and landowners using an all-inclusive mobile platform.
+
+There are several barriers to surmount before achieving this goal. One will be the technological shift among small-scale farmers who farm according to either calendar or visual clues. Secondly, there is the issue of sporadic connectivity in the rural farmlands. Finally, stakeholder confidence in the vision model needs to be assured prior to applying any agricultural solution.
+
+ 
+\section{Conclusion}
+
+In conclusion, the principles and processes used in the development of the NextGenYield have been presented in this chapter. Due to the resolution of the problems that occur in the identification of the stage of growth of the wheat crops and the formation of a proper development framework, it can be argued that the proposed platform is able to incorporate the use of computer vision technology in agriculture and its decision making so that the SDG 2 (Zero Hunger) can be achieved.
+
+ 
+
+\chapter{Related Work}
+This chapter reviews related work that is already existing on crop monitoring, wheat growth stage detection and agricultural decision support systems that are related to NextGenYield. The literature is grouped into categories for example image-based wheat growth stage recognition, satellite and remote crop monitoring, image based plant disease detection, AI generated agronomic advice. By reviewing these systems we analysed their methods, capabilities and limitations, while also highlighting gaps that provide a foundation for developing NextGenYield as a practical smartphone-based crop monitoring and decision-support system. 
+\section{Definitions, Acronyms and Abbreviations}
+
+\textbf{GSP-AI:} Growth Stage Prediction Artificial Intelligence
+
+\textbf{DenseNet:} Densely Connected Convolutional Networks
+
+\textbf{ResNet:} Residual Neural Network
+
+\textbf{BiLSTM:} Bidirectional Long Short-Term Memory
+
+\textbf{MODIS:} Moderate Resolution Imaging Spectroradiometer
+
+\textbf{CABI:} Centre for Agriculture and Bioscience International
+
+\textbf{ICT:} Information and Communication Technologies
+
+ 
+\section{Detailed Literature Review} 
+In this section the works that are related to NextGenYield are discussed in detail. There are five categories of the related works. Each of the work is critically analysed and seen how it relates or connects to NextGenYield.The first four studies are of the category Image Based Wheat Growth Stage Detection. The studies in this category are closest to the core task of NextGenYield. They show that images can be used to detect growth stages of wheat but each of them depend on equipment, controlled conditions or sources of data that an ordinary farmer may not have access to.
+
+\subsection{Near-Surface Camera Phenology with Spatiotemporal Fusion}
+
+Cai et al. \cite{ref:Cai:2024} developed a system that detects wheat growth stages by using fixed cameras. The system was at Baima Experimental Station of Nanjing Agricultural University in China. For 107 days a camera which was placed three metres above the ground took images from 8am to 5pm ,during the 2022-2023 growing season. The images were labeled into eight stages of growth ,from emergence to maturity. The researchers used ResNet50 as their base model and tried three different methods for combining spatial and chronological information . The best model was the one which combined an LSTM with ResNet50 and it achieved an accuracy of 93.5\%. The study also found that results can be improved by taking higher resolution images, positioning the camera at about 40-60 degrees and fine tuning in two steps.
+
+\subsubsection{Critical Analysis}
+A good thing about this study is that it carefully analyses design factors and confusion matrices that tell which stages are hard. The sequential model was weakest at anthesis. The finding that camera angle affects accuracy is useful for setting standard methods to capture image. However there are some practical limitations. The data was collected in one location only and in one growing season , moreover a fixed camera at a set height was used. Moreover the model required a sequence of 30 images instead of using one image. Since the series of images came from the same plots (6 total)and then split randomly, so performance was not demonstrated on an unseen field. The large model size also may need to be reduced for realtime use.
+
+\subsubsection{Relationship to Proposed Work}
+NextGenYield handles the same task but it doesn't use installed cameras. Instead a farmer takes an image straight from his smartphone at irregular intervals, the classifier works on that single image and the chronological reasoning and decisions are made within the app later on without any use of a neural network. The camera viewing angle technique helps us give farmers a guideline in the app of how to capture the image for best results.
+
+\subsection{GSP-AI: Growth Stage Prediction from Drone Images and Climate Data}
+
+Shen et al. \cite{ref:Shen:2024} developed GSP-AI. It is a deep-learning platform that uses drone images and weather  data to classify important wheat growth stages and predict flowering time. To train the modal they also created the Wheat Growth Stage Prediction (WGSP) dataset, which contains 70,410 labelled images from different wheat varieties in China, the United Kingdom and the United States, along with related climate data. The study aims to help breeders and researchers in monitoring the growth stages of large numbers of varieties of wheat in different locations and different seasons.
+
+\subsubsection{Critical Analysis}
+The main strength of this study is the dataset, it is large,consists of images of multiple countries, is openly available and is labelled by growth stage. This makes it a useful dataset for future. Combining images with climate data is also a good way to improve flowering-time prediction. However from a farmer’s point of view there are some limitations. The system depends on drone flights and drone flights can be affected by rain\cite{ref:Shen:2024}.The model is designed for breeding research rather than helping farmers make decisions such as when to irrigate , fertilise etc. The paper also does not provide any system that advises the farmer.
+
+\subsubsection{Relationship to Proposed Work}
+WGSP provides the six-stage taxonomy and the dataset against which the NextGenYield classification head can be trained and/or evaluated. NextGenYield replaces drone imagery with smartphone photographs and for the classification step it does not require weather information. Moreover NextGenYield adds the missing layers absent in the study,which are a growth timeline and stage-specific advice.
+
+
+\subsection{PhenoNet: Lightweight Real-Time Wheat Phenophase Classification}
+
+Zhang et al. \cite{ref:Zhang:2024} proposed PhenoNet, it is a two stage lightweight framework of deep learning. It is made for an accurate and real-time classification of key wheat phenophases. The authors built a field image dataset, designed compact network modules, and used time-series information so they can separate neighbouring stages. They found that the model could be used across different years and achieved 98.1\% accuracy after a two-stage transfer-learning process. They also made a web application to make the model available to users.
+
+\subsubsection{Critical Analysis}
+PhenoNet pays attention to efficiency, which many studies ignore because they focus on accuracy, and for including ablation analysis, cross year testing and a web interface. Its weaknesses according to the published abstract and later citations of the work, are that it benefits from time series input collected by a fixed monitoring setup, and that moving to a new year requires an additional transfer learning stage. This suggests a model tuned to its original site and camera that needs adapting before use elsewhere. The work stops at phenophase classification and does not translate the result into actions for the grower.
+
+\subsubsection{Relationship to Proposed Work}
+PhenoNet showed that real-time classification of stages and delivery of the model on the web both are practical. NextGenYield takes a different route to adaptability, it uses a pretrained foundation model with a small linear head, so that new data can be absorbed without retraining a whole network, and it extends the functionalities by using the output and creating a timeline and it has a rule-based advisory which can guide the users.
+
+\subsection{DenseNet--BiLSTM Growth-Stage Determination from Image Sequences}
+
+Wang et al. \cite{ref:Wang:2025} studied wheat growth-stage recognition . They grew wheat in a controlled climate room. Four different varieties of wheat were photographed every week from eighth fixed camera angles.The temperature of the room was kept at 23 °C with light for 16 hours and dark for 8 hoursand 90\% humidity. The researchers removed the background using K-means colour clustering and used DenseNet201 model with a BiLSTM to identify the five growth stages: tillering, re-greening, jointing, booting and heading. The model achieved an accuracy of 98.43\% on 40 test sequences.They performed better than basic CNN and CNN--LSTM models.
+
+\subsubsection{Critical Analysis}
+The study shows that results can be improved in detecting the growth stages if we use a sequence of images instead of a single image. However, the dataset is small, 592 sequences and 3483 images. The data is also unbalanced, with only 72 images showing the booting stage and only 7 of these in the test set. Booting had the lowest precision at 85.71\% meaning the overall accuracy is a result of the outputs of the common stages. The authors also state that they faced problems in changing the lights, having parts of plants blocked and addressing real field conditions before the system can be used in actual fields.
+
+\subsubsection{Relationship to Proposed Work}
+This work is an example of why NextGenYield will report the metrics for each stage rather than one aggregate accuracy. It also highlights the gaps that NextGenYield aims to address by working with real field images that contain soil, shadows, nearby plants,weeds and an image that is not taken at a fixed angle or with a professional camera. 
+
+
+The next two studies are on Satellite and Remote Sensing Crop Monitoring.Satellite monitoring is vastly used on a large scale instead of ground level imaging. Both studies mentioned below carried out in Punjab, Pakistan therefore they have great relevance for the NextGenYield's target audience 
+
+\subsection{Field Validation of NDVI for Crop Phenological Signatures in Sargodha}
+
+In the study conducted by Bhatti et al. \cite{ref:Bhatti:2024} , the author observed the relation between satellite sensing and camera sensing for phenological monitoring of crop vegetation. The field camera images were acquired three times a day over three successive growing seasons in four 30 m × 30 m experimental plots located in a research farm of the district Sargodha, Punjab. Satellite Sentinel-2 NDVI data were collected through Google Earth Engine after removal of data influenced by cloud cover. Interpolation was done for the missing satellite data. Smoothing technique was employed using the Savitzky-Golay filter. The Random Forest classifier was used for mapping the distribution of wheat vegetation in the district. The accuracy of the proposed classifier was approximately 97\%. Wheat showed the highest correlation between NDVI values obtained from satellite and camera images of all the crops.
+
+\subsubsection{Critical Analysis}
+The results of this research make an interesting case study in the area of satellite monitoring in Pakistan in comparison with the time series of images obtained with ground cameras and the methods of solving the missing data problem. However, the results of the study also raised some issues related to satellite observation. The existence of the fog and clouds made it impossible to observe a great number of images through the satellite in the case of the first field, only 19 image pairs were correlated with the period of growing crops. Also, NDVI received from satellite observations was considerably lower than the one obtained through ground cameras, especially during the flowering period, when the correlation coefficient was rather low (R²=0.65) and there were only 9 observations.In turn, the ground cameras also had some technological issues because of the long periods of fog, it became impossible to obtain enough solar power in order to take images. Moreover, as the authors note, the processing time of obtaining one image reached 7 hours. Also, it should be noted that the results of the authors' research were aimed at analyzing the greenness trends and mapping of vegetation but not its growing 
+
+\subsubsection{Relationship to Proposed Work}
+The research highlights the fact that the use of satellites in identifying the stages of growth of wheat in the farmers in Punjab may be influenced by several issues such as foggy weather during winter and small-sized agricultural fields. Moreover, NextGenYield uses a different approach in its study because it is possible for the farmers to take pictures any time they choose to identify the growth stages of their crops without the need for relying on satellite images due to the clouds. 
+
+
+\subsection{Wheat Yield Forecasting for Punjab from MODIS and Landsat}
+
+Dempewolf et al. \cite{ref:Dempewolf:2014} developed a method to estimate wheat yield and area for Punjab Province approximately six weeks before harvest, using freely available Landsat and MODIS imagery. Wheat yield was derived by regressing reported yield values against time series of four peak-season MODIS vegetation indices, and wheat area was tested with a regression-tree approach on the same data. The motivation was that provincial reporting by manual field surveys is slow.
+
+\subsubsection{Critical Analysis}
+The strengths are the real policy need it addresses, the use of free data, and the early timing of the forecast. The authors, however, found that the 250 m MODIS data did not give sufficient spatial resolution: the forecasts of wheat area and production deviated slightly more from reported values than simply using the previous year's figure or a three- or six-year moving average. The product is also provincial in scale and depends on historical official statistics, so it says nothing about the stage of one farmer's field or what that farmer should do next.
+
+\subsubsection{Relationship to Proposed Work}
+This work defines the scale that NextGenYield deliberately avoids. Province-level forecasts serve planners, whereas the proposed system serves a single farmer and a single field. It also supports the project's scope decision not to attempt yield prediction in kilograms per hectare.
+
+
+The next four studies are on the category Image Bases Disease Detection and Diagnosis. Disease identification is one of the most earliest and most common applications of image acquisition via smartphones in agricultural practices. Although these systems aim at a completely different task from NextGenYield, as  they focus on disease diagnosis rather than the growth stage determination, they possess certain advantages and disadvantages when it comes to agricultural practices.
+\subsection{Deep Learning for Image-Based Plant Disease Detection (PlantVillage)}
+
+The paper \cite{ref:Mohanty:2016} provides information about the deep CNN that has been developed using the PlantVillage dataset which includes 54,306 images of healthy and sick plants of 14 various species and 26 diseases. The accuracy of the most efficient model on the test dataset is 99.35\%, as a result of controlled image acquisition. This way, the technical feasibility of the usage of mobile devices in diagnosing plant diseases is confirmed. However, testing the same model with Internet images, not included in the training dataset, shows only 31.4\% accuracy.
+
+\subsubsection{Critical Analysis}
+The experiment appeared to be extremely efficient and the availability of the PlantVillage dataset was one of the reasons which forced the scientists to conduct the research on disease detection using images. Nevertheless, there appeared to be one of the main disadvantages which was revealed by the scientists. Specifically, the images which were made under the control conditions with a simple background do not reflect the complexity of the agricultural environment. Moreover, the dataset includes only separate leaves of plants and one leaf per image is a usual case, while the farmer will make images of the whole canopy of plants. Thus, it can be easily stated that the accuracy of the test is 99.35\%, which proves that the algorithm is ready to be used.
+
+\subsubsection{Relationship to Proposed Work}
+This study will serve as a reliable foundation for the type of evaluation to be used in the NextGenYield project. Evaluation will not only be based on benchmark data but also on pictures obtained from smartphone photos in the field in Pakistan. In addition, in the case where the confidence level of the model reduces to an unacceptable level, no predictions will be made by the app.
+
+\subsection{Plantix: A Mobile Crop Doctor Evaluated by CABI}
+Plantix is one of the most common mobile applications available in the market from the company PEAT GmbH in Germany \cite{ref:CABI:2020}, which enables the identification of diseases, pests and nutrition deficiency through images of plants. During a study conducted by CABI, utilizing the PlantwisePlus program to evaluate the effectiveness of the application, about 900 images were utilized. The results revealed that in over 50 percent of the cases, Plantix provided an accurate diagnosis, while nearly 20 percent of the problems could not be identified. For example, certain diseases such as foot and collar rot disease of groundnuts have remained difficult to diagnose using images.
+
+Thus, the collaboration between CABI, Plantix, research institute and the concerned government department to organize a workshop in Tamil Nadu. Following this collaboration recommendations provided by Plantix regarding 19 diseases have been improved. This has increased accuracy and seven more diseases have been added to the already over 400 diseases that Plantix can diagnose.
+
+\subsubsection{Critical Analysis}
+Plantix is a good example of the potential of image analysis in agriculture, considering the wide range of crops analyzed by the program as well and the collaboration with agriculture specialists to improve the precision of the diagnosis. However, the review highlights several significant disadvantages and limitations. First, the accuracy of the diagnosis was relatively low and many cases could not be analyzed or identified. Moreover, the inability to detect certain issues within agriculture problems using images alone limits the effectiveness of image-analysis technology. In addition , the app focuses only on problems which can be seen on the crop , for example diseases, pests and deficiency of nutrients , but it does not monitor their development. 
+
+\subsubsection{Relationship to Proposed Work}
+In contrast to Plantix, where emphasis is on solving the issue posed by the disease facing the crop, NextGenYield seeks to ascertain the growth stage of the crop and what needs to be done at the specific growth stage. Disease detection is not part of the scope of the classifier because of this fact. One of the lessons learned from CABI is that domain expert validation of agronomics is a principle adopted in NextGenYield. 
+
+
+\subsection{Evaluating Plant Disease Detection Mobile Applications}
+
+Siddiqua et al. \cite{ref:Siddiqua:2022} searched the Google Play, Apple App Store and Microsoft stores for apps that detect diseases in plants,they selected 17 for review, and rated them on a rating scale using three raters. They also analysed comments that users had left so that they can understand what farmers and gardeners expect from an app. Most apps scored well on aesthetics, usability and performance but their score for AI-based functionality was bad, and most could not serve as a complete solution for detection, diagnosis and treatment. The authors proposed a set of design considerations for future apps.
+
+\subsubsection{Critical Analysis}
+The study is useful because it combines ratings of experts with the feedback of users and it highlights the lack of reliable, research-based apps. Nonetheless,the study did not evaluate the accuracy of the apps in detecting diseases.Moreover the research only reflected the apps that were available at that time. The research concentrated on the features that those apps provided but it should have focused on the accuracy and consistency of their agricultural advice. Furthermore, it only covered disease detection and did not consider crop growth-stage tracking.
+
+\subsubsection{Relationship to Proposed Work}
+The study highlights the need for apps that are both easy to use and provide reliable AI results. Its recommendations on usability and research based advice are relevant to NextGenYield, which aims to offer a simple interface, show the confidence of classifiers, and provide agricultural advice based on clear and established guidelines.
+
+
+\subsection{CerealConv: Classification of Wheat Diseases with Field and Glasshouse Images}
+
+Long et al. \cite{ref:Long:2023} developed a dataset containing images of wheat plants, fields and glasshouses collected under real growing conditions. Five classes that are healthy plant models, four leaf diseases, namely yellow rust , brown rust, powdery mildew and Septoria leaf blotch were covered in this dataset. cerealConv was the name of their model and it achieved accuracy of 97.05\%. It was tested on a selected group of images and there it performed 2\% better than the highest scoring group of trained plant diseases. They also used image masks to see whether the model was focused on the diseased tissue 
+
+\subsubsection{Critical Analysis}
+In this study the images that are used are collected in realistic growing environments and not leaves photographed against plain backgrounds. Also the researchers compared the models results with the human experts and checked which parts of the image were influenced in predictions. Majorly the study covered only four diseases and was focused on identifying whether the disease was present or not. This was taken as a measurement for a possible direction for future research. One more limitation is that the data was collected under different conditions and many images of powdery mildew came from the glasshouse, and the other images were collected during field trials. This means that the differences in growing environments may have influenced the model's results. The main focus of the study was disease classification and did not provide farmers with the recommendations for managing their crops.
+
+\subsubsection{Relationship to Proposed Work}
+This project does not cover the disease classification because it falls outside its scope. But this research is useful because it can demonstrate that the deep learning models can be used to identify patterns in wheat images that were collected under real growing conditions. Disease monitoring in NextGenYield is limited to reminders provided by the rule-based guidance system at relevant growth stages. For example, the application may remind farmers to check for rust during the jointing and booting stages.
+
+The next 4 studies are of the category AI Generated Agronomic Advice.Large language models can respond to farmers’ questions in natural language. Various initiatives have tested if you can trust the answers. Researchers have repeatedly found that normal text is acceptable, but that errors occur in numbers and timings, which are precisely what farmers act on.
+
+\subsection{Evaluating ChatGPT Responses to Rice Farmers' Questions in Nigeria}
+
+Ibrahim, Senthilkumar and Saito \cite{ref:Ibrahim:2024} locals in Kano State, Nigeria posed 32 questions to farmers on irrigated lowland rice. Six agricultural extension agents answered the same questions as ChatGPT and four evaluators scored all answers for quality and local relevance. In general, the responses of the chatbot were rated significantly better than those provided by the agents and 78\% of the time. Evaluators preferred the chatbot in their comparisons. Nonetheless, the chatbot received lower marks compared to the agents for its advice on planting time and seed rate.
+
+\subsubsection{Critical Analysis}
+This study is designed well. It used real questions from farmers and compared the chatbot directly with practising extension agents and independent local evaluators judged the answers.The result is informative because it combines different type of information.the chat bot gave good general explanations and but could not go further and this is an important issue because it depends on the exact numbers whether the crops are being helped or are being harmed , by how much input is given and when
+
+The study also has limits. It used only 32 questions and 6 extension agents. It covered a single crop in a single region. And it tested a general-purpose model that had no local knowledge base behind it. The researchers conclude that farmers cannot rely on AI assistants directly unless site-specific input rates and timing are built into them.
+
+\subsubsection{Relationship to Proposed Work}
+The information shown to farmers will be written in clear and simple wording for them to understand but the amount of fertilizer , time of application and recommendations will be checked by experts. and these rules are based on the growth of wheat. This is the most important part of NextGenYield. This system will not use just ai generated answers to decide the amount of timing and inputs.
+
+
+\subsection{Evaluating Conversational AI for Agricultural Advisory}
+
+A Digital Green preprint \cite{ref:DigitalGreen:2026}  studies conversational AI for guidance in farming. It say that large language models often give unsupported recommendations, generic advice with little actionable detail, and communication styles that do not suit smallholder farmers. The authors present a framework for evaluation , DG-EVAL. It is used for checking factual quality, and shows that a fine tuned smaller model can match or exceed the factual quality of frontier models at a fraction of the cost. They also shared a list of prompts, which others can use to develop their systems as well as test similar systems.
+
+\subsubsection{Critical Analysis}
+The paper talks about an important problem, that there is lack of methods to evaluate the answers that the Ai gives, so there is no way to test the accuracy. Its low cost model could be useful for organizations helping small-scale farmers. However it still gives advice in text so its factual quality is not based on a rule based system instead it is based on probabilities. So a dosage or a banned-pesticide error remains possible. The paper mentions that to give good advice we should intersect different kind of information such as crop variety, growth stage , soil and climate. The findings of the paper still need to be tested over a long period of time.
+
+\subsubsection{Relationship to Proposed Work}
+The work confirms that there is a risk of hallucinations when we work with generative AI models . This motivated the rule based engine in NextGenYield. It also identifies that growth stage is one of the key context variables for a model to give advice. Growth of wheat is precisely what our proposed system measures from an image instead of users having to manually enter it.
+
+\subsection{AgriRegion: Region-Aware Retrieval for Agricultural Advice}
+
+Fanuel et al. \cite{ref:Fanuel:2025} introduced AgriRegion, it is a system which combines information with language models to give suitable agriculture advice for a specific location. Its main purpose is to prevent giving such advice in which work in one region causes problems in another due to the difference in soil and weather. According to the user's region, the system uses information from verified local agriculture documents and filters. The researchers also developed a test database containing 160 questions from 12 areas of agriculture. This result showed that agriregion reduced incorrect answers by 10--20\% compared with leading language model systems and also received higher trust scores.
+
+\subsubsection{Critical Analysis}
+The main strength of this project was that it uses trusted agriculture docs and takes in consideration the user's location before providing advice. This helps in reducing the risk of giving wrong advice. But the reduction in hallucinations does not mean that the error rate is zero. The evaluation data set is also very small, only containing 160 questions. and moreover it works with text based questions and not with the crop images to examine their actual conditions. Its performance also depends on the data in the documents and the other limitation is that it is available as preprint.
+
+\subsubsection{Relationship to Proposed Work}
+AgriRegion is closely related to NextGenYield because both projects aim to use locally verified information.However NextGenYield uses a different approach when it aims to reduce the risk of incorrect recommendations. Instead of using a language model to give advice , it uses verified rules and gives guidance based on those rules.This means that the model will always return the same guidance if the same input situation is given to it.
+
+\subsection{FoMo4Wheat: A Crop Vision Foundation Model}
+
+Han et al. \cite{ref:Han:2025} introduced FoMo4Wheat , it is a group of computer vision models that are trained to understand wheat images.The images are a large data set containing 2.5 million wheat images which are collected from 30 locations in 10 countries. The models are trained using ImAg4Wheat.it contains over 500 different environmental conditions and more than 2,000 wheat varieties. FoMo4Wheat contains 1.1 billion, 300 million and 80 million parameters and are available in three sizes. The backbone can be left fixed whereas only a small classification layer is trained for any specific task.Due to this approach, better results were seen than the DINOv-2 based models. the researchers used 3,353 wheat images for the growth stage classification. and out of these images 671 images were used to train the model and 2,682 were used for testing the model. The results achieved from this were very strong compared to other approaches.
+
+\subsubsection{Critical Analysis}
+The model’s strengths are crop-specific pre-training, label efficiency and the fact that the weights are made publicly available. The authors appear to recognize or confer limits within the paper. The Base model is said to be heavy even for edge devices. The majority of the pretraining images are sourced from private datasets and were captured via ground phenotyping platforms at sub-millimetre ground resolution, which differs significantly from a handheld phone photograph. The model is wheat-only apart from limited rice and weed tests, it is an encoder rather than a ready classifier and its advantage over the DINOv2 baseline on the growth-stage task is modest (about one point of balanced accuracy for the Base size at full training data).
+
+\subsubsection{Relationship to Proposed Work}
+FoMo4Wheat is the backbone of NextGenYield and not a competitor. The suggested approach maintains a frozen state, adds a six-class linear head and offers everything the base model lacks. This includes mobile image intake, a server-side inference service that avoids the edge-device burden, uncertainty management, the development timeline and the rule-based advisory. The planned tests on smartphone and Pakistani field images are due to the domain gap noted above.
+
+
+The last two studies are of the category Farmer Adoption of Digital Advisory Services in Punjab.A system that is based on a mobile application is only useful if the intended users are able to and will use it. Two surveys of Punjab farmers explain the conditions that NextGenYield has to work within.
+
+\subsection{Farmers' Use of Mobile Phones for Agricultural Information (Muzaffargarh)}
+
+Khan et al. \cite{ref:Khan:2019}  surveyed 180 farmers in two tehsils of Muzaffargarh district, Punjab. They studied how the farmers used mobile phones to access agricultural information. 91.2\% of farmers reported that they own a mobile phone and 87.2\% told that they get agricultural information and guidance from private sector advisory staff. Farmers mostly accessed market information more than other types of information. The main benefits were easy access to updated information and better communication with other people in the agricultural sector. However, the main challenges were that farmers have limited mobile phone skills and they lack awareness about where to find useful information.
+
+\subsubsection{Critical Analysis}
+The study gives us local evidence that almost every farmer among the sampled uses a smartphone, hence the argument that farmers do not have access to a smartphone is false. The limits of study are that study was done in a single district, the sample was of 180 farmers, answers were self reported and analysis is descriptive. The study examines use of phones in general instead of specific apps or AI tools, and the information they were trying to gather was mainly about markets and not about crop stage guidance.
+
+\subsubsection{Relationship to Proposed Work}
+These findings support that NextGenYield is being developed as a mobile app, but they also show that owning a smartphone does not mean farmers know how to use it easily. Therefore, the app uses simple language, illustrations alongside crop growth stage names, and a few clear steps. It also uses confidence labels that farmers can understand without technical knowledge.
+
+\subsection{Factors Influencing ICT Use Among Farmers in Rural Punjab}
+
+Luqman et al. \cite{ref:Luqman:2019} interviewed 150 farmers from the Northern, Central, and Southern regions of Punjab so that they can study farmer’s use of ICT. They found that use of ICT was low among farmers. Younger farmers and those with larger farms and higher incomes used these technologies more. 47.3\% farmers used mobile phones to get agricultural information. The main problems were electricity problems, language difficulties, limited knowledge and skills, high costs, and poor availability of technology.
+
+\subsubsection{Critical Analysis}
+A strength of the study is that it covers three agricultural regions of Punjab and identifies the main barriers that the farmers face when they are using technology. These findings can help guide the design of our app. However, the study has a small sample, and was conducted in 2019, before the recent growth of AI and AI-based apps. From the sample the finding that less than half of the farmers used mobile phones to get agricultural information also shows that not all farmers will easily use a mobile app.
+
+\subsubsection{Relationship to Proposed Work}
+In NextGenYield the following problems were considered that were also identified in the study, such as language, skills, electricity and cost. It uses a simple local-language interface and requires less typing to make it easier for farmers to use. The app is also lightweight, as the main AI model runs on a server so the processing load is reduced on the farmer's phone.
+
+\clearpage
+\section{Literature Review Summary Table}
+The related work summary table is shown in Table~\ref{tab:1}. This summary table lists the sixteen works discussed throughout this chapter.
+\begin{table}[!hbt]
+\centering
+\footnotesize
+\caption{\label{tab:1} \textbf{Related Work Review Summary Table}}
+
+\begin{tabular}{|p{2.4cm}|p{3.1cm}|p{3.8cm}|p{4.7cm}|}
+\hline
+    \textbf{Application} & \textbf{Features} & \textbf{Relevance} & \textbf{Limitations} \\
+\hline
+Cai et al. \cite{ref:Cai:2024} & Fusion of CNN and LSTM .Series of images from fixed camera and eight growth stages.& The resolution and camera angle affect the stage accuracy.& One station and one season. Needs series of images    and fixed cameras. Model is heavy.\\ \hline
+GSP-AI \cite{ref:Shen:2024} & Drone images and climate data. WGSP dataset of 70,410 images.& Source of the six-stage taxonomy and benchmark.& Needs drone flights and weather records. Requires good weather.\\ \hline
+PhenoNet \cite{ref:Zhang:2024} & Lightweight two-stage network. time-series input. Web application. & Shows real-time stage classification is practical. & Time-series dependent. extra transfer learning needed across years. no advice. \\ \hline
+Wang et al. \cite{ref:Wang:2025} & DenseNet model used. BiLSTM implemented on image sequences of growth-chamber.& Results for booting were weakest. Shows that per class results matter.& Study was in controlled environment. Five stages. only 72  images of booting stage.\\ \hline
+Bhatti et al. \cite{ref:Bhatti:2024} & Sentinel-2 NDVI compared with daily field cameras.& Is the  local evidence on the limits of satellite monitoring.& Fog and clouds. lower NDVI than cameras. no discrete growth stage labels.\\ \hline
+Dempewolf et al. \cite{ref:Dempewolf:2014} & MODIS/Landsat time series for Punjab wheat yield and area. & Province-scale approach that NextGenYield avoids. & 250~m data too coarse. no better than previous-year averages. \\ \hline
+Mohanty et al. \cite{ref:Mohanty:2016} & CNN on 54,306 PlantVillage leaf images.& Shows the lab to field accuracy gap.& 99.35\% on lab test set but 31.4\% on images from other sources\\ \hline
+Plantix \cite{ref:CABI:2020} & Photo diagnosis of about 400 pests, diseases and deficiencies. treatment tips& An app for farmers, but disease focused.& Has no growth stage tracking and a modest initial accuracy in independent test.\\ \hline
+Siddiqua et al. \cite{ref:Siddiqua:2022} & Rating of 17 plant-disease apps plus user comments. & Shows market gap and considerations of the design. & Accuracy not measured. one-time snapshot. disease focus only. \\ \hline
+Long et al. \cite{ref:Long:2023} & CerealConv on field and glasshouse wheat images. four diseases. & Shows deep networks can handle real wheat field images. & Few diseases. mixed settings. no severity or advice. \\ \hline
+Ibrahim et al. \cite{ref:Ibrahim:2024} & ChatGPT compared with extension agents on Nigerian rice questions & Shows the free advice of LLMs are weak.& Trained on small samples and weak at correct guidance.\\ \hline
+Digital Green \cite{ref:DigitalGreen:2026} & Fine-tuned LLM advisor with DG-EVAL evaluation framework. & Confirms hallucination risk. growth stage is key context. & Still generative. preprint. \\ \hline
+AgriRegion \cite{ref:Fanuel:2025} & Retrieval over verified local extension content. & Supports grounding advice in vetted sources. & Only 10--20\% fewer hallucinations. small benchmark. text only. \\ \hline
+FoMo4Wheat \cite{ref:Han:2025} & ViT foundation model pretrained on 2.5 million wheat images & Backbone used by NextGenYield & Heavy for edge devices. wheat-focused. not trained on phone photos.\\ \hline
+Khan et al. \cite{ref:Khan:2019} & Survey of 180 farmers in Muzaffargarh, Punjab. & Supports the idea of mobile app. & Limited mobile skills. single district. self-reported. \\ \hline
+Luqman et al. \cite{ref:Luqman:2019} & Survey of 150 farmers in three Punjab zones. & Design limitations: language, skills, power, cost. & Small and self-reported. dates from 2019. \\ \hline
+\end{tabular}
+\end{table}
+
+
+\section{Conclusion}
+This chapter shows how NextGenYield interacts and relates with the popular agriculture systems and research works. The piece of work provides the different methods and viewpoints that help us shape our project’s architecture. Our project uses the strengths of AI models to reduce the hardware and limitations of every sort. Its main purpose is to provide a complete mobile based system that helps the farms with the monitoring of their crops and make better decisions about them. 
+ 
+\chapter{Software Requirement Specifications}
+It is necessary to define specifications for hardware and software to evaluate if NextGenYield will work on client mobile devices and backend server environments. As the system connects resource constrained smart devices in rural, farm fields to high performance device for vision processing, different hardware needs are required. On the client side, mobile devices with integrated optical camera, accelerometer and gyroscope are required to implement real time camera guardrails to mitigate image quality. Server side, fine tuning and model inference with the FoMo4Wheat vision transformer requires high end dedicated GPU compute along with asynchronous API services and geospatial database management. Minimum hardware requirements and the software technology stack will be discussed in the following sections.
+
+\section{List of Features}
+NextGenYield is a mobile app which is made to support wheat farmers , landowners, agricultural experts and fertilizer manufacturers. Its main features are:
+
+\begin{enumerate}
+    \item For growth stage classification vision Transformer model FoMo4Wheat is utilised. The model was pre trained on 2.5 million images of wheat. A lightweight classification head is used to classify canopy images of wheat into six growth stages: Tillering, Jointing, Booting, Flowering, Grain Filling and Maturity. The extensive computational resources on the client side are not required.
+
+    \item For image quality and camera angle classification the system will use smartphone sensors like gyroscope and accelerometer to give guidance while the user is capturing an image. The sensors will help users maintain an ideal angle of 45 - 60 degree to capture wheat canopy images. The application may also perform basic image quality checks to minimise chances of an analysis being made on an unsuitable image.
+
+    \item For field boundary mapping users can choose a boundary on the map using a set of tools like a polygon ,circle,square and rectangle to define the boundaries of their field. The system saves the selected field area and this information is used in wheat monitoring ,decision making and calculating land area.
+
+    \item While setting up a crop cycle user can enter basic information like the variety of wheat used, fertilizer company , sowing data. This information can later be used throughout the growth monitoring process and may even be displayed to the other users of the app if the field generates a good yield.
+
+    \item This system will follow a ruled based engine in which it  removes the random hallucinations and inconsistency of Large Language Models as it uses a rule based knowledge base. Wheat growth stage transitions are mapped deterministically to verified agricul-tural rules. stage-specific irrigation schedules, fertilizer split dosages and disease warnings are examples of decisions generated by the system.
+
+    \item For the temporary crop growth time the system keeps an ongoing record of the crop's observation, this means the date , the stages of growth and the photos taken for each field. It helps us track the number of days after the seed has been planted and the stages of growth. These help us identify the problems like late germination or early drying.
+
+    \item For farm intelligence and regional map this will show the wheat fields in the surrounding areas and they can be shown in different colours depending upon their growth stage. This can help compare the crop development and manage the water usage and input factors and the spread of diseases.
+
+    \item For the comparison of farming techniques the farmers can see the examples of crops with high yields and they can see how others have managed their crops including the inputs like water dates, weed control and fertilizer timing. They can use these proven methods to plan their own crops.
+
+    \item For easy access, urdu and english support this system is designed in a way to make it easy for every farmer to interact with it having different levels of reading and digital skills. This project provides both urdu and english languages for communication. It also displays it in such a form that it is bright and simple and easy to read with adjustable text size and audio narration.
+\end{enumerate}
+
+ 
+
+
+
+\section{Functional Requirements}
+The functional requirements tell about the operations capabilities of the system that it must have for its primary actors: Farmers/Landowners, Agricultural Stakeholders and the underlying system. 
+
+\subsection{Functional Requirements for Farmers and Landowners}
+Farmers and landowners who use the application should be able to:
+
+\begin{enumerate}
+    \item For user registration and authentication, users can use their phone number or other credentials to create an account and then login.The system will store basic information of the user such as profile information,location and language preference.
+
+    \item For defining field boundaries on map the users can add and outline the field using interactive map boundary tools (Square, Rectangle, Polygon and Circle) over satellite or cadastral maps.
+
+    \item  View automatically calculated field area measurements in real time in both standard agricultural Acres and metric square meters.
+
+    \item For starting the crop cycle, activate an unstarted wheat growth cycle by entering the wheat seed variant, certified seed supplier, fertilizer manufacturing brand, sowing technique and sowing date.
+
+    \item Sensor-guided field photography to capture canopy imagery using a camera interface which has a  realtime angle reticle (45 - 60 degree compliance) and detects laplacian blur .
+
+    \item For wheat growth classification, get instant phenological identification of the growth stage of wheat from the six stages. Confidence scores of classification of each stage will be shown.
+
+    \item Get  recommendations for receiving deterministic guidance  which may guide about irrigation requirements, fertilizer split quantities per acre and other alerts.
+
+    \item  Use text-to-speech audio guidance in spoken Urdu so users can understand recommendations without having to read the text on the screen.
+
+    \item  View the history of the timeline of the field’s cycle of growth and observe the sequential observations that were logged from the start of cycle . So that user can evaluate crop performance.
+
+    \item For viewing nearby agricultural areas the system uses a GIS map to see the fields nearby and they are marked according to their growth stage and with the land and farming information.
+
+    \item For following successful crop plans, look at the successful farming methods and schedule and high yield examples and see the whole 140 day crop plan and apply those methods to farmers own field.
+\end{enumerate}
+
+ 
+
+\subsection{Functional Requirements for Agricultural Stakeholders}
+Agricultural extension officers, agronomic researchers and fertilizer technical representatives should be able to:
+
+\begin{enumerate}
+    \item  View a growth stage information across the different regions to view crop trends  in a summarized way so they can understand the crop conditions.
+
+    \item  Record and verify the final crop yield of any field. So the system can support accurate records and comparisons of yield.
+
+    \item To review and update  deterministic agronomic protocols, examine the  thresholds for the stage of crop growth, the fertilizers recommended and the use of fungicides in light of the new agricultural findings.
+
+    \item Examine how different fertilizers brands perform on soil such as Clay Loam and Sandy Loam to evaluate the effectiveness of the inputs used in agriculture.
+\end{enumerate}
+
+ 
+
+\subsection{Functional Requirements of the NextGenYield System}
+
+NextGenYield core system should include the following functionalities:
+
+\begin{enumerate}
+    \item For edge Sensor Fusion \& Image Quality Filtering, the app should provide functionality to detect any blur image or wrong orientation of image based on device orientation data and differences between images and frames and prevent such images from being uploaded to the server.
+    \item For vision Foundation Model Inference, the app should provide functionality to resize image of canopy of crops to 518 x 518 pixels and run it through the frozen ViT-B/14 transformer layers to extract visual features and then perform linear classification.
+    \item For geospatial coordinate processing, the application will provide the functionality of verification and processing of polygons representing the fields according to the RFC 7946 GeoJSON format and execution of geospatial queries for fields mapping and districting.
+    \item Based on the predictions of the crop growth stage, number of days since planting and the name of fertilizer manufacturer, make an agronomic recommendation by the deterministic rule engine without the use of the generative AI model.
+    \item For temporal state management, the application will help the users to track the state of the field whether it is active or fallow along with the state of the progress of crop growth stage and alarm when there is a significant milestone to be achieved.
+    \item For bilingual data serialization the application will provide multilingual text support and generate Urdu audio strings for low literacy accessibility.
+\end{enumerate}
+
+ 
+
+\section{Quality Attributes}
+To ensure the correct functioning of the system and its optimal performance
+within its particular agricultural rural setting, NextGenYield is designed
+around the following quality attributes:
+
+\begin{itemize}
+    \item In terms of usability and ergonomics, high contrast user interface,
+    icon-based intuitive navigation, localization in Urdu and one tap audio
+    narration are some of the features that enhance usability of the system
+    for illiterate farmers.
+
+    \item With regard to reliability, this application will work reliably
+    during important agricultural time periods, such as from November when
+    wheat is planted till April when the harvest occurs, and will offer
+    farmers up-to-date information on crop recommendation.
+
+    \item For performance and latency, on device validation takes place within
+    50~ms ensuring fast reaction to the quality of camera angle and picture,
+    whereas the entire process of vision-model processing takes approximately
+    1.8~seconds at normal 3G/4G connectivity.
+
+    \item Regarding agronomic safety and accuracy, due to the deterministic
+    rule-based advisory system, it becomes possible to offer farmers advice
+    to minimize risks of fertilizer and irrigation abuse.
+
+    \item In terms of modularity and reusability, decoupling of mobile
+    interface components, sensor-processing modules, backend services and GIS
+    components is achieved due to well-designed REST APIs.
+
+    \item As for scalability, stateless inference model services and optimized
+    spatial database indexing enable scalability of the system to thousands of
+    concurrent field queries.
+\end{itemize}
+
+ 
+
+
+\section{Non-Functional Requirements}
+The non-functional requirements specify the performance, reliability, usability and security standards of NextGenYield.
+
+\subsection{Performance}
+\begin{enumerate}
+    \item Testing of the camera angle and image blur detection should be performed in real time, with latency less than 50 milliseconds.
+    \item The vision services that will run on the backend server should be able to detect the growth phase of the crop in 2.0 seconds on an average 4G connection.
+    \item The REST API of the backend server should be able to process 500 simultaneous users requests while increasing the response time by 1.5 seconds.
+    \item The regional GIS map should display 100 plot polygons in 1.2 seconds on reaching rest.
+\end{enumerate}
+
+\subsection{Reliability and Availability}
+\begin{enumerate}
+    \item The system must maintain 99.5\% availability during the 140 days period of cultivation of wheat crops.
+    \item If there are any network outages data collected, boundary information and advisory card must be stored in the local memory of the mobile application.
+\end{enumerate}
+\subsection{Usability and Accessibility}
+
+\begin{enumerate}
+    \item The interfaces must support multilingual support .
+    \item The light interface must have color contrast greater than 4.5:1, as recommended by WCAG AA guidelines to ensure readability of text at outdoor field light intensity greater than 50,000 lux.
+    \item All key agronomy information must have an icon to play guidance audio in Urdu upon tapping the icon.
+    \item Font size scaling must be supported for 1.0x and 1.15x.
+\end{enumerate}
+
+\subsection{Reusability and Maintainability}
+
+\begin{enumerate}
+    \item There must be a modular structure in the software architecture with cross-platform toolset to separate the UI components, localization keys, state providers and mock fixtures.
+    \item The deterministic advice rules should be encoded in the configuration schemas, not in conditional code, allowing the modification of agronomic parameters without any recompilation of the mobile application.
+\end{enumerate}
+
+\subsection{Security and Data Integrity}
+\begin{enumerate}
+    \item Telemetry information, user credentials and geographic coordinates must all  encrypted using TLS 1.3 when they are sent over a public network. 
+    \item Field polygons must adhere to strict topological specifications to guarantee that they do not contain any self intersections or degenerate vertices.
+\end{enumerate}
+ 
+
+\section{Assumptions}
+\begin{itemize}
+    \item It is assumed that the user will have an android or ios mobile which has a working camera , an accelerometer , a gyroscope and a GPS.
+    \item The app will work in offline mode. The captured images can be uploaded in intervals using internet to make predictions. The predictions will be made using the model that runs on the server.
+    \item Currently NextGenYield works only for wheat , which is one of the most important crop in Pakistan.
+    \item Third party map services like OpenStreetMap will be used so that the maps can be shown to the user..
+
+\end{itemize}
+
+\section{Use Cases}
+The use cases involved in the workflow process within the NextGenYield system including nine elements such as user authentication, field boundaries, crop cycle configuration, AI canopy analysis, advice generation, crop lifecycle management, GIS field exploration and comparison with other peers (detailed in Table~\ref{tab:uc1}, Table~\ref{tab:uc2}, Table~\ref{tab:uc3}, Table~\ref{tab:uc4}, Table~\ref{tab:uc5}, Table~\ref{tab:uc6}, Table~\ref{tab:uc7}, Table~\ref{tab:uc8} and Table~\ref{tab:uc9}). 
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc1} \textbf{Use Case 1: User Registration}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{User Registration} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Smallholder Farmer, Landowner, Agricultural Stakeholder} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{A new user creates an account within the NextGenYield platform to manage farm parcels and receive personalized crop advisories.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The user has installed the NextGenYield application and possesses an active mobile telephone number.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A user profile is created in the database and authentication tokens are securely saved to the device.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{The user interface must support clear Urdu and English text prompts with large touch targets.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{User launches the application and selects `Create Account'.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{The system displays the registration form.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{User enters full name, mobile number, district and preferred language (Urdu or English).} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System records input data and validates telephone format.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{User creates a secure PIN or password.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System verifies PIN strength and confirms credentials match.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{User submits the registration form.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System creates user record, stores session tokens and navigates to the Farm Dashboard.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2-A} &
+  \multicolumn{2}{p{6.0cm}|}{User enters an already registered mobile number.} &
+  \multicolumn{1}{p{0.8cm}|}{3-A} &
+  \multicolumn{1}{p{5.6cm}|}{System responds with an error message: Phone number already registered and redirects to Login.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4-A} &
+  \multicolumn{2}{p{6.0cm}|}{User submits registration form without internet connectivity.} &
+  \multicolumn{1}{p{0.8cm}|}{5-A} &
+  \multicolumn{1}{p{5.6cm}|}{System responds with network failure alert and prompts user to retry.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc2} \textbf{Use Case 2: User Login}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{User Login} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Registered Farmer, Landowner, Stakeholder} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{An existing user authenticates into the NextGenYield mobile app to access their fields, timelines and advisories.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The user has an active account on the platform.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{User session is authenticated and the personalized farm overview dashboard is rendered.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Supports rapid biometric or PIN entry for smallholder accessibility.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{User opens the application.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{The system displays the login interface requesting mobile number and PIN.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{User enters registered mobile number and PIN.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System verifies credentials against the user database.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{User taps the `Sign In' button.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System initializes user session, loads farm parcel data and navigates to Dashboard.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2-A} &
+  \multicolumn{2}{p{6.0cm}|}{User enters invalid mobile number or PIN.} &
+  \multicolumn{1}{p{0.8cm}|}{3-A} &
+  \multicolumn{1}{p{5.6cm}|}{System responds with an error message: Incorrect credentials entered and prompts re-entry.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3-A} &
+  \multicolumn{2}{p{6.0cm}|}{Device is offline during login attempt.} &
+  \multicolumn{1}{p{0.8cm}|}{4-A} &
+  \multicolumn{1}{p{5.6cm}|}{System validates locally cached authentication token to grant offline access.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc3} \textbf{Use Case 3: Field Boundary Demarcation on Map (GeoJSON)}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Field Boundary Demarcation on Map (GeoJSON)} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer, Landowner} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The user demarcates the physical perimeter of their agricultural parcel directly on a satellite map using interactive geometric tools.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The user is logged in and navigates to the Map tab.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A new parcel record is saved with RFC 7946 GeoJSON boundary coordinates, calculated acreage and unstarted (fallow) cycle status.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{High-resolution satellite basemap overlay with real-time acreage calculation.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{User taps `Add Field' on the map interface.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System centers satellite view on user GPS coordinates and displays geometry selector tools.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{User selects boundary tool: Square, Rectangle, Multi-vertex Polygon, or Circle.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System activates the interactive drawing canvas on the satellite view.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{User taps or drags on satellite view to delineate parcel boundaries.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System computes and displays parcel acreage (Acres and $\text{m}^2$) in real time.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{User enters custom field label (e.g., `North Canal Plot') and confirms.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System serializes perimeter into RFC 7946 GeoJSON, saves parcel and updates map.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3-A} &
+  \multicolumn{2}{p{6.0cm}|}{User creates a self-intersecting polygon loop.} &
+  \multicolumn{1}{p{0.8cm}|}{4-A} &
+  \multicolumn{1}{p{5.6cm}|}{System flags topological error and prompts user to adjust boundary vertices.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4-A} &
+  \multicolumn{2}{p{6.0cm}|}{User cancels demarcation before confirming.} &
+  \multicolumn{1}{p{0.8cm}|}{5-A} &
+  \multicolumn{1}{p{5.6cm}|}{System discards temporary vertices and restores default map viewport.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc4} \textbf{Use Case 4: Starting a Crop Cycle (Seed Variety \& Fertilizer Configuration)}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Starting a Crop Cycle (Seed Variety \& Fertilizer Configuration)} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The farmer activates a fallow field parcel by initializing a new 140-day wheat cultivation cycle, configuring seed cultivar, supplier and fertilizer brand in a single entry step.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A field boundary exists with no active cycle (Status: `Cycle Not Started').} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A new `CropCycle' record is activated for the field, initial watering/nutrient schedules are generated and the cycle clock (DAS) commences.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Single-entry modal ensuring seed and fertilizer partner details are configured once per season.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Start Cycle' on a fallow field card.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System presents the Single-Entry Cycle Initialization Modal.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer selects sown Wheat Variety (e.g., Akbar-2019, Dilkash-20) and Certified Seed Source.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System records cultivar and certified seed parameters.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer selects Fertilizer Partner (FFC, Engro, Fatima) and enters Sowing Date.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System computes target 140-day phenological schedule.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Confirm \& Start Cycle'.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System updates field state to `Active Cycle', logs Day 0 and displays baseline advisory.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3-A} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer enters a future sowing date.} &
+  \multicolumn{1}{p{0.8cm}|}{4-A} &
+  \multicolumn{1}{p{5.6cm}|}{System responds with warning: Sowing date cannot be in the future and restricts confirmation.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4-A} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer exits modal without confirming.} &
+  \multicolumn{1}{p{0.8cm}|}{5-A} &
+  \multicolumn{1}{p{5.6cm}|}{System retains field in `Cycle Not Started' state with no cycle created.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc5} \textbf{Use Case 5: Crop Canopy Scanning with Quality \& Angle Guardrail}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Crop Canopy Scanning with Quality \& Angle Guardrail} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The farmer uses the smartphone camera to capture a standardized canopy photograph, guided by on-device angle reticles and blur detection filters.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{An active crop cycle is selected and camera/motion sensor permissions are granted.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A verified high-quality canopy image is transmitted to the FoMo4Wheat vision inference pipeline.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Real-time hardware gyroscope/accelerometer sensor fusion and Laplacian edge variance computation ($< 50\text{ ms}$).} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Scan Field Canopy' on the active field card.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System opens camera viewfinder with pitch angle reticle and blur indicator.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer tilts phone toward crop canopy at $45^\circ - 60^\circ$ downward angle.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System sensor listener confirms tilt is within optimal green compliance zone.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer holds camera steady over the wheat foliage.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System computes Laplacian variance ($> 90$) and unlocks shutter button.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps shutter button to capture canopy image.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System saves photograph locally and transmits it to vision inference backend.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2-A} &
+  \multicolumn{2}{p{6.0cm}|}{Camera is held flat or horizontally ($< 45^\circ$ or $> 60^\circ$).} &
+  \multicolumn{1}{p{0.8cm}|}{3-A} &
+  \multicolumn{1}{p{5.6cm}|}{System locks shutter and HUD reticle displays warning: `Tilt downward toward crop canopy'.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3-A} &
+  \multicolumn{2}{p{6.0cm}|}{Camera motion causes excessive image blur ($< 90$).} &
+  \multicolumn{1}{p{0.8cm}|}{4-A} &
+  \multicolumn{1}{p{5.6cm}|}{System locks shutter and displays alert: `Hold camera steady'.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc6} \textbf{Use Case 6: Retrieving Agronomic Advisory \& Growth Guidance}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Retrieving Agronomic Advisory \& Growth Guidance} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer, Landowner} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The system provides verified, deterministic agronomic guidance based on the classified growth stage, DAS and registered fertilizer partner.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{A canopy observation has been classified by the FoMo4Wheat model.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{Recommended irrigation actions, fertilizer split requirements and disease alerts are presented to the farmer.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Hallucination-free deterministic rule engine and one-tap spoken Urdu audio narration.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{Backend vision service classifies the canopy photograph.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System returns classified growth stage (e.g., Booting Stage, 94.2\% confidence).} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{Deterministic rule engine matches stage, DAS and fertilizer partner.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System compiles stage-specific watering advice, fertilizer dosage and rust warnings.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer views the Stage Advisory Card on screen.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System highlights critical pending milestones and nutrient recommendations.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Listen (Urdu Audio)' speaker button.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System synthesizes and plays audio narration in spoken Urdu.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4-A} &
+  \multicolumn{2}{p{6.0cm}|}{Device audio is muted or volume is set to zero.} &
+  \multicolumn{1}{p{0.8cm}|}{5-A} &
+  \multicolumn{1}{p{5.6cm}|}{System displays on-screen toast: `Please raise device volume to listen'.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2-A} &
+  \multicolumn{2}{p{6.0cm}|}{Network timeout occurs during AI classification.} &
+  \multicolumn{1}{p{0.8cm}|}{3-A} &
+  \multicolumn{1}{p{5.6cm}|}{System serves cached baseline advisory for current DAS with offline disclaimer.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc7} \textbf{Use Case 7: Field Observation Logging \& Timeline Tracking}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Field Observation Logging \& Timeline Tracking} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer, Agronomic Extension Worker} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The user inspects the historical progression of the crop cycle from sowing to harvest through a sequential visual timeline.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{An active crop cycle has at least one logged observation or milestone.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The user reviews developmental milestones, phenological velocity and photographic records across the 140-day lifecycle.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Chronological milestone ledger with photographic evidence and DAS progression.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{User navigates to Field Details and selects `Timeline' tab.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System retrieves chronological log of cycle events from database.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{User scrolls through 140-day growth milestone nodes.} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System renders DAS markers (Day 0 Sowing, Day 22 CRI, Day 50 Jointing, etc.).} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{User taps a specific historical observation node.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System expands node showing canopy photo, classified stage and historical advisory.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{User compares current growth stage against target schedule.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System displays phenological pacing indicator (Normal, Delayed, or Advanced).} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2-A} &
+  \multicolumn{2}{p{6.0cm}|}{No scans have been logged yet for active cycle.} &
+  \multicolumn{1}{p{0.8cm}|}{3-A} &
+  \multicolumn{1}{p{5.6cm}|}{System displays placeholder message prompting user to perform initial scan.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc8} \textbf{Use Case 8: Regional Farm Map Exploration \& Neighbor Plot Inspection}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Regional Farm Map Exploration \& Neighbor Plot Inspection} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer, Landowner, Agricultural Stakeholder} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The user navigates a regional GIS map displaying their own parcels alongside neighboring plots, color-coded by crop growth stage.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{GPS location services are active or a target district is selected.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{Regional spatial distribution of wheat phenology is visualized for community coordination and peer learning.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Stage-based polygon color coding and privacy-preserving public agronomic attributes.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{User taps the `Regional Map' tab.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System fetches spatial boundary polygons for the district and renders map tiles.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{User views parcels color-coded by stage (Green for Tillering, Blue for Booting, Amber for Maturity).} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System displays interactive plot overlays.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{User taps an adjacent neighboring parcel polygon.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System opens bottom inspection sheet showing wheat cultivar, current stage and field acreage.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{User inspects regional canal water turn schedule.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System displays community water management notices.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1-A} &
+  \multicolumn{2}{p{6.0cm}|}{Device lacks internet connectivity.} &
+  \multicolumn{1}{p{0.8cm}|}{2-A} &
+  \multicolumn{1}{p{5.6cm}|}{System renders locally cached vector plot outlines with offline status banner.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3-A} &
+  \multicolumn{2}{p{6.0cm}|}{User attempts to view private owner information.} &
+  \multicolumn{1}{p{0.8cm}|}{4-A} &
+  \multicolumn{1}{p{5.6cm}|}{System restricts personal data, displaying only anonymized agronomic attributes.} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{\label{tab:uc9} \textbf{Use Case 9: Adopting Proven Best-Practice Yield Schedule (Showcase)}}
+\begin{tabular}{|lllll|}
+\hline
+\multicolumn{2}{|l|}{\textbf{Name}} &
+  \multicolumn{3}{p{10.2cm}|}{Adopting Proven Best-Practice Yield Schedule (Showcase)} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Actors}} &
+  \multicolumn{3}{p{10.2cm}|}{Farmer} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Summary}} &
+  \multicolumn{3}{p{10.2cm}|}{The farmer explores verified high-yielding benchmark fields (54--62 Maunds/Acre) in the Proven Techniques Showcase and adopts their 140-day management schedule.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Pre-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The farmer has an active or planned wheat crop cycle.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{Post-Conditions}} &
+  \multicolumn{3}{p{10.2cm}|}{The benchmark field's watering and fertilizer schedule is replicated into the farmer's crop cycle calendar.} \\ \hline
+\multicolumn{2}{|l|}{\textbf{\begin{tabular}[c]{@{}l@{}}Special\\ Requirements\end{tabular}}} &
+  \multicolumn{3}{p{10.2cm}|}{Complete 140-day event schedule display (watering days, weed filtering, fertilizer splits) and one-tap adoption.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Basic Flow}} \\ \hline
+\multicolumn{3}{|c|}{\textbf{Actor Action}} &
+  \multicolumn{2}{c|}{\textbf{System Response}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{1} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Proven Techniques' tab.} &
+  \multicolumn{1}{p{0.8cm}|}{2} &
+  \multicolumn{1}{p{5.6cm}|}{System lists verified high-yield benchmark plots (54--62 Maunds/Acre).} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{2} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer selects benchmark plot (e.g., `Samundri Plot A: 62 Maunds/Acre, Dilkash-20').} &
+  \multicolumn{1}{p{0.8cm}|}{3} &
+  \multicolumn{1}{p{5.6cm}|}{System displays full 140-day management event log.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{3} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer reviews exact dates for watering, weed filtering and fertilizer splits.} &
+  \multicolumn{1}{p{0.8cm}|}{4} &
+  \multicolumn{1}{p{5.6cm}|}{System highlights yield gain factors.} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer taps `Adopt Schedule for My Field'.} &
+  \multicolumn{1}{p{0.8cm}|}{5} &
+  \multicolumn{1}{p{5.6cm}|}{System synchronizes schedule into farmer active cycle calendar and sets reminder alerts.} \\ \hline
+\multicolumn{5}{|c|}{\textbf{Alternative Flow}} \\ \hline
+\multicolumn{1}{|p{0.8cm}|}{4-A} &
+  \multicolumn{2}{p{6.0cm}|}{Farmer has no active or planned crop cycle.} &
+  \multicolumn{1}{p{0.8cm}|}{5-A} &
+  \multicolumn{1}{p{5.6cm}|}{System prompts user to first add a field boundary and start a crop cycle.} \\ \hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Hardware and Software Requirements}
+This section lists the hardware and software requirements of NextGenYield System.
+\subsection{Hardware Requirements}
+The hardware requirements are for two things, firstly the computer used for development and secondly for the devices that will run the application, the requirements are:
+
+    \begin{itemize}
+    \item Multicore processor (6+ cores).
+    \item 16 GB DDR4/DDR5 (Dual channel) RAM.
+    \item 50 GB free storage.
+    \item Dedicated Graphics card with atleast 8gb Vram (NVIDIA RTX 3060 or higher) for model fine tuning and PyTorch inference benchmarking.
+    \item For the operating system, Android 10.0+ (API level 29+) or iOS 15.0+ is required.
+    \item Regarding the camera, a minimum 8 megapixel camera sensor with autofocus is required.
+    \item In terms of integrated sensors, a 3-axis accelerometer and a 3-axis gyroscope are required.
+    \item For the minimum RAM, 2.0~GB is required.
+    \item As for the network, 3G, 4G LTE, or Wi-Fi is required.
+\end{itemize}
+
+
+\subsection{Software Requirements}
+The software requirements of NextGenYield are described in the following
+list:
+
+\begin{itemize}
+    \item For the mobile application framework, the application framework used
+    for mobile app development would include a recent cross-platform
+    development environment like React Native with expo, which supports
+    native device sensor functionalities such as the camera, accelerometer and
+    gyroscope, as well as state management and GIS-enabled maps.
+
+    \item Regarding programming languages, for developing the mobile app,
+    TypeScript would be considered. As far as backend API development
+    and computer vision processing and deterministic advisory, the programming
+    languages Python 3.10 and above versions will be used.
+
+    \item For AI and computer vision frameworks, the frameworks such as
+    PyTorch 2.x, Hugging Face Transformers, TorchVision, as well as the
+    pretrained FoMo4Wheat ViT-B/14 model would be chosen for image feature
+    extraction and crop growth stage analysis.
+
+    \item In terms of backend services, the backend is planned to be developed
+    using FastAPI with Uvicorn for running the backend.
+
+    \item As for the database management system, PostgreSQL 15 and newer
+    versions are going to be used as database engines, supplemented with
+    PostGIS extension for storage and processing of the spatial field geometry
+    and JSONB types for flexible storage of crop cycle and temporal data.
+
+    \item Regarding operating systems, the development will be performed under
+    Windows 11 and deployment will be on Android and iOS both.
+\end{itemize}
+\clearpage
+\section{Graphical User Interface}
+The GUI dumps of every screen, with regard to the users, are provided in this area (Figures~\ref{fig:home_dashboard}, \ref{fig:map_demarcation}, \ref{fig:crop_cycle}, \ref{fig:photography_guardrail}, \ref{fig:growth_stage}, \ref{fig:growth_timeline}, \ref{fig:farm_network}, \ref{fig:proven_yields} and \ref{fig:farmer_accessibility}).
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=3.6in]{Figures/home_dashboard.png}
+{\caption {\label{fig:home_dashboard}{\textbf{Farmer Home Dashboard and Cycle Management View}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/map_demarcation.png}
+{\caption {\label{fig:map_demarcation}{\textbf{Decoupled Interactive GeoJSON Map Demarcation Interface.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/crop_cycle.png}
+{\caption {\label{fig:crop_cycle}{\textbf{Single-Entry Crop Cycle Initialization Modal.}}}}
+
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/photography_guardrail.png}
+{\caption {\label{fig:photography_guardrail}{\textbf{Sensor-Guided Field Photography Guardrail.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/growth_stage.png}
+{\caption {\label{fig:growth_stage}{\textbf{Phenological AI Classification and Agronomic Advisory Card.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/growth_timeline.png}
+{\caption {\label{fig:growth_timeline}{\textbf{Temporal Crop Growth Timeline Screen.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/farm_network.png}
+{\caption {\label{fig:farm_network}{\textbf{Regional GIS Farm Network and Neighbor Plot Inspection.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/proven_yields.png}
+{\caption {\label{fig:proven_yields}{\textbf{Proven Techniques Showcase and 140-Day Event Log.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=4in]{Figures/farmer_accessibility.png}
+{\caption {\label{fig:farmer_accessibility}{\textbf{Farmer Accessibility and Spoken Audio Narration Settings.}}}}
+\end{figure}
+
+
+
+\clearpage
+\section{Database Design}
+The NextGenYield persistence layer is structured using a relational schema implemented in PostgreSQL with the PostGIS extension for geospatial polygon boundaries. The Entity-Relationship (ER) model and associated data dictionary tables are defined below.
+
+\subsection{ER Diagram}
+The database structure and entity relationships of NextGenYield are illustrated in Figure~\ref{fig:er_diagram}. This diagram illustrates the entity-relationship architecture of the NextGenYield database, displaying primary keys, foreign keys and weak entity dependencies across all system tables.
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\linewidth]{Figures/erd_new.png}
+{\caption {\label{fig:er_diagram}{\textbf{Entity-Relationship Diagram of the NextGenYield Database.}}}}
+\end{figure}
+
+\clearpage
+\subsection{Data Dictionary}
+The relational database architecture is defined by the following eight entity specifications (Table~\ref{tab:user_table}, Table~\ref{tab:field_table}, Table~\ref{tab:cropcycle_table}, Table~\ref{tab:observation_table}, Table~\ref{tab:fertilizer_table}, Table~\ref{tab:irrigation_table}, Table~\ref{tab:showcase_table} and Table~\ref{tab:advisory_table}):
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:user_table} \textbf{User Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+UserID & Integer Primary Key & No & - & - & Unique identifier for the user. \\ \hline
+FullName & Varchar(60) & No & - & - & Full legal or preferred name of the user. \\ \hline
+PhoneNumber & Varchar(15) & No & - & - & Primary contact number used for authentication. \\ \hline
+PasswordHash & Varchar(255) & No & - & - & Bcrypt hashed security password/PIN. \\ \hline
+Role & Varchar(20) & No & - & - & User role (`farmer', `landowner', `stakeholder'). \\ \hline
+District & Varchar(50) & No & - & - & Home administrative district (e.g., Faisalabad). \\ \hline
+LanguagePref & Varchar(5) & No & - & - & Language code (`ur' for Urdu, `en' for English). \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:field_table} \textbf{Field Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+FieldID & Integer Primary Key & No & - & - & Unique identifier for the land parcel. \\ \hline
+UserID & Integer Foreign Key & No & User & Many-to-One & User who owns or manages the field. \\ \hline
+FieldName & Varchar(50) & No & - & - & Friendly display name (e.g., North Canal Plot). \\ \hline
+ShapeType & Varchar(15) & No & - & - & Geometry type (`square', `rectangle', `polygon', `circle'). \\ \hline
+AreaAcres & Decimal(6,2) & No & - & - & Computed land area in standard acres. \\ \hline
+AreaSqm & Decimal(10,2) & No & - & - & Computed land area in square meters. \\ \hline
+BoundaryGeoJSON & JSONB & No & - & - & RFC 7946 GeoJSON polygon coordinates. \\ \hline
+CenterLatitude & Decimal(9,6) & No & - & - & Geographic centroid latitude coordinate. \\ \hline
+CenterLongitude & Decimal(9,6) & No & - & - & Geographic centroid longitude coordinate. \\ \hline
+CurrentCycleID & Integer Foreign Key & Yes & CropCycle & One-to-One & Active crop cycle pointer (null if fallow). \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:cropcycle_table} \textbf{CropCycle Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+CycleID & Integer Primary Key & No & - & - & Unique identifier for the 140-day crop cycle. \\ \hline
+FieldID & Integer Foreign Key & No & Field & Many-to-One & Associated land parcel. \\ \hline
+WheatVariety & Varchar(50) & No & - & - & Seed cultivar (Akbar-19, Dilkash-20, etc.). \\ \hline
+SeedCompany & Varchar(60) & No & - & - & Certified seed provider or research agency. \\ \hline
+FertilizerCompany & Varchar(60) & No & - & - & Partner manufacturer (FFC, Engro, Fatima). \\ \hline
+SowingMethod & Varchar(30) & No & - & - & Planting method (Drill, Broadcast, Bed). \\ \hline
+SowingDate & Date & No & - & - & Date seed was planted into moist soil. \\ \hline
+TargetHarvestDate & Date & No & - & - & Projected 140-day maturity harvest date. \\ \hline
+IsActive & Boolean & No & - & - & Flag indicating whether cycle is ongoing. \\ \hline
+CreatedAt & Timestamp & No & - & - & Record creation timestamp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:observation_table} \textbf{FieldObservation Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+ObservationID & Integer Primary Key & No & - & - & Unique identifier for visual scan record. \\ \hline
+CycleID & Integer Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+ImageURI & Varchar(255) & No & - & - & Persistent file storage path for canopy photo. \\ \hline
+StageIndex & Integer & No & - & - & Predicted stage index ($0$ to $5$). \\ \hline
+StageName & Varchar(30) & No & - & - & Predicted stage label (e.g., Booting Stage). \\ \hline
+Confidence & Decimal(5,2) & No & - & - & FoMo4Wheat classification confidence score (\%). \\ \hline
+PitchAngleDeg & Decimal(4,1) & No & - & - & Measured camera pitch tilt angle ($45^\circ - 60^\circ$). \\ \hline
+BlurScore & Decimal(6,2) & No & - & - & Laplacian edge variance sharpness metric. \\ \hline
+DAS & Integer & No & - & - & Days After Sowing at time of capture. \\ \hline
+CapturedAt & Timestamp & No & - & - & Exact timestamp of observation capture. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:fertilizer_table} \textbf{FertilizerSchedule Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+FertilizerID & Integer Primary Key & No & - & - & Unique identifier for fertilizer split entry. \\ \hline
+CycleID & Integer Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+SplitNumber & Integer & No & - & - & Sequential application split ($1$, $2$, or $3$). \\ \hline
+NutrientType & Varchar(40) & No & - & - & Type (e.g., Basal DAP, 1st Topdress Urea). \\ \hline
+TargetDAS & Integer & No & - & - & Recommended Days After Sowing for application. \\ \hline
+DosePerAcre & Varchar(50) & No & - & - & Recommended quantity (e.g., 1 Bag (50kg) / Acre). \\ \hline
+IsApplied & Boolean & No & - & - & Flag indicating completed application. \\ \hline
+AppliedAt & Timestamp & Yes & - & - & Timestamp of farmer confirmation. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:irrigation_table} \textbf{IrrigationSchedule Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+IrrigationID & Integer Primary Key & No & - & - & Unique identifier for irrigation event. \\ \hline
+CycleID & Integer Foreign Key & No & CropCycle & Many-to-One & Associated crop cycle. \\ \hline
+EventName & Varchar(40) & No & - & - & Irrigation milestone (e.g., Rauni Pre-sowing, 1st CRI Irrigation). \\ \hline
+WaterSource & Varchar(30) & No & - & - & Source (Canal Supply, Tube-well, Solar Pump). \\ \hline
+TargetDAS & Integer & No & - & - & Target Days After Sowing (e.g., Day 22 for CRI). \\ \hline
+IsCompleted & Boolean & No & - & - & Status indicating field watering completion. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:showcase_table} \textbf{PeerShowcaseField Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+ShowcaseID & Integer Primary Key & No & - & - & Unique identifier for verified benchmark plot. \\ \hline
+FieldCode & Varchar(20) & No & - & - & Identifier (e.g., PK-FSD-04 Benchmark). \\ \hline
+District & Varchar(50) & No & - & - & Agricultural tehsil/district (e.g., Samundri, Faisalabad). \\ \hline
+WheatVariety & Varchar(50) & No & - & - & Wheat cultivar sown. \\ \hline
+SeedCompany & Varchar(60) & No & - & - & Certified seed provider. \\ \hline
+FertilizerCompany & Varchar(60) & No & - & - & Fertilizer manufacturer utilized. \\ \hline
+AreaAcres & Decimal(6,2) & No & - & - & Total parcel acreage. \\ \hline
+ShapeType & Varchar(15) & No & - & - & Geometry type (`rectangle', `square', `polygon', `circle'). \\ \hline
+YieldMaundsPerAcre & Decimal(5,1) & No & - & - & Verified harvest yield (e.g., 62.0 Maunds/Acre). \\ \hline
+YieldKgSqm & Decimal(5,2) & No & - & - & Normalized harvest yield efficiency ($\text{kg}/\text{m}^2$). \\ \hline
+SowingDate & Date & No & - & - & Sowing date of the verified cycle. \\ \hline
+HarvestDate & Date & No & - & - & Harvesting date of the verified cycle. \\ \hline
+CycleEventLog & JSON & No & - & - & Full chronological 140-day log of watering, weed filtering and fertilizer splits. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\footnotesize
+\centering
+\caption{\label{tab:advisory_table} \textbf{AgronomicAdvisoryRule Table Data Dictionary}}
+\begin{tabular}{|l|l|c|l|l|p{4.5cm}|}
+\hline
+\textbf{Attribute} & \textbf{Data Type} & \textbf{Null} & \textbf{Relation} & \textbf{Rel Type} & \textbf{Description} \\ \hline
+RuleID & Integer Primary Key & No & - & - & Unique identifier for deterministic rule. \\ \hline
+StageIndex & Integer & No & - & - & Biological wheat growth stage index ($0$ to $5$). \\ \hline
+StageName & Varchar(30) & No & - & - & Growth stage identifier (Tillering, Booting, etc.). \\ \hline
+SummaryTextEn & Text & No & - & - & English agronomic stage summary. \\ \hline
+SummaryTextUr & Text & No & - & - & Urdu translated stage summary. \\ \hline
+IrrigationAdviceEn & Text & No & - & - & English stage-specific watering directive. \\ \hline
+IrrigationAdviceUr & Text & No & - & - & Urdu stage-specific watering directive. \\ \hline
+NutrientAdviceEn & Text & No & - & - & English fertilizer timing guidance. \\ \hline
+NutrientAdviceUr & Text & No & - & - & Urdu fertilizer timing guidance. \\ \hline
+RiskAlerts & JSON & No & - & - & Active disease/weather hazard warnings array. \\ \hline
+AudioScriptUr & Text & No & - & - & Phonetic Urdu audio synthesis script. \\ \hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Risk Analysis}
+Risk assessment is an important aspect of NextGenYield project. There are some risks which might arise in the course of the project implementation:
+
+\subsection{Technical Risks}
+Some of the risks related to the technical side include the diversity of smartphone cameras, the quality of images that could be captured by the camera, the calibration of images and the time required to process the images with the help of AI model. Moreover, methods that relate to model optimization and backend implementation to ensure scalability in the future will also be considered. 
+
+\subsection{Business and Operation Risks}
+The lack of adoption of technology among small-scale farming households as well as the dependence on commercial fertilizer suppliers can be regarded as operational risks faced by NextGenYield. The app should prove its effectiveness via actual improvements in terms of both management and productivity. It is important that the recommendations provided by the platform should be independent and objective. 
+
+\subsection{Risks of Data Quality}
+The accuracy of field imaging as well as classification of crop development stages using machine learning may be seen as technical risks. The risks related to low lighting, blurring and wrong angle of camera can influence the performance of prediction algorithms employed by the company. In order to address this risk, NextGenYield has created a validation process for image quality that includes checking the sharpness of images as well as taking the images at angles from 45° to 60°. Moreover, agronomic recommendations are given based on  rules that are researched from verified sources. 
+
+
+\subsection{User Adoption and Engagement Risk}
+It is important to help the farmers learn how to use the app easily.  NextGenYield is fully localized in Urdu for ease of use. This also offers clear sunlight visibility and spoken Urdu audio on a tap. The intuitive icon-driven interface enables an easy onboarding experience after minimum training, no technical expertise required. 
+
+\subsection{Environmental and Connectivity Risk}
+Connectivity problems due to 2G/3G cell connectivity in remote farm areas and weather conditions are environmental hazards. NextGenYield’s offline-first local cache makes observations and schedule data available for field note-taking when devices have no network connection. To avoid these circumstances, NextGenYield will rigorously test at different incident stages and implement a strong fallback mechanism to work offline while keeping the agronomic rule base flexible. It will be important to continuously monitor and periodically validate against on-ground field trials throughout the project.
+
+\section{Conclusion}
+This chapter tells us about the complete software requirement specifications for our project and gives the technical base for developing it. It explains the main functions that the farmer needs and the users as well as the performance, availability without the internet and its accessibility. It also describes the use cases, database structure and camera interface and ER diagram. It also explains the potential risk of the internet and farming. Overall it describes the clear plan about designing and developing the NextGenYield platform. 
+
+\chapter{High-Level and Low-Level Design}
+This chapter presents both the high-level and low-level architectural design of the NextGenYield platform. It begins by outlining the foundational design considerations, operational limitations and development methodologies governing the system. The high-level architecture describes the decomposition and communication pathways between the mobile client, sensor-guided scanning modules, backend vision services and spatial database. Additionally, the low-level design is delineated through comprehensive domain class models, sequence message flows for key operational scenarios and specific implementation policies ensuring offline resilience and farmer accessibility.
+
+ 
+\section{System Overview}
+NextGenYield simplifies complex strategies to promote farmer sustainability and unlock benefits that are far-reaching and useful for farmers. The combined usage of vision AI, mobile edge sensors, monitoring geographic mapping and verified agronomic rules helps in monitoring of the wheat crop growth stages and interventions during the complete season. 
+
+\subsection{Field Demarcation and Cycle Tracking}
+
+Farmers can mark their boundaries on an interactive satellite map of their land while the system automatically calculates the area of parcels. After marking the field boundaries ,farmers can initialize a 140-day crop cycle from a single setup step by recording the wheat seed variety; seed supplier; fertilizer brand; and sowing date.
+
+\subsection{Sensor-Guided Canopy Photography}
+
+To improve image quality, the mobile application will utilize the phone’s accelerometer and gyroscope to assist farmers to hold the camera at required angles (45° to 60°). The module also assesses sharpness in real-time and rejects images which are out of focus. 
+
+\subsection{AI Growth Stage Phenotyping}
+
+The FoMo4Wheat vision foundation model allows this module to classify crops into one of six biological growth stages that are the Tillering, Jointing, Booting, Anthesis, Grain Filling and Maturity stages. Every prediction identifies a growth stage for the farmer and gives a confidence score.  
+
+\subsection{Deterministic Agronomic Advisory}
+
+The system uses verified provincial agriculture guidelines instead of using unsupported generative models for the growth stage. It gives farmers advice about amounts of fertilizers,irrigation times and disease problems. It also saves the observations and provides the information in urdu for the farmers to understand.
+
+\subsection{Peer Benchmarking and Best-Practice Showcase}
+
+This system shows the best yield performance based on the production of their yield and the size of the field (kg/m² and Maunds/Acre). farmers can view the 140 day record of the inputs used in the successful nearby fields. They can also see the management schedules and apply the same method and schedule to their own fields to get the maximum yield.
+
+ 
+\section{Design Considerations}
+It is very important to understand the basic design requirements, technical assumptions and the limitations of our project before designing the architecture and data workflows. In developing a smart farming system for farmers in Pakistan, it comes with different set of challenges, then developing other normal software system. Some of the challenges are field conditions, power or unstable Internet connections, changing light conditions and different types of mobile phones and different levels of digital knowledge among the farmers.
+
+Keeping in view these challenges some important decision designs have been made. These include using a rule based system to provide authentic farming advice instead of depending on AI generated answers and keeping the mobile sensor check separate from the backend image processing system. Also giving the functionality of working without the Internet connection. Now the following sections explain the main assumptions and the hardware requirements, the limitations, goals and design guidelines and the method of development that was followed throughtout the project.
+
+\subsection{Assumptions and Dependencies}
+The design depends upon several assumptions and dependencies to make sure the
+design works properly:
+
+\begin{itemize}
+    \item Regarding related hardware and software, the system assumes that the
+    users have normal phones with autofocus rear camera of 8 MP and 3-axis
+    accelerometer and a GPS. For the backend, the users have enough GPU
+    computing such as NVIDIA GPU with CUDA support for running deep learning
+    models.
+
+    \item In terms of the operating system, this mobile application is
+    designed to work on Android version 10.0 and above and iOS version 15.0.
+    The backend services are made to run on Linux and Ubuntu 22.04 LTS.
+
+    \item As for end users, this system is made for farmers and land owners
+    and they may have different levels of knowledge towards the digital side
+    and education. So this application is icon-based and speaks Urdu to make
+    it easy for everyone to use it.
+
+    \item Regarding changes in functionality, this design also allows us to
+    change it in the future according to the needs. Possible improvements can
+    be done like adding support for the other crops like rice and cotton and
+    more detailed information about the crop and field conditions.
+\end{itemize}
+
+ 
+\subsection{General Constraints}
+There are some constraints that affect the design and implementation of
+NextGenYield:
+
+\begin{itemize}
+    \item In terms of hardware requirements, the devices our project targets
+    are majority budget smartphones with limited RAM around 2 to 3~GB. So the
+    client app is limited and has to minimise the usage of RAM in order to
+    avoid any issues.
+
+    \item Regarding the end-user environment, the inspections on field often
+    occur under intense direct sunlight. This requires the app to have
+    high-contrast light themes.
+
+    \item As for network communications, in rural agricultural areas mobile
+    data connectivity (3G/4G) is often weak. The system therefore has to have
+    offline support, providing local caching for observations etc.
+
+    \item With regard to security requirements, personal information like
+    name, phone number and exact addresses are not shown on the public map,
+    instead identifiers for the fields are used to protect the user's privacy.
+\end{itemize}
+
+\subsection{Goals and Guidelines}
+NextGenYield is designed with several main principles and priorities that are
+tailored specifically to the needs of farmers and landowners. In terms of reliable agricultural advice, farming advice should be reliable, otherwise there can be major loss that has to be endured just because of a single wrong advice. The system uses growth stages information with verified agricultural rules instead of using generative AI. This ensures the accuracy and consistency of the results.
+For efficient use of mobile resources, many farmers may use budget smartphones
+and have limited internet data. The phone checks if the image being taken is
+from the correct angle and if the image quality is good before it sends a
+photo to the server. This prevents bad images from being sent to the model for
+observation and reduces internet data usage. Regarding accessibility and familiarity, the app uses controls that are intuitive and familiar so that users can learn to use the app without a lot of training. The interface is designed so that it's clearly visible even in direct sunlight. Moreover, Urdu voice guidance is available that makes information easier to understand.
+ 
+\subsection{Development Methods}
+In our project we have used an agile approach where the system is developed in steps. Because our project uses the AI models along with the mobile phone cameras, we have divided our work in steps to test each feature on the way. These features include the camera angle checking, predicting crop growth stage and boundary mapping. After testing each feature with real farm photos and receiving feedback from our superiors we make the necessary changes and move to the next step. Due to this method, the development process becomes flexible and helps us improve the system based on testing and feedback. This also allow us to fix the problems in the early development phases. 
+\clearpage
+\section{System Architecture}
+The system architecture of NextGenYield is shown in Figure~\ref{fig:sys_arch}, which highlights how the components of the system will process data and interact with other components in the system. 
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=5.3in]{Figures/sys_arch.png}
+{\caption {\label{fig:sys_arch}{\textbf{Architecture Diagram of NextGenYield Platform.}}}}  
+\end{figure}
+
+In NextGenYield a multi layer system architecture is used that connects the mobile app with cloud based server. The system has its work divided between the smartphone app, database,processing components and the backend server. This structure helps the system in responding quickly. Moreover it allows to keep the data consistent and provide reliable support to users throughout the 140 day growth cycle of the wheat.
+
+\subsection{Primary System Roles}
+NextGenYield fulfils the following primary roles:
+
+\begin{itemize}
+	\item Regarding account and land management, the system registers users and keeps
+	their accounts protected. It allows them to mark the boundaries of their
+	fields and add it into the app using a satellite map within the app. The
+	system records the seed variety, sowing date and other information of each
+	field.
+	
+	\item In terms of canopy image analysis, the system analyzes photos of wheat
+	canopies using the FoMo4Wheat ViT and identifies the current
+	wheat's growth stage, for example tillering or booting.
+	
+	\item For rule-based field guidance, the system provides verified advice based on
+	set rules. Advice about irrigation, fertilizer use and disease risk based on
+	the age and growth stage is given by the system. The advice can also be played
+	on speaker in Urdu.
+	
+	\item As for regional field insights and benchmarking, the system allows users
+	to view fields in the region with the maximum yields. Users can view the
+	whole cycle of growth for that yield and can adopt the schedule of that field.
+\end{itemize}
+
+\subsection{Rationale}
+
+We selected this system structure so that we can overcome common problems faced in the rural farming areas. Since deep learning models are computationally heavy , crop photos are processed on the backend instead of the phone . While mobile does the minor computation for example it checks for camera angle and image quality before sending the image to the backend for observation. By keeping the farming rules away from the image classification model we made sure that the advice is based on verified agricultural information instead of a generic inaccurate message advice from an LLM. Lastly, local data storage allows the users to continue using the app on field when internet connection may not be available.
+
+ 
+\clearpage
+\subsection{Subsystem Architecture}
+The internal components and data flow between system modules are shown in Figure~\ref{fig:sub_sys}.
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=\linewidth]{Figures/subsys_arch.png}
+{\caption {\label{fig:sub_sys}{\textbf{NextGenYield Subsystem Architecture.}}}}  
+\end{figure}
+
+\subsubsection{Mobile Client Subsystem}
+The main client side application helps in data input, sensor-guided scanning
+and guidance delivery. It consists of the following internal components:
+
+\begin{itemize}
+    \item Multilingual support (Urdu/English Text and Audio Player)
+    \item Sensor Guardrail Engine (Pitch angle reticle \& Laplacian blur detection)
+    \item Offline Cache and Synchronization Manager
+    \item Interactive Map Demarcation Canvas
+\end{itemize}
+
+The interactions of the subsystem with the user and the backend are as follows:
+
+\begin{itemize}
+    \item The user selects the boundary of his field and inserts parameters
+    like wheat variant, sowing method etc.
+
+    \item The sensors check the phone's angle and sharpness of the image to
+    make sure the user takes the best image for the best results.
+
+    \item The cache manager saves observations of crop locally on the phone
+    when there is no internet connection and when internet connection is
+    available it synchronises them with the backend server.
+\end{itemize}
+
+\subsubsection{Vision AI Phenotyping Subsystem}
+This subsystem processes wheat images and uses the FoMo4Wheat model with an
+extra trained layer to classify the image into the current stage of wheat in
+the growth cycle. It consists of the following internal components:
+
+\begin{itemize}
+    \item Image Preprocessing and Normalization pipeline
+    \item FoMo4Wheat ViT Model
+    \item Model weights and files
+\end{itemize}
+
+The interactions of the subsystem with the frontend are as follows:
+
+\begin{itemize}
+    \item It receives wheat canopy images sent through the REST API by the
+    frontend.
+
+    \item It prepares the image and uses the FoMo4Wheat model on it to predict
+    the current stage of wheat.
+
+    \item It sends the outcome probabilities of each stage to the frontend.
+\end{itemize}
+ 
+\section{Architectural Strategies}
+In order to make the functional and non-functional requirements of NextGenYield, architecture strategies are the main design principles technologies used in it. Developing a smart farming system for the farmers, it requires carefully planning because the image recognition models can take a lot of processing power while the mobile phones use are of low cost and have limited memory and processing capabilities to handle this difficult challenge. The platform uses a hybrid edge-cloud architecture in place of a single large system. Some task performed directly onto the mobile phones which need quick responses. These task includes verifying the camera angle, detecting blurry images and checking movement sensor. This allow users to receive the feedback immediately and fix these issues. 
+
+Moreover, the system uses the VIT model for handling more complex tasks such as field mapping, calculating farming recommendations and processing images. These complex tasks uses asynchronous REST APIs to process request efficiently. In the following subsections main architecture strategies are explained such as: the mobile application and backend system, the use of mobile devices and sensors, and how tasks are divided between the mobile phone and the server.
+
+\subsection{Strategy 1: Cross-Platform Mobile and Backend Architecture}
+
+The mobile application is developed using a cross platform framework (React Native or Flutter). This allows the app to run on android and ios both. The backend uses Python FastAPI to handle the communication with the frontend. Security protocols are used to protect data when its transmitting. PostgreSQL is used for the database. If we talk about requirements ,an active internet connection through Wifi or mobile data is required for AI processing and map related services. The phone also needs some storage to save data on local storage when user has no access to internet connection.
+
+\subsection{Strategy 2: Mobile Device and Sensor Requirements}
+
+Users need a standard android or ios smartphone that has a camera, gps and gyroscope or accelerometer. These sensors are used to guide the user to take the image from the optimal downward degree of 45-60 degrees.The application uses sensor in realtime so the pitch angle can be checked and so that visual and vibration feedback can be given to the farmer to let him know when the phone is held at the correct angle. In addition , the camera autofocus and blur detection ensures that the images that user takes of the wheat canopies are sharp enough. The GPS sensor is used to detect the exact location of the field and add coordinates to every observation so the timeline tracking can be made accurate.
+
+\subsection{Strategy 3: On-Device AI and Drone-Based Monitoring}
+
+In the future we aim to use a lightweight model that can run directly on smartphones . This will allow the growth stage classification and the support system both to work entirely offline.The system also may extend support in future to monitor crops using different devices such as drones for large fields.
+These strategies define the main software, hardware and other requirements of NextGenYield. It also describes the improvements that are possible in future.
+
+ 
+\pagebreak
+\section{Domain Model/Class Diagram}
+The class diagram of the system is illustrated in Figure~\ref{fig:classdiagram}
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\linewidth]{Figures/Class_Diagram.png}
+{\caption {\label{fig:classdiagram}{\textbf{Class Diagram of the NextGenYield System.}}}}  
+\end{figure}
+
+
+\section{Sequence Diagrams}
+Sequence diagrams illustrate the temporal interactions between users, client application components, backend services and external interfaces across the primary operational scenarios of NextGenYield. The following diagrams delineate the dynamic message flow for each of the nine core use cases (Figures~\ref{fig:seq_user_registration}, \ref{fig:seq_user_login}, \ref{fig:seq_field_demarcation}, \ref{fig:seq_crop_cycle}, \ref{fig:seq_canopy_scanning}, \ref{fig:seq_agronomic_advisory}, \ref{fig:seq_timeline_tracking}, \ref{fig:seq_regional_map} and \ref{fig:seq_proven_yield}):
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase1Seq.png}
+{\caption {\label{fig:seq_user_registration}{\textbf{Sequence Diagram for User Registration.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase2Seq.png}
+{\caption {\label{fig:seq_user_login}{\textbf{Sequence Diagram for User Login.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase3Seq.png}
+{\caption {\label{fig:seq_field_demarcation}{\textbf{Sequence Diagram for Field Boundary Demarcation.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase4Seq.png}
+{\caption {\label{fig:seq_crop_cycle}{\textbf{Sequence Diagram for Starting a Crop Cycle.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase5Seq.png}
+{\caption {\label{fig:seq_canopy_scanning}{\textbf{Sequence Diagram for Canopy Scanning.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase6Seq.png}
+{\caption {\label{fig:seq_agronomic_advisory}{\textbf{Sequence Diagram for Retrieving Agronomic Advisory.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase7Seq.png}
+{\caption {\label{fig:seq_timeline_tracking}{\textbf{Sequence Diagram for Timeline Tracking.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase8Seq.png}
+{\caption {\label{fig:seq_regional_map}{\textbf{Sequence Diagram for Regional Farm Map Exploration.}}}}
+\end{figure}
+
+\begin{figure}[!hbt]
+\centering
+\includegraphics[width=1\textwidth]{Figures/UseCase9Seq.png}
+{\caption {\label{fig:seq_proven_yield}{\textbf{Sequence Diagram for Adopting Proven Yield Schedule.}}}}
+\end{figure}
+
+
+\clearpage
+\section{Policies and Tactics}
+Policies and tactics describe the design decisions, implementation rules and
+technical trade-offs that decide how each part of the system works and
+interact with other parts of the system without changing the overall system's
+architecture.
+
+\subsection{Mobile Sensor Guidance for Image Capture}
+To get the optimal image that is clear and useful to be fed into the
+FoMo4Wheat model, the app uses the phone's motion sensors when the user is
+taking a photo. The user is shown on screen guidance telling if the user is
+taking the picture correctly. It makes sure the downward angle is between 45
+and 60 degrees, the image is clear and the canopy is in frame.
+
+The alternative considered was to perform no checks on the image being
+captured and to feed whatever image the user takes into the model to check the
+growth stage. This was not selected because, without these checks, photos may
+not be ideal, for example the image can be blurry, taken from the wrong angle,
+or taken from far away. All these factors can result in an inaccurate result
+of the prediction. These checks make sure that good quality crop image is
+taken in advance so that in future there is no need to reject poor images.
+
+\subsection{Rule-Based Advice}
+All farming advice such as irrigation and fertiliser timing and amount are
+provided by a rule based system. These rules are set based on a verified
+research on agriculture, days after sowing and the selected wheat variant.
+The alternative considered was taking advice from a Large Language Model
+that generates text. This was not selected because Large Language Models are
+inconsistent and inaccurate; they work on probabilities and can give different
+results for the same test, which can result in damages to the crop. A rule
+based system provides consistent advice and is backed by verified agricultural
+guidelines.
+
+\subsection{Offline Cache and Synchronization}
+The mobile app stores important information like new observations and photos
+on the phone if needed in case of no internet connection. The information is
+automatically synced with the backend server when internet connection becomes
+available. The alternative considered was to make the app strictly dependent on an active
+internet connection. This was not selected because rural farming areas usually
+have bad or no internet coverage in the fields. Offline capability allows the
+user to operate the app and get guidance without internet and then get results
+or synchronize the data when internet is available.
+
+\subsection{Urdu Voice Guidance}
+Every farming advice has a speaker button next to it that reads out aloud the
+recommendation in Urdu. The voice guidance explain what action is required,
+what amount of fertilizer to add or at what date and time water the crops.
+The alternative considered was giving advice only in plain English or Urdu
+text. This was not selected because some farmers or even landowners have
+difficulty reading or operating a new mobile app especially in bright
+sunlight. Voice guidance can make the app more accessible as user can quickly
+hear the instructions.
+
+\section{Conclusion}
+This chapter explains how different parts of the system will be designed and will be connected. It describes a multi-level system that connects the phone sensors, AI vision models for wheat growing stages and GIS based field mapping. It also focuses on the practical problems of farmers such as limited internet and knowledge about systems. For this we are giving the facility of offline app working, camera angle checking and urdu voice narration to make the usage of this app easier. As for the final step it provides a clear design and technical foundation. It explains how the main components will communicate and work together. This also supports the complete implementation of the field testing in the upcoming phase. 
+
+\chapter{Implementation and Test Cases}
+The main purpose of this chapter is to explain the prototype that was developed during FYP-I. Following the guidelines of FYP-I for development projects this chapter will describe the software architecture, the different functional components that are developed for both the frontend and backend and the machine learning classification model used for the visual foundation model.
+
+\section{Prototype Implementation Overview}
+The frontend is made using the Expo SDK 54 and React Native, which makes it suitable for mobile devices. The application is easy to use even in bright sunlight and it has clear and high contrast screens that can be well adjusted to the screen sizes and it supports both the urdu and english languages. However the backend is developed using the FastAPI (Python 3.11) and SQLAlchemy 2.0 ORM. The application data is stored using PostgreSQL, so that the database connections can be done effectively. The field images uploaded by farmers are stored in the supabase storage. The machine learning system for identifying the wheat growth stages uses a pre-defined DINOv2 vision based transformer model (FoMo4Wheat\_base). Its main model is kept unchanged (frozen), while a separate linear probe classifier is trained to identify the different wheat growth stages. 
+
+\section{Software Architecture and Component Implementation}
+this section explains the software architecture for our project's prototype and how its main components are developed. First it describes the interface of the mobile application and the sensor used in it. Then it explains the system that was responsible for providing agriculture recommendations and the backend services and then finally it discusses the classification model which is used for a classifying the features from the images taken by the phone camera and identifying the different stages of wheat growth.
+
+\subsection{Mobile Client Interface and On-Device Sensors}
+
+The frontend prototype (React Native / Expo Router v6) implements the primary user workflows across five core modules:
+
+\begin{itemize}
+	\item The application measures the phone range in real time using the expo sensors from $0^\circ$ to $90^\circ$. A visual guide helps users position their phones at an angle between $45^\circ$ and $60^\circ$ relative to the crop field and they also guide the camera screen with vibration feedback so the farmers know if the angle is right or not.
+	
+	\item To provide an interactive map, this application uses leaflets within a native web view. By using touch gestures the farmers can mark the boundaries of their fields and they can also use the irregular shapes using their hands. Then the system calculates the total area of the field in acres and then information of the boundary is saved in a standard GeoJSON polygon format (RFC 7946).
+	
+	\item After Sowing, a 140 day crop cycle tracker is used to organize the important activities in farming. If the cycle of the crop is not started a message is displayed ``Cycle not started'' with the options to begin tracking. With the help of this the application will prevent showing active growth of the stages before the farmer has started a crop cycle.
+	
+	\item The application has a persistent accessibility feature. It allows easy switching between the English and Urdu languages while the app is running, it allows dynamic scaling of text size ($1.0\times$ to $1.15\times$) and gives text to speech audio regarding agronomic suggestions.
+	
+	\item Utilization of \texttt{expo-secure-store} guarantees that the authentication token and user profile are stored so there is no need to login again when re opening the app.
+\end{itemize}
+
+
+\subsection{Backend Services and Agronomic Decision Engine}
+The  deterministic engine and the backend together offer multiple services:
+\begin{itemize}
+
+\item The backend service (FastAPI) delivers fast asynchronous REST endpoints.
+
+\item The backend provides implementation of mobile phone normalization and secure password hashing using bcrypt (secure against 72 byte truncation attack), which generates standard OAuth2 compliant JWT bearer tokens.
+
+ \item Endpoints at /api/v1/fields/ implement CRUD functionality for farm parcels, computation of centroid coordinates and surface areas, as well as storage of GeoJSON boundaries.
+
+\item Upon start of cycle, the deterministic engine automatically constructs time schedules of fertilizers and irrigation schedules that align with key phenological stages, thus preventing Large Language Model hallucinations.
+
+\item The backend processes canopy image uploads, storing classification outcome, confidence metric, camera angle telemetry and image assets using Supabase Storage and local directory fallbacks.
+
+\item Endpoints at /api/v1/showcase/ offer a showcase of validated top yielding regional wheat parcels (54--62 Maunds/Acre) that allows farmers to review and apply full management playbooks for 140 days for their parcels.
+\end{itemize}
+
+\subsection{Growth-Stage Classification Head and Feature Extraction}
+
+The vision component uses the FoMo4Wheat model (86.6 million parameters, ViT-B/14 architecture). The backbone extracts pooled 1536-dimensional feature representations $\mathbf{x} \in \mathbb{R}^{1536}$ from RGB wheat canopy imagery. A dedicated linear probe head, given by Eq.~(\ref{eq:linear}),
+\begin{equation}\label{eq:linear}
+    \mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b},
+\end{equation}
+where $\mathbf{W} \in \mathbb{R}^{6 \times 1536}$ and $\mathbf{b} \in \mathbb{R}^{6}$, was trained to classify images of wheat canopy into the six stages:
+
+\begin{enumerate}
+    \item Tillering
+    \item Jointing
+    \item Booting
+    \item Flowering / Anthesis
+    \item Grain Filling
+    \item Maturity
+\end{enumerate}
+
+The linear head got a 99.06\% accuracy and a 0.9905 Macro F1 score on the test dataset. When the head was tested on 9978 real world images which were taken using smartphones, it got 66.74\% accuracy, and on average the processing time was 8.1~ms when using a dedicated GPU. An important thing to note is that the errors in classification were only on neighboring growth stages, this means that it did not confuse stages that were far apart. Testing the head on local Pakistani wheat samples got 95.6\% accuracy during early growth stages. This helped tell us the difference which is in between the original dataset and local field conditions for any future improvement in the model.
+
+
+\section{Conclusion}
+This chapter detailed the prototype implementation of the NextGenYield platform developed during FYP-I. By constructing a mobile application interface integrated with hardware IMU telemetry, GIS boundary mapping, and bilingual accessibility, together with a robust FastAPI backend service and a high-accuracy vision classification head, the foundational software prototype for intelligent wheat monitoring has been successfully established.
+
+\chapter{Conclusions}
+This chapter concludes the work that was completed doing our first phase of FYP-I on the NextGenYield
+platform. At first it provides an overview of the project and its main findings. Then it explains the objectives of our project and the work completed within the plan scope. At last it explains the plan and the task that will be carried out during FYP-II.
+\section{Project Summary and Findings}
+This first section of the NextGenYield initiative  was focused on designing and developing an intelligent crop management system for the wheat crop in Pakistan. Wheat farming in Pakistan is done using  trial and error method which involves no calculations and no technology, leading to improper irrigation, wrong fertilization, and a heavy yield penalty against international standards of agriculture. To solve  these challenges, NextGenYield introduced a holistic two-level approach to development.
+
+
+\subsection{Vision Intelligence} 
+We studied the FoMo4Wheat self-supervised foundation model (86.6M parameters, ViT-B/14), which was pre-trained on 2.5 million wheat canopy images. Freezing the backbone and training a downstream 6-class linear probe gave us the classifier with amazing 99.06\% Test Accuracy and 0.9905 Macro F1-score for detecting six key growth stages of wheat (Tillering, Jointing, Booting, Flowering, Grain Filling, and Maturity). Real-world validation on mobile images emphasized the domain gap issue due to oblique angle of view, stressing the necessity of hardware assistance with image capturing on-device.
+
+\subsection{Mobile-First Precision Companion} 
+We created the cross-platform prototype with the help of Expo SDK 54 and React Native. The frontend has hardware-assisted IMU pitch angle guidance (capture at $45^\circ$--$60^\circ$ angle), GIS demarcation of parcels through Leaflet, interfaces in Urdu and English languages, font resizing for outdoor visibility, and secure session management.
+
+\subsection{Deterministic Backend Engine}
+FastAPI backend service was implemented with PostgreSQL storage and connection pooling. The backend features JWT authentication, processing of GeoJSON parcel boundaries and automated agronomic scheduling engine, which links the crop age and recognized phenological state to deterministic irrigation and nutrition schedule, preventing Large Language Model hallucinations.
+
+
+\section{Review of Objectives and Scope Coverage}
+
+All the objectives of FYP-I have been achieved:
+\begin{itemize}
+    \item Regarding system requirement specification and architecture, all the requirements, non-functional quality attributes, use cases, domain class diagram, and sequence diagrams have been created.
+
+    \item With regard to functional prototype implementation, implementations of user authentication, GIS parcel marking, crop cycle definition, deterministic generation of agronomic recommendation, and peer show case playbook have all been achieved successfully.
+
+    \item In terms of model testing and validation, classification head implementation has been carried out and validated on GPU (NVIDIA RTX 5070) with feature extraction time of 8.1~ms and no non-adjacent biological classification error.
+\end{itemize}
+
+On purpose, some of the goals that have not been listed in the FYP-I objective include: parameter efficient backbone fine-tuning (LoRA), multi-season field test on ground with the farmers, and automatic background data synchronization.
+
+
+\section{Plan of Work for FYP-II}
+
+Developing the prototype, system architecture, and machine learning pipeline developed in FYP-I, the second phase of our project (FYP-II) will focus on performance optimization, field deployment and experimental evaluation:
+\begin{enumerate}
+    \item For domain adaptation and PEFT fine-tuning, the plan is to solve the domain difference issue of handheld view by using Parameter Efficient Fine-Tuning (LoRA / Adapted Projection Head) over ViT model along with local Pakistan canopy data sets.
+
+    \item Regarding offline first approach data synchronization, the plan is to add offline SQLite database and offline data synchronization to mobile application to enable continuous photography and field inspection in rural agricultural lands without the internet connection.
+
+    \item For Urdu speech synthesis, the plan is to develop the text to speech functionality to provide localized agronomic recommendations, water depth and amount of nutrients in Urdu language for illiterate farmers.
+
+    \item As for field testing and piloting, the plan is to perform testing of the designed prototype in the next wheat growing season in selected farm lands of Punjab province (Faisalabad and Lahore districts).
+
+    \item In terms of user usability test, the plan is to perform user usability test of the system with farmers and agriculture extensionists to measure user's ability to perform tasks and follow fertilizer split.
+\end{enumerate}
+
+\section{Concluding Remarks}
+In summary, in the first phase of our FYP we have successfully completed the basic design and the main features of our project. This project combines the FoMo4Wheat model to identify the growth stage of wheat and a mobile application that can work without using the internet and a rule based system that provides the farmers with recommendations for their crops. These features help the farmer solve the problems that they face due to the traditional calendar based farming and incorrect information that can be generated by AI systems. 
+
+In the FYP-I, all the main architecture diagrams, UI prototype, GIS based field mapping  and initial testing of the image recognition system have been completed. Due to this we have a strong foundation for our next phase of the project in FYP-II. Our team will focus on testing the systems in the real time and in the fields across Punjab in this way, we can collect the feedback from farmers and then apply the complete system to the cloud. Our main purpose is to develop a digital platform for the farmers that is useful enough to make the farming better.
+
+{
+	\bibliographystyle{ieeetr}
+	\bibliography{fypbib} %specify your .bib file here
+}
+
+\end{document}
+
+

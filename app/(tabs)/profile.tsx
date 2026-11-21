@@ -20,6 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/app-context';
 import { FontFamily, Spacing, Radius } from '@/constants/theme';
 import { AccessibilityControls } from '@/components/accessibility-bar';
+import { FarmTeamModal } from '@/components/farm-team-manager';
+import { SoilPrepGuideModal } from '@/components/soil-prep-guide';
 
 export default function ProfileScreen() {
   const {
@@ -37,6 +39,8 @@ export default function ProfileScreen() {
   const [cameraPermission, setCameraPermission] = useState<boolean>(false);
   const [locationPermission, setLocationPermission] = useState<boolean>(false);
   const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean>(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState<boolean>(false);
+  const [isSoilPrepOpen, setIsSoilPrepOpen] = useState<boolean>(false);
 
   const isUrdu = language === 'ur';
 
@@ -305,6 +309,125 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
+
+        {/* ─── Farm Team, Machinery & Marketplace Services ─── */}
+        <View style={styles.sectionCard}>
+          <Text style={[styles.sectionTitle, { fontSize: 16 * fontMultiplier }]}>
+            {isUrdu ? 'فارم سروسز اور ملازمین کی نگرانی' : 'Farm Services & Team Management'}
+          </Text>
+          <Text style={styles.sectionSub}>
+            {isUrdu ? 'ملازمین کو کھیت سونپیں اور زرعی مشینری کرایہ پر حاصل کریں' : 'Delegate fields to farmhands & rent verified equipment'}
+          </Text>
+
+          {/* Farm Team Row */}
+          <TouchableOpacity
+            style={styles.settingItemRow}
+            onPress={() => setIsTeamModalOpen(true)}
+            activeOpacity={0.7}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingIconWrap, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="people-outline" size={18} color="#0284C7" />
+              </View>
+              <View>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'فارم ٹیم اور ملازمین' : 'Farm Team & Employees'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {isUrdu ? 'ملازمین شامل کریں اور مخصوص کھیت سونپیں' : 'Add employees & delegate field monitoring'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Soil Pre-processing & Machinery Rentals Row */}
+          <TouchableOpacity
+            style={styles.settingItemRow}
+            onPress={() => setIsSoilPrepOpen(true)}
+            activeOpacity={0.7}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                <MaterialCommunityIcons name="tractor" size={18} color="#D97706" />
+              </View>
+              <View>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'زمین کی تیاری و مشینری کرایہ' : 'Soil Prep & Machinery Rentals'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {isUrdu ? 'لیزر لیولر، روٹاویٹر اور ٹریکٹر بک کریں' : 'Laser leveler, rotavator & drill hire'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Facebook-style Marketplace Shortcut */}
+          <TouchableOpacity
+            style={styles.settingItemRow}
+            onPress={() => router.push('/marketplace' as any)}
+            activeOpacity={0.7}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingIconWrap, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="cart-outline" size={18} color="#16A34A" />
+              </View>
+              <View>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'زرعی مارکیٹ پلیس' : 'Agri Marketplace'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {isUrdu ? 'بیج، کھاد اور فصل کی خرید و فروخت' : 'Buy & sell wheat seeds, fertilizers, produce'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Community Hub Shortcut */}
+          <TouchableOpacity
+            style={styles.settingItemRow}
+            onPress={() => router.push('/community' as any)}
+            activeOpacity={0.7}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                <MaterialCommunityIcons name="forum-outline" size={18} color="#9333EA" />
+              </View>
+              <View>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'کسان کمیونٹی اور پیغامات' : 'Farmers Community & Chat'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {isUrdu ? 'دیگر کسانوں سے رابطہ اور مشورے' : 'Connect, post, and direct message farmers'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Proven Yields Showcase Shortcut */}
+          <TouchableOpacity
+            style={styles.settingItemRow}
+            onPress={() => router.push('/showcase')}
+            activeOpacity={0.7}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingIconWrap, { backgroundColor: '#FFEDD5' }]}>
+                <Ionicons name="trophy-outline" size={18} color="#EA580C" />
+              </View>
+              <View>
+                <Text style={styles.settingItemTitle}>
+                  {isUrdu ? 'باکمال کسانوں کے ریکارڈ پیداوار' : 'Proven Yields Showcase'}
+                </Text>
+                <Text style={styles.settingItemSub}>
+                  {isUrdu ? 'پنجاب کے بہترین پلاٹس کے کامیاب طریقے' : 'Benchmark playbooks (60+ maunds/acre)'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Modals */}
+        <FarmTeamModal visible={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)} />
+        <SoilPrepGuideModal visible={isSoilPrepOpen} onClose={() => setIsSoilPrepOpen(false)} />
 
         {/* ─── Language & Display Settings ─── */}
         <View style={styles.sectionCard}>
