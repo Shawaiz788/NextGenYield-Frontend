@@ -43,7 +43,7 @@ const POST_CATEGORIES = [
 ];
 
 export default function CommunityScreen() {
-  const params = useLocalSearchParams<{ conversationId?: string; recipientName?: string; subTab?: string }>();
+  const params = useLocalSearchParams<{ conversationId?: string; recipientName?: string; recipientId?: string; subTab?: string }>();
   const { language, t } = useApp();
   const isUrdu = language === 'ur';
 
@@ -69,6 +69,7 @@ export default function CommunityScreen() {
   // Active Direct Chat state
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeChatRecipientName, setActiveChatRecipientName] = useState<string>('');
+  const [activeChatRecipientUserId, setActiveChatRecipientUserId] = useState<string | null>(null);
   const [chatMessageText, setChatMessageText] = useState('');
 
   // Auto-open chat if navigated with route params
@@ -78,11 +79,14 @@ export default function CommunityScreen() {
       if (params.recipientName) {
         setActiveChatRecipientName(params.recipientName);
       }
+      if (params.recipientId) {
+        setActiveChatRecipientUserId(params.recipientId);
+      }
       setActiveSubTab('messages');
     } else if (params.subTab === 'messages') {
       setActiveSubTab('messages');
     }
-  }, [params.conversationId, params.recipientName, params.subTab]);
+  }, [params.conversationId, params.recipientName, params.recipientId, params.subTab]);
 
   // TanStack Queries & Mutations
   const postsQuery = useCommunityPostsQuery(selectedCategory);
@@ -166,6 +170,7 @@ export default function CommunityScreen() {
       });
       setActiveConversationId(conv.conversation_id);
       setActiveChatRecipientName(userName);
+      setActiveChatRecipientUserId(userId);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Unable to open chat');
     }
@@ -453,6 +458,7 @@ export default function CommunityScreen() {
                 onPress={() => {
                   setActiveConversationId(c.conversation_id);
                   setActiveChatRecipientName(c.other_user_name);
+                  setActiveChatRecipientUserId(c.other_user_id);
                 }}>
                 <View style={styles.authorAvatar}>
                   <Text style={styles.avatarInitials}>{c.other_user_name.charAt(0)}</Text>
@@ -489,10 +495,34 @@ export default function CommunityScreen() {
             <TouchableOpacity onPress={() => setActiveConversationId(null)} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color="#0F172A" />
             </TouchableOpacity>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.chatHeaderName}>{activeChatRecipientName}</Text>
-              <Text style={styles.chatHeaderStatus}>{isUrdu ? 'آن لائن · براہ راست کسان چیٹ' : 'Online · Verified Farmer'}</Text>
-            </View>
+
+            <TouchableOpacity
+              style={styles.chatHeaderProfileTouch}
+              activeOpacity={0.7}
+              onPress={() => {
+                const targetId =
+                  activeChatRecipientUserId ||
+                  conversationsQuery.data?.find((c) => c.conversation_id === activeConversationId)?.other_user_id;
+                if (targetId) {
+                  setSelectedProfileUserId(targetId);
+                  setSelectedProfileInitialData({
+                    full_name: activeChatRecipientName,
+                  });
+                }
+              }}>
+              <View style={styles.chatHeaderAvatar}>
+                <Text style={styles.avatarInitials}>{activeChatRecipientName.charAt(0) || 'F'}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={styles.chatHeaderName}>{activeChatRecipientName}</Text>
+                  <Ionicons name="information-circle-outline" size={16} color="#16A34A" />
+                </View>
+                <Text style={styles.chatHeaderStatus}>
+                  {isUrdu ? 'آن لائن · پروفائل دیکھنے کے لیے دبائیں' : 'Online · Tap to view profile'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Messages Bubble History */}
@@ -965,6 +995,20 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
+  },
+  chatHeaderProfileTouch: {
+    flex: 1,
+    marginLeft: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatHeaderAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chatHeaderName: {
     fontSize: 15,

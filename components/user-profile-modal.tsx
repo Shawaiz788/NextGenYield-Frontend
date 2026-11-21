@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Colors, FontFamily, Spacing, Radius } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
@@ -36,12 +37,21 @@ export function UserProfileModal({
   onClose,
   onStartChat,
 }: UserProfileModalProps) {
+  const router = useRouter();
   const { language, fontMultiplier } = useApp();
   const isUrdu = language === 'ur';
 
   const { data: userProfile, isLoading } = useUserProfileQuery(visible ? userId : null);
   const connectMutation = useConnectFarmerMutation();
   const disconnectMutation = useDisconnectFarmerMutation();
+
+  const handleViewFieldOnMap = (fieldId?: string) => {
+    onClose();
+    router.push({
+      pathname: '/(tabs)/map',
+      params: fieldId ? { selectedFieldId: fieldId } : undefined,
+    } as any);
+  };
 
   if (!visible || !userId) return null;
 
@@ -212,9 +222,9 @@ export function UserProfileModal({
                   <MaterialCommunityIcons name="image-filter-hdr" size={20} color="#16A34A" />
                 </View>
                 <Text style={styles.statValue}>
-                  {typeof profile.total_acreage === 'number' && profile.total_acreage > 0
+                  {typeof profile.total_acreage === 'number'
                     ? `${profile.total_acreage} ac`
-                    : '12.5 ac'}
+                    : '0 ac'}
                 </Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'کل اراضی' : 'Total Acreage'}</Text>
               </View>
@@ -224,9 +234,9 @@ export function UserProfileModal({
                   <Ionicons name="map-outline" size={20} color="#2563EB" />
                 </View>
                 <Text style={styles.statValue}>
-                  {typeof profile.total_fields === 'number' && profile.total_fields > 0
+                  {typeof profile.total_fields === 'number'
                     ? `${profile.total_fields}`
-                    : '2'}
+                    : '0'}
                 </Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'کھیت' : 'Parcels'}</Text>
               </View>
@@ -235,9 +245,67 @@ export function UserProfileModal({
                 <View style={[styles.statIconWrap, { backgroundColor: '#FEF3C7' }]}>
                   <Ionicons name="newspaper-outline" size={20} color="#D97706" />
                 </View>
-                <Text style={styles.statValue}>{profile.posts_count || '1'}</Text>
+                <Text style={styles.statValue}>{profile.posts_count ?? 0}</Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'پوسٹس' : 'Posts'}</Text>
               </View>
+            </View>
+          )}
+
+          {/* Demarcated Farm Parcels Section */}
+          <View style={styles.parcelsSectionHeader}>
+            <Text style={[styles.sectionTitle, { fontSize: 13.5 * fontMultiplier, marginBottom: 0 }]}>
+              {isUrdu ? 'کھیت اور رقبے' : 'REGISTERED PARCELS'}
+            </Text>
+            {profile.fields && profile.fields.length > 0 && (
+              <TouchableOpacity
+                onPress={() => handleViewFieldOnMap(profile.fields?.[0]?.field_id)}
+                style={styles.viewAllMapPill}
+                activeOpacity={0.7}>
+                <Ionicons name="map" size={13} color="#16A34A" />
+                <Text style={styles.viewAllMapPillText}>
+                  {isUrdu ? 'نقشے پر دیکھیں' : 'View on Map'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {profile.fields && profile.fields.length > 0 ? (
+            <View style={styles.parcelsList}>
+              {profile.fields.map((field) => (
+                <TouchableOpacity
+                  key={field.field_id}
+                  style={styles.parcelCard}
+                  activeOpacity={0.75}
+                  onPress={() => handleViewFieldOnMap(field.field_id)}>
+                  <View style={styles.parcelIconCircle}>
+                    <MaterialCommunityIcons name="vector-polygon" size={20} color="#16A34A" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={styles.parcelName}>{field.field_name}</Text>
+                      <Text style={styles.parcelAcres}>{field.area_acres} Ac</Text>
+                    </View>
+                    <Text style={styles.parcelMeta}>
+                      {field.field_code || 'Plot'} · {field.wheat_variety || 'Akbar-2019'} ·{' '}
+                      {field.cycle_status === 'active'
+                        ? isUrdu
+                          ? 'فصل فعال'
+                          : 'Active Cycle'
+                        : isUrdu
+                        ? 'تیار زمین'
+                        : 'Fallow'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyParcelsCard}>
+              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color="#94A3B8" />
+              <Text style={styles.emptyParcelsText}>
+                {isUrdu ? 'اس کسان کا ابھی کوئی کھیت رجسٹر نہیں ہوا ہے۔' : 'No parcels demarcated by this farmer yet.'}
+              </Text>
             </View>
           )}
 
@@ -554,5 +622,80 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
     color: '#0284C7',
+  },
+  parcelsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  viewAllMapPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  viewAllMapPillText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
+  },
+  parcelsList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  parcelCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  parcelIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  parcelName: {
+    fontSize: 13.5,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+  },
+  parcelAcres: {
+    fontSize: 12.5,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
+  },
+  parcelMeta: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  emptyParcelsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    gap: 6,
+  },
+  emptyParcelsText: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });

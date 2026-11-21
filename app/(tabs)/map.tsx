@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp, MapFieldItem } from '@/context/app-context';
@@ -19,6 +19,7 @@ import { STAGE_CONFIG, FontFamily, Colors, Spacing, Radius } from '@/constants/t
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { RealLeafletMap } from '@/components/real-leaflet-map';
+import { UserProfileModal } from '@/components/user-profile-modal';
 import {
   useFieldsQuery,
   useCreateFieldMutation,
@@ -33,11 +34,16 @@ const MAX_FIELD_ACRES = 5000;
 
 
 export default function FarmMapScreen() {
+  const params = useLocalSearchParams<{ selectedFieldId?: string }>();
   const { fields, setSelectedFieldId, mapFields, addNewField, removeField, t, language, fontMultiplier } = useApp();
 
   const [showLegend, setShowLegend] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [selectedMapField, setSelectedMapField] = useState<MapFieldItem | null>(null);
+
+  // Selected Community Owner Profile state
+  const [selectedOwnerUserId, setSelectedOwnerUserId] = useState<string | null>(null);
+  const [selectedOwnerInitialData, setSelectedOwnerInitialData] = useState<{ full_name: string; district?: string } | undefined>(undefined);
 
   // Add Field / Real Draw Boundary State
   const [isDrawModeOpen, setIsDrawModeOpen] = useState(false);
@@ -90,11 +96,12 @@ export default function FarmMapScreen() {
         ];
       }
 
+      const isMine = f.is_mine !== undefined ? Boolean(f.is_mine) : true;
       const isCycleActive = Boolean(f.current_cycle_id || contextField?.cycleStatus === 'active');
-      const stageIdx = contextField?.currentStageIndex ?? 0;
+      const stageIdx = contextField?.currentStageIndex ?? (f.current_stage_index || 0);
       const stageInfo = STAGE_CONFIG[stageIdx] || STAGE_CONFIG[0];
       const stageName = isCycleActive ? stageInfo.name : 'Fallow';
-      const color = isCycleActive ? stageInfo.color : '#64748B';
+      const color = isCycleActive ? stageInfo.color : (isMine ? '#64748B' : '#2563EB');
 
       return {
         id: fieldId,
@@ -102,17 +109,30 @@ export default function FarmMapScreen() {
         name: f.field_name || contextField?.displayName || ('Field ' + (idx + 1)),
         stageIndex: isCycleActive ? stageIdx : 0,
         stageName,
-        variety: contextField?.wheatVariety || 'Akbar-2019',
+        variety: contextField?.wheatVariety || f.wheat_variety || 'Akbar-2019',
         yieldKgSqm: contextField?.yieldReturnKgSqm || 0.38,
         color,
         acres: f.area_acres || contextField?.areaAcres || 3.8,
-        isMine: true,
+        isMine,
+        ownerName: f.owner_name,
+        ownerDistrict: f.owner_district,
+        ownerId: f.owner_id || f.user_id,
         shapeType: (f.shape_type as any) || (contextField as any)?.shapeType || 'polygon',
         cycleStatus: isCycleActive ? 'active' : 'not_started',
         coordinates: coords.length >= 3 ? coords : undefined,
       };
     });
   }, [fieldsQuery.data, fields, mapFields]);
+
+  // Auto-focus field when navigated with route parameter (e.g. from UserProfileModal)
+  React.useEffect(() => {
+    if (params.selectedFieldId && liveMapFields.length > 0) {
+      const match = liveMapFields.find((f) => f.id === params.selectedFieldId);
+      if (match) {
+        setSelectedMapField(match);
+      }
+    }
+  }, [params.selectedFieldId, liveMapFields]);
 
   const handleSelectShape = (shape: 'polygon' | 'rectangle' | 'square' | 'circle') => {
     setSelectedShape(shape);
@@ -135,9 +155,23 @@ export default function FarmMapScreen() {
 
   // Compute dynamic filter options based on actual field stages present
   const filterOptions = React.useMemo(() => {
+    const myCount = liveMapFields.filter((f) => f.isMine).length;
+    const commCount = liveMapFields.filter((f) => !f.isMine).length;
+
     const list: { id: string; labelEn: string; labelUr: string; count: number; color?: string }[] = [
       { id: 'all', labelEn: 'All Plots', labelUr: 'تمام رقبے', count: liveMapFields.length },
+      { id: 'mine', labelEn: 'My Plots', labelUr: 'میرے رقبے', count: myCount, color: '#16A34A' },
     ];
+
+    if (commCount > 0) {
+      list.push({
+        id: 'community',
+        labelEn: 'Community Plots',
+        labelUr: 'دیگر کسانوں کے رقبے',
+        count: commCount,
+        color: '#2563EB',
+      });
+    }
 
     const fallowFields = liveMapFields.filter((f) => f.cycleStatus === 'not_started');
     if (fallowFields.length > 0) {
@@ -174,6 +208,8 @@ export default function FarmMapScreen() {
 
   const filteredFields = React.useMemo(() => {
     if (activeFilter === 'all') return liveMapFields;
+    if (activeFilter === 'mine') return liveMapFields.filter((f) => f.isMine);
+    if (activeFilter === 'community') return liveMapFields.filter((f) => !f.isMine);
     if (activeFilter === 'fallow') return liveMapFields.filter((f) => f.cycleStatus === 'not_started');
     return liveMapFields.filter((f) => f.stageName.toLowerCase() === activeFilter.toLowerCase());
   }, [liveMapFields, activeFilter]);
@@ -681,7 +717,87 @@ export default function FarmMapScreen() {
             </View>
           </View>
 
-          {selectedMapField.cycleStatus === 'not_started' ? (
+          {!selectedMapField.isMine ? (
+            <View style={styles.communityPlotCard}>
+              {/* Owner Info Row */}
+              <View style={styles.plotOwnerRow}>
+                <View style={styles.plotOwnerAvatar}>
+                  <Text style={styles.avatarInitials}>
+                    {(selectedMapField.ownerName || 'F').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.plotOwnerName}>
+                    {selectedMapField.ownerName || (language === 'ur' ? 'ہمسایہ کسان' : 'Neighbor Farmer')}
+                  </Text>
+                  <Text style={styles.plotOwnerDistrict}>
+                    📍 {selectedMapField.ownerDistrict || 'Punjab, Pakistan'} · {language === 'ur' ? 'تصدیق شدہ کسان' : 'Verified Farmer'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Crop & Agronomic Overview */}
+              <View style={styles.statsRow}>
+                <View style={styles.statCol}>
+                  <Ionicons name="resize-outline" size={14} color={Colors.light.textMuted} style={{ marginBottom: 2 }} />
+                  <Text style={styles.statLabel}>{t.area}</Text>
+                  <Text style={styles.statValue}>{selectedMapField.acres} Ac</Text>
+                </View>
+                <View style={styles.statCol}>
+                  <MaterialCommunityIcons name="sprout" size={14} color={Colors.light.primary} style={{ marginBottom: 2 }} />
+                  <Text style={styles.statLabel}>{language === 'ur' ? 'ورائٹی' : 'Variety'}</Text>
+                  <Text style={[styles.statValue, { color: Colors.light.primary }]}>
+                    {selectedMapField.variety || 'Akbar-2019'}
+                  </Text>
+                </View>
+                <View style={styles.statCol}>
+                  <Ionicons name="calendar-outline" size={14} color="#D97706" style={{ marginBottom: 2 }} />
+                  <Text style={styles.statLabel}>{language === 'ur' ? 'مرحلہ' : 'Stage'}</Text>
+                  <Text style={styles.statValue}>{selectedMapField.stageName}</Text>
+                </View>
+              </View>
+
+              {/* Action Buttons: View Profile & Chat */}
+              <View style={styles.selectedFieldActionsRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (selectedMapField.ownerId) {
+                      setSelectedOwnerUserId(selectedMapField.ownerId);
+                      setSelectedOwnerInitialData({
+                        full_name: selectedMapField.ownerName || 'Farmer',
+                        district: selectedMapField.ownerDistrict,
+                      });
+                    }
+                  }}
+                  style={[styles.inspectBtn, { flex: 1, backgroundColor: '#2563EB' }]}
+                  activeOpacity={0.85}>
+                  <Ionicons name="person-circle-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.inspectBtnText, { fontSize: 13.5 * fontMultiplier }]}>
+                    {language === 'ur' ? 'کسان پروفائل دیکھیں' : 'View Farmer Profile'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    router.push({
+                      pathname: '/(tabs)/community',
+                      params: {
+                        subTab: 'messages',
+                        recipientId: selectedMapField.ownerId,
+                        recipientName: selectedMapField.ownerName || 'Farmer',
+                      },
+                    } as any);
+                  }}
+                  style={[styles.startCycleMainBtn, { flex: 1, backgroundColor: '#16A34A' }]}
+                  activeOpacity={0.85}>
+                  <Ionicons name="chatbubble-ellipses" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.startCycleMainBtnText, { fontSize: 13.5 * fontMultiplier }]}>
+                    {language === 'ur' ? 'رابطہ / چیٹ' : 'Chat with Farmer'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : selectedMapField.cycleStatus === 'not_started' ? (
             <View style={styles.unstartedCycleBox}>
               <View style={styles.unstartedBanner}>
                 <Ionicons name="time-outline" size={16} color="#B45309" style={{ marginTop: 1 }} />
@@ -784,6 +900,28 @@ export default function FarmMapScreen() {
           }}
         />
       )}
+
+      {/* Community Farmer Public Profile Modal */}
+      <UserProfileModal
+        visible={!!selectedOwnerUserId}
+        userId={selectedOwnerUserId}
+        initialData={selectedOwnerInitialData}
+        onClose={() => {
+          setSelectedOwnerUserId(null);
+          setSelectedOwnerInitialData(undefined);
+        }}
+        onStartChat={(uid, uname) => {
+          setSelectedOwnerUserId(null);
+          router.push({
+            pathname: '/(tabs)/community',
+            params: {
+              subTab: 'messages',
+              recipientId: uid,
+              recipientName: uname,
+            },
+          } as any);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1415,6 +1553,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  communityPlotCard: {
+    gap: 2,
+  },
+  plotOwnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  plotOwnerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plotOwnerName: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+  },
+  plotOwnerDistrict: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
+    marginTop: 1,
   },
   deleteFieldIconBtn: {
     width: 44,

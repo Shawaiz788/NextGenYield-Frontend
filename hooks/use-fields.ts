@@ -9,19 +9,19 @@ export const FIELD_QUERY_KEYS = {
 };
 
 /**
- * TanStack Query Hook: Fetch all farm parcels demarcated by the farmer
+ * TanStack Query Hook: Fetch farm parcels (supports including community neighbor plots)
  */
-export function useFieldsQuery(authEnabled: boolean = true) {
+export function useFieldsQuery(includeCommunity: boolean = true, authEnabled: boolean = true) {
   const token = getAuthToken();
 
   return useQuery<FieldResponseDTO[], Error>({
-    queryKey: [...FIELD_QUERY_KEYS.all, token || 'unauthenticated'] as const,
+    queryKey: [...FIELD_QUERY_KEYS.all, token || 'unauthenticated', includeCommunity] as const,
     queryFn: async () => {
-      logger.debug('Fetching farmer fields from backend');
-      return await api.getFields();
+      logger.debug('Fetching farmer fields from backend, includeCommunity:', includeCommunity);
+      return await api.getFields(includeCommunity);
     },
     enabled: !!token && token.trim() !== '' && authEnabled,
-    staleTime: 1000 * 60 * 15, // 15 minutes: serve immediately from cache
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days persistent cache
     retry: 1,
   });

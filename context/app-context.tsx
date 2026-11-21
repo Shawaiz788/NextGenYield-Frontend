@@ -168,6 +168,9 @@ export interface MapFieldItem {
   fertilizerCompany?: string;
   pos?: { top: number; left: number; w: number; h: number };
   coordinates?: [number, number][];
+  ownerName?: string;
+  ownerDistrict?: string;
+  ownerId?: string;
 }
 
 export interface NewFieldInput {
@@ -179,6 +182,9 @@ export interface NewFieldInput {
   soilTexture?: string;
   pos?: { top: number; left: number; w: number; h: number };
   coordinates?: [number, number][];
+  ownerName?: string;
+  ownerDistrict?: string;
+  ownerId?: string;
 }
 
 export interface StartCycleInput {

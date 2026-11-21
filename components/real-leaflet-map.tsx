@@ -207,6 +207,12 @@ export function RealLeafletMap({
       box-shadow: 0 4px 10px rgba(0,0,0,0.45);
       white-space: nowrap;
     }
+    .community-tag {
+      background: rgba(30, 58, 138, 0.92) !important;
+      border: 1px solid rgba(96, 165, 250, 0.6) !important;
+      text-align: center;
+      line-height: 1.25;
+    }
     .leaflet-tooltip-top:before { border-top-color: rgba(15, 23, 42, 0.88); }
     .leaflet-tooltip-bottom:before { border-bottom-color: rgba(15, 23, 42, 0.88); }
 
@@ -346,23 +352,28 @@ export function RealLeafletMap({
         if (!f.coordinates || f.coordinates.length < 3) return;
 
         var isSelected = f.id === currentSelectedFieldId;
-        var color = f.color || '#16A34A';
+        var isCommunity = f.isMine === false;
+        var color = f.color || (isCommunity ? '#2563EB' : '#16A34A');
         var fillColor = f.cycleStatus === 'not_started' ? '#64748B' : color;
 
         var poly = L.polygon(f.coordinates, {
-          color: isSelected ? '#FFFFFF' : color,
-          weight: isSelected ? 3.5 : 2,
+          color: isSelected ? '#FFFFFF' : (isCommunity ? '#3B82F6' : color),
+          weight: isSelected ? 3.5 : (isCommunity ? 2.5 : 2),
           fillColor: fillColor,
-          fillOpacity: isSelected ? 0.48 : 0.28,
-          dashArray: isSelected ? '4, 4' : null
+          fillOpacity: isSelected ? 0.48 : (isCommunity ? 0.35 : 0.28),
+          dashArray: isSelected ? '4, 4' : (isCommunity ? '5, 5' : null)
         }).addTo(map);
 
+        var tooltipLabel = isCommunity
+          ? ('<b>' + (f.ownerName || 'Neighbor') + '</b><br/>' + f.code + ' · ' + f.acres + ' ac')
+          : ('<b>' + f.code + '</b> · ' + f.acres + ' ac');
+
         poly.bindTooltip(
-          '<b>' + f.code + '</b> · ' + f.acres + ' ac',
+          tooltipLabel,
           {
             permanent: true,
             direction: 'center',
-            className: 'field-tag'
+            className: isCommunity ? 'field-tag community-tag' : 'field-tag'
           }
         );
 
@@ -388,6 +399,7 @@ export function RealLeafletMap({
         var f = fieldsData.find(function(item) { return item.id === k; });
         if (!f) return;
 
+        var isCommunity = f.isMine === false;
         if (id && k === id) {
           p.setStyle({
             color: '#FFFFFF',
@@ -398,14 +410,14 @@ export function RealLeafletMap({
           p.bringToFront();
           map.panTo(p.getBounds().getCenter(), { animate: true, duration: 0.5 });
         } else {
-          var color = f.color || '#16A34A';
+          var color = f.color || (isCommunity ? '#2563EB' : '#16A34A');
           var fillColor = f.cycleStatus === 'not_started' ? '#64748B' : color;
           p.setStyle({
-            color: color,
-            weight: 2,
+            color: isCommunity ? '#3B82F6' : color,
+            weight: isCommunity ? 2.5 : 2,
             fillColor: fillColor,
-            fillOpacity: 0.28,
-            dashArray: null
+            fillOpacity: isCommunity ? 0.35 : 0.28,
+            dashArray: isCommunity ? '5, 5' : null
           });
         }
       });

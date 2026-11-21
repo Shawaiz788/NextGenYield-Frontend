@@ -59,6 +59,10 @@ export interface FieldResponseDTO {
   field_id: string;
   field_code?: string;
   user_id: string;
+  owner_id?: string;
+  owner_name?: string;
+  owner_district?: string;
+  is_mine?: boolean;
   field_name: string;
   shape_type: string;
   area_acres: number;
@@ -375,6 +379,7 @@ export interface PublicUserProfileDTO {
   posts_count: number;
   connection_status: 'none' | 'pending' | 'accepted' | 'self';
   connection_id?: string;
+  fields?: FieldResponseDTO[];
   created_at: string;
 }
 
@@ -570,8 +575,12 @@ class ApiClient {
   }
 
   // --- Fields Endpoints ---
-  async getFields(): Promise<FieldResponseDTO[]> {
-    return this.request<FieldResponseDTO[]>('/fields/');
+  async getFields(includeCommunity: boolean = true): Promise<FieldResponseDTO[]> {
+    return this.request<FieldResponseDTO[]>(includeCommunity ? '/fields/?include_community=true' : '/fields/?include_community=false');
+  }
+
+  async getFarmerFields(userId: string): Promise<FieldResponseDTO[]> {
+    return this.request<FieldResponseDTO[]>(`/fields/?user_id=${userId}`);
   }
 
   async getField(fieldId: string): Promise<FieldResponseDTO> {

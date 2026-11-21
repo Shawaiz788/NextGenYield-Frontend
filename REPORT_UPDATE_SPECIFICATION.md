@@ -102,6 +102,8 @@
 - **FR-28:** The system shall allow sellers to mark their marketplace items as sold or delete them permanently.
 - **FR-35:** The system shall allow users to open and inspect the public profile of any farmer (post author, commenter, fellow network farmer, or marketplace seller), displaying verified status, total farm acreage, parcels count, community post count, contact phone, and member tenure.
 - **FR-36:** The system shall provide a bidirectional friendship toggle ("Add as Friend" / "✓ Friends" / "Remove Friend") and allow users to disconnect existing relationships via `DELETE /api/v1/community/farmers/{id}/disconnect`.
+- **FR-37:** The system shall allow users to tap the recipient header/avatar inside 1-on-1 chat to immediately inspect their verified farmer profile and farm statistics.
+- **FR-38:** The system shall render regional and neighboring farmers' demarcated parcels on the Leaflet satellite map with distinct community styling (`.community-tag`, dashed border lines), allowing users to filter between "My Plots" and "Community Plots", inspect parcel ownership, view the owner's public profile, or initiate chat.
 
 #### 3.2.2: Functional Requirements for Farm Employees
 - **FR-29:** When an employee logs in, the system shall automatically retrieve and display all farm parcels delegated by their employer.
