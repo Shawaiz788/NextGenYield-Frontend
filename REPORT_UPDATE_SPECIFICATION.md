@@ -104,6 +104,9 @@
 - **FR-36:** The system shall provide a bidirectional friendship toggle ("Add as Friend" / "✓ Friends" / "Remove Friend") and allow users to disconnect existing relationships via `DELETE /api/v1/community/farmers/{id}/disconnect`.
 - **FR-37:** The system shall allow users to tap the recipient header/avatar inside 1-on-1 chat to immediately inspect their verified farmer profile and farm statistics.
 - **FR-38:** The system shall render regional and neighboring farmers' demarcated parcels on the Leaflet satellite map with distinct community styling (`.community-tag`, dashed border lines), allowing users to filter between "My Plots" and "Community Plots", inspect parcel ownership, view the owner's public profile, or initiate chat.
+- **FR-39:** The system shall present an interactive monthly booking calendar for machinery rentals, rendering available dates in green and fully booked dates in red, supporting multiple bookings per day via daily time slots (Morning, Afternoon, Evening, Full Day), and enforcing a mandatory 1-hour transit and maintenance buffer gap between consecutive reservations.
+- **FR-40:** The public farmer profile shall dynamically hydrate authentic platform records from the database, including verified acreage, demarcated parcels, active wheat cycles, equipment offered for rent, marketplace product listings, published community posts, and exact member tenure.
+- **FR-41:** The system shall provide real-time keyword search across the farmers directory (by name, district, telephone, or role) and enforce page-based pagination controls (page size of 6-8 farmers) with total count indicators to prevent unbounded scrolling.
 
 #### 3.2.2: Functional Requirements for Farm Employees
 - **FR-29:** When an employee logs in, the system shall automatically retrieve and display all farm parcels delegated by their employer.
@@ -565,10 +568,11 @@ CreatedAt & Timestamp & No & - & - & Listing creation timestamp. \\ \hline
 | `frontend/hooks/use-community.ts` | TanStack Query | Query and mutation hooks for community feed, comments, likes, chat, user profile, and friend disconnect |
 | `frontend/hooks/use-marketplace.ts` | TanStack Query | Query and mutation hooks for marketplace items and listings |
 | `frontend/constants/translations.ts` | Bilingual Dictionary | Added English and Urdu translation tokens for all 4 feature sets |
-| `frontend/components/soil-prep-guide.tsx` | UI Component | 5-stage interactive animated guide with machinery rental modal |
+| `frontend/components/soil-prep-guide.tsx` | UI Component | 5-stage interactive animated guide with machinery rental modal and calendar launcher |
+| `frontend/components/machinery-booking-calendar.tsx` | UI Component | Monthly calendar with green/red availability dates, daily time slots, and 1-hour transit buffer |
 | `frontend/components/farm-team-manager.tsx` | UI Component | Employee management modal with Pakistani phone validation and field assignment |
-| `frontend/components/user-profile-modal.tsx` | UI Component | Farmer public profile modal with verified badge, farm stats, call, chat, and "Add as Friend" / "Remove Friend" |
-| `frontend/app/(tabs)/community.tsx` | UI Screen | Farmers Community tab with Feed, Network, Direct Chat, and Profile trigger |
+| `frontend/components/user-profile-modal.tsx` | UI Component | Farmer public profile modal with authentic acreage, parcels, active crops, machinery, marketplace items, and posts |
+| `frontend/app/(tabs)/community.tsx` | UI Screen | Farmers Community tab with Feed, paginated Farmers Network with keyword search, Direct Chat, and Profile trigger |
 | `frontend/app/(tabs)/marketplace.tsx` | UI Screen | Facebook-style Agricultural Marketplace with search, categories, seller chat, and Seller Profile modal |
 | `frontend/app/(tabs)/_layout.tsx` | Navigation Tabs | Configured bottom tab bar with 6 responsive tabs |
 | `frontend/app/(tabs)/index.tsx` | Home Dashboard | Added soil prep prompt on fallow field and quick platform service shortcuts |

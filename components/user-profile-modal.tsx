@@ -242,6 +242,14 @@ export function UserProfileModal({
               </View>
 
               <View style={styles.statCard}>
+                <View style={[styles.statIconWrap, { backgroundColor: '#F0FDF4' }]}>
+                  <MaterialCommunityIcons name="sprout" size={20} color="#16A34A" />
+                </View>
+                <Text style={styles.statValue}>{profile.active_crops_count ?? 0}</Text>
+                <Text style={styles.statLabel}>{isUrdu ? 'فعال فصل' : 'Active Crops'}</Text>
+              </View>
+
+              <View style={styles.statCard}>
                 <View style={[styles.statIconWrap, { backgroundColor: '#FEF3C7' }]}>
                   <Ionicons name="newspaper-outline" size={20} color="#D97706" />
                 </View>
@@ -309,16 +317,100 @@ export function UserProfileModal({
             </View>
           )}
 
+          {/* Machinery Offered for Rent */}
+          {profile.machinery && profile.machinery.length > 0 && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={[styles.sectionTitle, { fontSize: 13.5 * fontMultiplier }]}>
+                {isUrdu ? 'کرایہ کے لیے دستیاب مشینری' : 'MACHINERY OFFERED FOR RENT'}
+              </Text>
+              <View style={{ gap: 8 }}>
+                {profile.machinery.map((m) => (
+                  <View key={m.machinery_id} style={styles.machCard}>
+                    <View style={styles.machIconCircle}>
+                      <MaterialCommunityIcons name="tractor" size={18} color="#16A34A" />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.machTitle}>{m.title}</Text>
+                      <Text style={styles.machMeta}>
+                        📍 {m.district} · {m.is_available ? (isUrdu ? 'دستیاب' : 'Available') : (isUrdu ? 'بک شدہ' : 'Busy')}
+                      </Text>
+                    </View>
+                    <Text style={styles.machPrice}>PKR {m.daily_rate_pkr.toLocaleString()}/d</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Marketplace Products */}
+          {profile.marketplace_items && profile.marketplace_items.length > 0 && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={[styles.sectionTitle, { fontSize: 13.5 * fontMultiplier }]}>
+                {isUrdu ? 'مارکیٹ پلیس اشیاء' : 'MARKETPLACE PRODUCTS'}
+              </Text>
+              <View style={{ gap: 8 }}>
+                {profile.marketplace_items.map((it) => (
+                  <View key={it.item_id} style={styles.machCard}>
+                    <View style={[styles.machIconCircle, { backgroundColor: '#EFF6FF' }]}>
+                      <Ionicons name="cart-outline" size={18} color="#2563EB" />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.machTitle}>{it.title}</Text>
+                      <Text style={styles.machMeta}>
+                        {it.category.toUpperCase()} · {it.condition} · {it.is_sold ? (isUrdu ? 'فروخت شدہ' : 'Sold') : (isUrdu ? 'دستیاب' : 'For Sale')}
+                      </Text>
+                    </View>
+                    <Text style={[styles.machPrice, { color: '#2563EB' }]}>PKR {it.price_pkr.toLocaleString()}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Recent Community Posts */}
+          {profile.recent_posts && profile.recent_posts.length > 0 && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={[styles.sectionTitle, { fontSize: 13.5 * fontMultiplier }]}>
+                {isUrdu ? 'حالیہ کمیونٹی پوسٹس' : 'RECENT COMMUNITY POSTS'}
+              </Text>
+              <View style={{ gap: 8 }}>
+                {profile.recent_posts.map((p) => (
+                  <View key={p.post_id} style={styles.postSnippetCard}>
+                    <Text style={styles.postSnippetTitle}>{p.title}</Text>
+                    <View style={styles.postSnippetFooter}>
+                      <Text style={styles.postSnippetCategory}>#{p.category}</Text>
+                      <Text style={styles.postSnippetLikes}>❤️ {p.likes_count} likes</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* Verification & Details Card */}
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <View style={styles.detailIconCircle}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#16A34A" />
+                <Ionicons
+                  name={(profile.total_fields ?? 0) > 0 ? "shield-checkmark" : "person-outline"}
+                  size={18}
+                  color={(profile.total_fields ?? 0) > 0 ? "#16A34A" : "#64748B"}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.detailTitle}>{isUrdu ? 'تصدیق شدہ کسان' : 'Verified Farmer'}</Text>
+                <Text style={styles.detailTitle}>
+                  {(profile.total_fields ?? 0) > 0
+                    ? (isUrdu ? 'تصدیق شدہ کسان اور زمیندار' : 'Verified Farmer & Landowner')
+                    : (isUrdu ? 'رجسٹرڈ کمیونٹی ممبر' : 'Registered Community Member')}
+                </Text>
                 <Text style={styles.detailSub}>
-                  {isUrdu ? 'پنجاب زرعی ڈیٹا بیس سے تصدیق شدہ ریکارڈ' : 'Registered Punjab agricultural cultivator'}
+                  {(profile.total_fields ?? 0) > 0
+                    ? (isUrdu
+                        ? `${profile.total_fields} رجسٹرڈ کھیت، پنجاب زرعی ڈیٹا بیس سے تصدیق شدہ`
+                        : `Verified Punjab cultivator with ${profile.total_fields} registered parcel(s)`)
+                    : (isUrdu
+                        ? 'کسان کمیونٹی کا تصدیق شدہ رکن'
+                        : 'Active agricultural network member')}
                 </Text>
               </View>
             </View>
@@ -697,5 +789,67 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: '#64748B',
     textAlign: 'center',
+  },
+  machCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  machIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  machTitle: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+  },
+  machMeta: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  machPrice: {
+    fontSize: 12.5,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
+  },
+  postSnippetCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  postSnippetTitle: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    color: '#0F172A',
+    lineHeight: 18,
+  },
+  postSnippetFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  postSnippetCategory: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: '#16A34A',
+  },
+  postSnippetLikes: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: '#64748B',
   },
 });

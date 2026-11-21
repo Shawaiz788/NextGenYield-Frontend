@@ -5,6 +5,7 @@ import {
   MachineryListingCreateDTO,
   MachineryBookingDTO,
   MachineryBookingCreateDTO,
+  MachineryScheduleDTO,
 } from '@/services/api-client';
 import { logger } from '@/services/logger';
 
@@ -12,6 +13,7 @@ export const MACHINERY_QUERY_KEYS = {
   all: ['machinery_listings'] as const,
   mine: ['my_machinery_listings'] as const,
   myBookings: ['my_machinery_bookings'] as const,
+  schedule: (id: string, month?: string) => ['machinery_schedule', id, month || 'current'] as const,
 };
 
 export function useMachineryListingsQuery(params?: { machinery_type?: string; district?: string }) {
@@ -46,6 +48,18 @@ export function useMyMachineryBookingsQuery() {
   });
 }
 
+export function useMachineryScheduleQuery(machineryId?: string | null, month?: string) {
+  return useQuery<MachineryScheduleDTO, Error>({
+    queryKey: machineryId ? MACHINERY_QUERY_KEYS.schedule(machineryId, month) : ['machinery_schedule', 'none'],
+    queryFn: async () => {
+      if (!machineryId) throw new Error('Machinery ID required');
+      return await api.getMachinerySchedule(machineryId, month);
+    },
+    enabled: !!machineryId,
+    staleTime: 1000 * 30,
+  });
+}
+
 export function useCreateMachineryMutation() {
   const queryClient = useQueryClient();
   return useMutation<MachineryListingDTO, Error, MachineryListingCreateDTO>({
@@ -70,6 +84,7 @@ export function useBookMachineryMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MACHINERY_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: MACHINERY_QUERY_KEYS.myBookings });
+      queryClient.invalidateQueries({ queryKey: ['machinery_schedule'] });
     },
   });
 }

@@ -81,7 +81,7 @@ export default function FarmMapScreen() {
         if (f.boundary_geojson?.type === 'Polygon' && f.boundary_geojson.coordinates?.[0]) {
           coords = f.boundary_geojson.coordinates[0].map((pt: [number, number]) => [pt[1], pt[0]]);
         }
-      } catch (_) {}
+      } catch (_) { }
 
       if (coords.length === 0 && localMapField?.coordinates) {
         coords = localMapField.coordinates;
@@ -458,12 +458,12 @@ export default function FarmMapScreen() {
                     {drawnCoords.length >= 2
                       ? `${acresInput} Acres · ${selectedShape.toUpperCase()}`
                       : (selectedShape === 'polygon'
-                          ? (language === 'ur' ? 'نقشے پر باؤنڈری کے کونے ٹیپ کریں' : 'Tap on Satellite Map to Drop Corners')
-                          : selectedShape === 'rectangle'
+                        ? (language === 'ur' ? 'نقشے پر باؤنڈری کے کونے ٹیپ کریں' : 'Tap on Satellite Map to Drop Corners')
+                        : selectedShape === 'rectangle'
                           ? (language === 'ur' ? 'مستطیل کے لیے 2 مخالف کونے منتخب کریں' : 'Tap 2 Opposite Corners for Rectangle')
                           : selectedShape === 'square'
-                          ? (language === 'ur' ? 'مربع کے لیے 2 کونے منتخب کریں' : 'Tap 2 Corners to Form Square Parcel')
-                          : (language === 'ur' ? 'مرکز اور پھر کنارہ منتخب کریں' : 'Tap Center, Then Edge for Pivot Circle'))}
+                            ? (language === 'ur' ? 'مربع کے لیے 2 کونے منتخب کریں' : 'Tap 2 Corners to Form Square Parcel')
+                            : (language === 'ur' ? 'مرکز اور پھر کنارہ منتخب کریں' : 'Tap Center, Then Edge for Pivot Circle'))}
                   </Text>
                   <Text style={styles.drawingTopSub}>
                     {drawnCoords.length >= 2
@@ -567,112 +567,112 @@ export default function FarmMapScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
           style={styles.keyboardAvoidingWrap}>
-        <View style={styles.addFieldBottomPanel}>
-          <View style={styles.bottomCardHandle} />
+          <View style={styles.addFieldBottomPanel}>
+            <View style={styles.bottomCardHandle} />
 
-          <View style={styles.addFieldHeaderRow}>
-            <View>
-              <Text style={[styles.addFieldTitle, { fontSize: 16 * fontMultiplier }]}>
-                {language === 'ur' ? 'نیا کھیت محفوظ کریں' : 'Configure New Field'}
-              </Text>
-              <Text style={styles.addFieldSub}>
-                {language === 'ur' ? 'نقشے پر مطلوبہ باؤنڈری تیار ہے' : 'Boundary placed on satellite view'}
-              </Text>
+            <View style={styles.addFieldHeaderRow}>
+              <View>
+                <Text style={[styles.addFieldTitle, { fontSize: 16 * fontMultiplier }]}>
+                  {language === 'ur' ? 'نیا کھیت محفوظ کریں' : 'Configure New Field'}
+                </Text>
+                <Text style={styles.addFieldSub}>
+                  {language === 'ur' ? 'نقشے پر مطلوبہ باؤنڈری تیار ہے' : 'Boundary placed on satellite view'}
+                </Text>
+              </View>
+              <View style={[styles.acresLiveBadge, isAreaTooLarge && styles.acresLiveBadgeError]}>
+                <Text style={[styles.acresLiveText, isAreaTooLarge && styles.acresLiveTextError]}>
+                  {acresInput} Ac
+                </Text>
+              </View>
             </View>
-            <View style={[styles.acresLiveBadge, isAreaTooLarge && styles.acresLiveBadgeError]}>
-              <Text style={[styles.acresLiveText, isAreaTooLarge && styles.acresLiveTextError]}>
-                {acresInput} Ac
+
+
+            {/* Field Name Input (Field Code is automatically assigned by backend) */}
+            <View style={styles.fieldNameInputGroup}>
+              <Text style={styles.miniLabel}>
+                {language === 'ur' ? 'کھیت کا نام / لوکیشن' : 'Field Name / Location'}
               </Text>
+              <TextInput
+                value={fieldNameInput}
+                onChangeText={setFieldNameInput}
+                placeholder={language === 'ur' ? 'کھیت کا نام درج کریں (مثال: نہر والا رقبہ)' : 'Enter field name (e.g. Canal Block West)'}
+                placeholderTextColor="#94A3B8"
+                style={styles.miniTextInput}
+              />
+            </View>
+
+            {/* Soil Texture Selection */}
+            <View style={styles.soilTextureRow}>
+              <Text style={styles.miniLabel}>
+                {language === 'ur' ? 'زمین کی بناوٹ:' : 'Soil Texture:'}
+              </Text>
+              <View style={styles.soilChipsGroup}>
+                {['Sandy Loam', 'Clay Loam', 'Silt Loam'].map((st) => (
+                  <TouchableOpacity
+                    key={st}
+                    onPress={() => setSoilTextureInput(st)}
+                    style={[styles.soilChip, soilTextureInput === st && styles.soilChipActive]}>
+                    <Text style={[styles.soilChipText, soilTextureInput === st && styles.soilChipTextActive]}>
+                      {st}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {isAreaTooLarge && (
+              <View style={styles.areaErrorBanner}>
+                <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6, marginTop: 1 }} />
+                <Text style={styles.areaErrorText}>
+                  {language === 'ur'
+                    ? `منتخب کردہ رقبہ (${parsedAcres.toLocaleString()} ایکڑ) ${MAX_FIELD_ACRES.toLocaleString()} ایکڑ کی حد سے زیادہ ہے۔ براہ کرم "صاف کریں" دبا کر چھوٹا رقبہ منتخب کریں۔`
+                    : `Selected area (${parsedAcres.toLocaleString()} ac) exceeds the ${MAX_FIELD_ACRES.toLocaleString()} ac limit. Tap Clear and draw a smaller farm parcel.`}
+                </Text>
+              </View>
+            )}
+
+            {saveError && (
+              <BackendReachabilityBanner
+                isUrdu={language === 'ur'}
+                error={saveError}
+                onRetry={handleSaveDrawnField}
+                style={{ marginHorizontal: 0, marginBottom: 8 }}
+              />
+            )}
+            {/* Action Buttons */}
+            <View style={styles.addFieldActionsRow}>
+              <TouchableOpacity
+                onPress={() => setIsDrawModeOpen(false)}
+                style={styles.cancelFieldBtn}
+                activeOpacity={0.7}>
+                <Text style={styles.cancelFieldBtnText}>{t.cancel}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveDrawnField}
+                disabled={saveStatus !== 'idle' || isAreaTooLarge}
+                style={[styles.saveFieldBtn, (saveStatus !== 'idle' || isAreaTooLarge) && styles.saveFieldBtnDisabled]}
+                activeOpacity={0.85}>
+                <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                  {saveStatus === 'saving' ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                        {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Saving Field...'}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                        {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
+                      </Text>
+                    </>
+                  )}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-
-          {/* Field Name Input (Field Code is automatically assigned by backend) */}
-          <View style={styles.fieldNameInputGroup}>
-            <Text style={styles.miniLabel}>
-              {language === 'ur' ? 'کھیت کا نام / لوکیشن' : 'Field Name / Location'}
-            </Text>
-            <TextInput
-              value={fieldNameInput}
-              onChangeText={setFieldNameInput}
-              placeholder={language === 'ur' ? 'کھیت کا نام درج کریں (مثال: نہر والا رقبہ)' : 'Enter field name (e.g. Canal Block West)'}
-              placeholderTextColor="#94A3B8"
-              style={styles.miniTextInput}
-            />
-          </View>
-
-          {/* Soil Texture Selection */}
-          <View style={styles.soilTextureRow}>
-            <Text style={styles.miniLabel}>
-              {language === 'ur' ? 'زمین کی بناوٹ:' : 'Soil Texture:'}
-            </Text>
-            <View style={styles.soilChipsGroup}>
-              {['Sandy Loam', 'Clay Loam', 'Silt Loam'].map((st) => (
-                <TouchableOpacity
-                  key={st}
-                  onPress={() => setSoilTextureInput(st)}
-                  style={[styles.soilChip, soilTextureInput === st && styles.soilChipActive]}>
-                  <Text style={[styles.soilChipText, soilTextureInput === st && styles.soilChipTextActive]}>
-                    {st}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {isAreaTooLarge && (
-            <View style={styles.areaErrorBanner}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6, marginTop: 1 }} />
-              <Text style={styles.areaErrorText}>
-                {language === 'ur'
-                  ? `منتخب کردہ رقبہ (${parsedAcres.toLocaleString()} ایکڑ) ${MAX_FIELD_ACRES.toLocaleString()} ایکڑ کی حد سے زیادہ ہے۔ براہ کرم "صاف کریں" دبا کر چھوٹا رقبہ منتخب کریں۔`
-                  : `Selected area (${parsedAcres.toLocaleString()} ac) exceeds the ${MAX_FIELD_ACRES.toLocaleString()} ac limit. Tap Clear and draw a smaller farm parcel.`}
-              </Text>
-            </View>
-          )}
-
-          {saveError && (
-            <BackendReachabilityBanner
-              isUrdu={language === 'ur'}
-              error={saveError}
-              onRetry={handleSaveDrawnField}
-              style={{ marginHorizontal: 0, marginBottom: 8 }}
-            />
-          )}
-          {/* Action Buttons */}
-          <View style={styles.addFieldActionsRow}>
-            <TouchableOpacity
-              onPress={() => setIsDrawModeOpen(false)}
-              style={styles.cancelFieldBtn}
-              activeOpacity={0.7}>
-              <Text style={styles.cancelFieldBtnText}>{t.cancel}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSaveDrawnField}
-              disabled={saveStatus !== 'idle' || isAreaTooLarge}
-              style={[styles.saveFieldBtn, (saveStatus !== 'idle' || isAreaTooLarge) && styles.saveFieldBtnDisabled]}
-              activeOpacity={0.85}>
-              <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-              {saveStatus === 'saving' ? (
-                <>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                    {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Saving Field...'}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                    {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
-                  </Text>
-                </>
-              )}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
         </KeyboardAvoidingView>
       ) : selectedMapField ? (
         /* ─── Standard Selected Field Bottom Card (Shown only when a field is selected) ─── */
@@ -1574,6 +1574,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
   },
   plotOwnerName: {
     fontSize: 13,

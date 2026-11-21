@@ -72,6 +72,10 @@ export default function CommunityScreen() {
   const [activeChatRecipientUserId, setActiveChatRecipientUserId] = useState<string | null>(null);
   const [chatMessageText, setChatMessageText] = useState('');
 
+  // Farmers Network Search & Pagination state
+  const [farmerSearchQuery, setFarmerSearchQuery] = useState('');
+  const [farmerPage, setFarmerPage] = useState(1);
+
   // Auto-open chat if navigated with route params
   useEffect(() => {
     if (params.conversationId) {
@@ -95,7 +99,11 @@ export default function CommunityScreen() {
   const commentsQuery = usePostCommentsQuery(expandedPostId || '');
   const addCommentMutation = useAddCommentMutation();
 
-  const farmersQuery = useFarmerConnectionsQuery();
+  const farmersQuery = useFarmerConnectionsQuery({
+    search: farmerSearchQuery,
+    page: farmerPage,
+    limit: 6,
+  });
   const connectMutation = useConnectFarmerMutation();
 
   const conversationsQuery = useConversationsQuery();
@@ -382,13 +390,71 @@ export default function CommunityScreen() {
       {/* SUB-TAB 2: FARMERS NETWORK */}
       {activeSubTab === 'network' && (
         <ScrollView style={styles.feedScroll} contentContainerStyle={styles.feedContent}>
+          {/* Farmers Search Input */}
+          <View style={styles.farmerSearchContainer}>
+            <Ionicons name="search" size={18} color="#94A3B8" style={{ marginLeft: 10 }} />
+            <TextInput
+              style={styles.farmerSearchInput}
+              placeholder={isUrdu ? 'کسان کا نام، ضلع یا فون نمبر تلاش کریں...' : 'Search farmers by name, district, or phone...'}
+              placeholderTextColor="#94A3B8"
+              value={farmerSearchQuery}
+              onChangeText={(text) => {
+                setFarmerSearchQuery(text);
+                setFarmerPage(1);
+              }}
+            />
+            {farmerSearchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setFarmerSearchQuery('');
+                  setFarmerPage(1);
+                }}
+                style={{ padding: 6, marginRight: 6 }}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Results Summary Bar */}
+          {farmersQuery.data && (
+            <View style={styles.resultsSummaryRow}>
+              <Text style={styles.resultsCountText}>
+                {isUrdu
+                  ? `کل ${farmersQuery.data.total} کسان دستیاب ہیں`
+                  : `Showing ${farmersQuery.data.items.length} of ${farmersQuery.data.total} farmers`}
+              </Text>
+              <Text style={styles.resultsPageBadge}>
+                {isUrdu
+                  ? `صفحہ ${farmerPage} / ${farmersQuery.data.total_pages}`
+                  : `Page ${farmerPage} of ${farmersQuery.data.total_pages}`}
+              </Text>
+            </View>
+          )}
+
           {farmersQuery.isLoading ? (
             <View style={styles.centerLoading}>
               <ActivityIndicator size="large" color="#16A34A" />
               <Text style={styles.loadingText}>{isUrdu ? 'کسان نیٹ ورک لوڈ ہو رہا ہے...' : 'Discovering farmers...'}</Text>
             </View>
+          ) : !farmersQuery.data?.items || farmersQuery.data.items.length === 0 ? (
+            <View style={styles.emptyFarmersBox}>
+              <MaterialCommunityIcons name="account-search-outline" size={44} color="#94A3B8" />
+              <Text style={styles.emptyFarmersText}>
+                {isUrdu ? 'کوئی کسان نہیں ملا۔' : `No farmers matching "${farmerSearchQuery}" found.`}
+              </Text>
+              {farmerSearchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.resetSearchBtn}
+                  onPress={() => {
+                    setFarmerSearchQuery('');
+                    setFarmerPage(1);
+                  }}>
+                  <Text style={styles.resetSearchBtnText}>{isUrdu ? 'فلٹر ختم کریں' : 'Clear Search'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : (
-            farmersQuery.data?.map((f) => (
+            farmersQuery.data.items.map((f) => (
               <View key={f.user_id} style={styles.farmerCard}>
                 <TouchableOpacity
                   style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
@@ -432,6 +498,41 @@ export default function CommunityScreen() {
                 </View>
               </View>
             ))
+          )}
+
+          {/* Pagination Controls */}
+          {farmersQuery.data && farmersQuery.data.total_pages > 1 && (
+            <View style={styles.paginationBar}>
+              <TouchableOpacity
+                disabled={farmerPage <= 1}
+                style={[styles.pageBtn, farmerPage <= 1 && styles.pageBtnDisabled]}
+                onPress={() => setFarmerPage((prev) => Math.max(1, prev - 1))}
+                activeOpacity={0.7}>
+                <Ionicons name="chevron-back" size={16} color={farmerPage <= 1 ? '#CBD5E1' : '#0F172A'} />
+                <Text style={[styles.pageBtnText, farmerPage <= 1 && styles.pageBtnTextDisabled]}>
+                  {isUrdu ? 'پچھلا' : 'Previous'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.pageIndicatorPill}>
+                <Text style={styles.pageIndicatorText}>
+                  {isUrdu
+                    ? `صفحہ ${farmerPage} از ${farmersQuery.data.total_pages}`
+                    : `Page ${farmerPage} of ${farmersQuery.data.total_pages}`}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                disabled={farmerPage >= farmersQuery.data.total_pages}
+                style={[styles.pageBtn, farmerPage >= farmersQuery.data.total_pages && styles.pageBtnDisabled]}
+                onPress={() => setFarmerPage((prev) => Math.min(farmersQuery.data!.total_pages, prev + 1))}
+                activeOpacity={0.7}>
+                <Text style={[styles.pageBtnText, farmerPage >= farmersQuery.data.total_pages && styles.pageBtnTextDisabled]}>
+                  {isUrdu ? 'اگلا' : 'Next'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={farmerPage >= farmersQuery.data.total_pages ? '#CBD5E1' : '#0F172A'} />
+              </TouchableOpacity>
+            </View>
           )}
         </ScrollView>
       )}
@@ -1172,5 +1273,123 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     maxWidth: 240,
+  },
+  farmerSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+    ...CardStyle,
+  },
+  farmerSearchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: '#0F172A',
+  },
+  resultsSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  resultsCountText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.medium,
+    color: '#64748B',
+  },
+  resultsPageBadge: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  emptyFarmersBox: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+    marginTop: 6,
+  },
+  emptyFarmersText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  resetSearchBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  resetSearchBtnText: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    color: '#0F172A',
+  },
+  paginationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...CardStyle,
+  },
+  pageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pageBtnDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    opacity: 0.6,
+  },
+  pageBtnText: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+  },
+  pageBtnTextDisabled: {
+    color: '#94A3B8',
+  },
+  pageIndicatorPill: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  pageIndicatorText: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: '#15803D',
   },
 });

@@ -22,6 +22,7 @@ import {
 } from '@/hooks/use-machinery';
 import { MachineryListingDTO } from '@/services/api-client';
 import { logger } from '@/services/logger';
+import { MachineryBookingCalendarModal } from '@/components/machinery-booking-calendar';
 
 interface SoilPrepStep {
   id: number;
@@ -501,68 +502,14 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
           </SafeAreaView>
         </Modal>
 
-        {/* Selected Machinery Booking Drawer / Form Modal */}
-        <Modal visible={!!selectedMachine} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setSelectedMachine(null)}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.bookingDialog}>
-              <View style={styles.dialogHeader}>
-                <Text style={styles.dialogTitle}>{isUrdu ? 'مشینری بکنگ' : 'Book Time Slot'}</Text>
-                <TouchableOpacity onPress={() => setSelectedMachine(null)}>
-                  <Ionicons name="close-circle" size={24} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
-
-              {selectedMachine && (
-                <View>
-                  <Text style={styles.dialogMachineTitle}>{selectedMachine.title}</Text>
-                  <Text style={styles.dialogMachineLocation}>📍 {selectedMachine.district} · {selectedMachine.contact_phone}</Text>
-
-                  <Text style={styles.inputLabel}>{isUrdu ? 'کتنے دن کے لیے چاہیے؟' : 'Duration (Days):'}</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    keyboardType="numeric"
-                    value={bookingDays}
-                    onChangeText={setBookingDays}
-                    placeholder="2"
-                  />
-
-                  {/* Calculated Price */}
-                  <View style={styles.costBox}>
-                    <Text style={styles.costLabel}>{isUrdu ? 'کل متوقع رقم:' : 'Estimated Total Amount:'}</Text>
-                    <Text style={styles.costValue}>
-                      PKR {((parseInt(bookingDays, 10) || 1) * selectedMachine.daily_rate_pkr).toLocaleString()}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.inputLabel}>{isUrdu ? 'کوئی اضافی ہدایات (اختیاری):' : 'Special Notes:'}</Text>
-                  <TextInput
-                    style={[styles.textInput, { height: 60 }]}
-                    multiline
-                    value={bookingNotes}
-                    onChangeText={setBookingNotes}
-                    placeholder={isUrdu ? 'مثلاً: نہر کے قریب ۳ ایکڑ کے لیے' : 'e.g., 3-acre parcel near canal branch'}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.confirmBookingBtn, bookingStatus === 'sending' && { opacity: 0.7 }]}
-                    disabled={bookingStatus === 'sending'}
-                    onPress={handleBookSlot}>
-                    {bookingStatus === 'sending' ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark-done" size={18} color="#FFFFFF" />
-                        <Text style={styles.confirmBookingBtnText}>
-                          {bookingStatus === 'success' ? (isUrdu ? 'بک ہو گئی!' : 'Slot Confirmed!') : (isUrdu ? 'بکنگ کی تصدیق کریں' : 'Confirm & Reserve Slot')}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </View>
-        </Modal>
+        {/* Interactive Machinery Booking Calendar & Daily Slots Modal */}
+        <MachineryBookingCalendarModal
+          visible={!!selectedMachine}
+          machinery={selectedMachine}
+          purposeStep={currentStep.machineryType}
+          onClose={() => setSelectedMachine(null)}
+          onBookingSuccess={() => setSelectedMachine(null)}
+        />
 
         {/* Offer Machinery for Rent Modal */}
         <Modal visible={isOfferModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsOfferModalOpen(false)}>

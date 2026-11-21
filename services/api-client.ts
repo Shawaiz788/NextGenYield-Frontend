@@ -285,6 +285,30 @@ export interface MachineryBookingCreateDTO {
   notes?: string;
 }
 
+export interface MachineryDailySlotDTO {
+  slot_id: string;
+  label_en: string;
+  label_ur: string;
+  start_time: string;
+  end_time: string;
+  duration_hours: number;
+  is_available: boolean;
+  price_pkr: number;
+}
+
+export interface MachineryDayAvailabilityDTO {
+  date: string;
+  day_status: 'available' | 'fully_booked' | 'past';
+  is_fully_booked: boolean;
+  slots: MachineryDailySlotDTO[];
+}
+
+export interface MachineryScheduleDTO {
+  machinery_id: string;
+  month: string;
+  days: MachineryDayAvailabilityDTO[];
+}
+
 // ==========================================
 // Employee / Farm Team DTOs
 // ==========================================
@@ -368,6 +392,43 @@ export interface UserConnectionDTO {
   created_at: string;
 }
 
+export interface MachinerySummaryDTO {
+  machinery_id: string;
+  title: string;
+  machinery_type: string;
+  daily_rate_pkr: number;
+  hourly_rate_pkr?: number;
+  district: string;
+  is_available: boolean;
+}
+
+export interface MarketplaceItemSummaryDTO {
+  item_id: string;
+  title: string;
+  category: string;
+  price_pkr: number;
+  condition: string;
+  is_sold: boolean;
+  image_url?: string;
+}
+
+export interface PostSummaryDTO {
+  post_id: string;
+  title: string;
+  category: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+}
+
+export interface PaginatedFarmersDTO {
+  items: UserConnectionDTO[];
+  total: number;
+  page: number;
+  total_pages: number;
+  limit: number;
+}
+
 export interface PublicUserProfileDTO {
   user_id: string;
   full_name: string;
@@ -376,10 +437,16 @@ export interface PublicUserProfileDTO {
   phone_number?: string;
   total_fields: number;
   total_acreage: number;
+  active_crops_count?: number;
   posts_count: number;
+  machinery_count?: number;
+  marketplace_count?: number;
   connection_status: 'none' | 'pending' | 'accepted' | 'self';
   connection_id?: string;
   fields?: FieldResponseDTO[];
+  machinery?: MachinerySummaryDTO[];
+  marketplace_items?: MarketplaceItemSummaryDTO[];
+  recent_posts?: PostSummaryDTO[];
   created_at: string;
 }
 
@@ -777,6 +844,11 @@ class ApiClient {
     });
   }
 
+  async getMachinerySchedule(machineryId: string, month?: string): Promise<MachineryScheduleDTO> {
+    const query = month ? `?month=${encodeURIComponent(month)}` : '';
+    return this.request<MachineryScheduleDTO>(`/machinery/${machineryId}/schedule${query}`);
+  }
+
   async getMyMachineryBookings(): Promise<MachineryBookingDTO[]> {
     return this.request<MachineryBookingDTO[]>('/machinery/user/my-bookings');
   }
@@ -840,8 +912,13 @@ class ApiClient {
     });
   }
 
-  async getFarmers(): Promise<UserConnectionDTO[]> {
-    return this.request<UserConnectionDTO[]>('/community/farmers');
+  async getFarmers(params?: { search?: string; page?: number; limit?: number }): Promise<PaginatedFarmersDTO> {
+    const sp = new URLSearchParams();
+    if (params?.search) sp.append('search', params.search);
+    if (params?.page) sp.append('page', params.page.toString());
+    if (params?.limit) sp.append('limit', params.limit.toString());
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return this.request<PaginatedFarmersDTO>(`/community/farmers${qs}`);
   }
 
   async connectWithFarmer(targetUserId: string): Promise<{ status: string; connection_id: string }> {

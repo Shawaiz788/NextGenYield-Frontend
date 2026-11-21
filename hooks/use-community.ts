@@ -5,6 +5,7 @@ import {
   PostCreateDTO,
   PostCommentDTO,
   UserConnectionDTO,
+  PaginatedFarmersDTO,
   PublicUserProfileDTO,
   ChatConversationDTO,
   ChatMessageDTO,
@@ -14,7 +15,7 @@ import { logger } from '@/services/logger';
 export const COMMUNITY_QUERY_KEYS = {
   posts: (category?: string) => ['community_posts', category || 'all'] as const,
   comments: (postId: string) => ['post_comments', postId] as const,
-  farmers: ['farmers_network'] as const,
+  farmers: (search?: string, page?: number) => ['farmers_network', search || '', page || 1] as const,
   userProfile: (userId: string) => ['user_profile', userId] as const,
   conversations: ['chat_conversations'] as const,
   messages: (convId: string) => ['chat_messages', convId] as const,
@@ -81,13 +82,13 @@ export function useAddCommentMutation() {
   });
 }
 
-export function useFarmerConnectionsQuery() {
-  return useQuery<UserConnectionDTO[], Error>({
-    queryKey: COMMUNITY_QUERY_KEYS.farmers,
+export function useFarmerConnectionsQuery(params?: { search?: string; page?: number; limit?: number }) {
+  return useQuery<PaginatedFarmersDTO, Error>({
+    queryKey: COMMUNITY_QUERY_KEYS.farmers(params?.search, params?.page),
     queryFn: async () => {
-      return await api.getFarmers();
+      return await api.getFarmers(params);
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -98,7 +99,7 @@ export function useConnectFarmerMutation() {
       return await api.connectWithFarmer(targetUserId);
     },
     onSuccess: (_, targetUserId) => {
-      queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.farmers });
+      queryClient.invalidateQueries({ queryKey: ['farmers_network'] });
       queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.userProfile(targetUserId) });
     },
   });
@@ -111,7 +112,7 @@ export function useDisconnectFarmerMutation() {
       return await api.disconnectWithFarmer(targetUserId);
     },
     onSuccess: (_, targetUserId) => {
-      queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.farmers });
+      queryClient.invalidateQueries({ queryKey: ['farmers_network'] });
       queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.userProfile(targetUserId) });
     },
   });
