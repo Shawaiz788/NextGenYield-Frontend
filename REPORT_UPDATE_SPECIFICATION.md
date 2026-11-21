@@ -100,6 +100,8 @@
 - **FR-26:** The system shall allow prospective buyers to search and filter marketplace listings by category, district, and price.
 - **FR-27:** The system shall provide one-tap ``Chat with Seller'' and ``Call Seller'' actions on marketplace listings.
 - **FR-28:** The system shall allow sellers to mark their marketplace items as sold or delete them permanently.
+- **FR-35:** The system shall allow users to open and inspect the public profile of any farmer (post author, commenter, fellow network farmer, or marketplace seller), displaying verified status, total farm acreage, parcels count, community post count, contact phone, and member tenure.
+- **FR-36:** The system shall provide a bidirectional friendship toggle ("Add as Friend" / "✓ Friends" / "Remove Friend") and allow users to disconnect existing relationships via `DELETE /api/v1/community/farmers/{id}/disconnect`.
 
 #### 3.2.2: Functional Requirements for Farm Employees
 - **FR-29:** When an employee logs in, the system shall automatically retrieve and display all farm parcels delegated by their employer.
@@ -161,6 +163,18 @@
   3. Prospective buyer searches for "Akbar-2019", views listing details, and taps "Chat with Seller".
   4. System automatically opens a 1-on-1 chat conversation referencing the product and price.
 - **Post-Conditions:** Buyer and seller initiate direct peer-to-peer negotiation without intermediaries.
+
+#### UC-14: Farmer Public Profile Exploration & Friend Connection
+- **Primary Actor:** Registered Farmer
+- **Trigger:** User taps on another farmer's avatar/name in Community feed, comments, network roster, or Marketplace listing.
+- **Main Success Scenario:**
+  1. System opens `UserProfileModal` displaying verified banner, display name, district, total agricultural acreage, parcels count, and community contributions count.
+  2. System queries `GET /api/v1/community/users/{id}/profile` to evaluate dynamic friendship relation (`self`, `none`, `pending`, `accepted`).
+  3. If user is not yet connected, system displays "Add as Friend" action.
+  4. User taps "Add as Friend"; system invokes `POST /api/v1/community/farmers/{id}/connect`, transitions button to "✓ Friends", and caches state.
+  5. If already connected, tapping the button prompts confirmation to remove friend and executes `DELETE /api/v1/community/farmers/{id}/disconnect`.
+  6. User may also tap "Message" to directly open a 1-on-1 private chat with the farmer.
+- **Post-Conditions:** Friendship relationship is updated in `user_connections`; real-time network directory reflects updated status.
 
 ---
 
@@ -488,6 +502,14 @@ CreatedAt & Timestamp & No & - & - & Listing creation timestamp. \\ \hline
 5. **Buyer App** displays product card and taps "Chat with Seller".
 6. **Buyer App** initializes direct chat referencing product title and negotiated price.
 
+#### Sequence 5: Public Farmer Profile Inspection & Friendship Toggle
+1. **User App** taps on post author, commenter, or marketplace seller avatar.
+2. **User App** opens `UserProfileModal` and triggers `GET /api/v1/community/users/{id}/profile`.
+3. **FastAPI Backend** joins `users`, aggregates `fields` count and total acreage, counts `community_posts`, and resolves mutual record from `user_connections`.
+4. **User App** renders verified badge, total acreage, parcels count, post count, and relationship button ("Add as Friend" or "✓ Friends").
+5. **User App** sends `POST /api/v1/community/farmers/{id}/connect` or `DELETE /api/v1/community/farmers/{id}/disconnect`.
+6. **Backend** persists connection status in `user_connections` table; UI invalidates TanStack Query cache.
+
 ---
 
 ## 7. Chapter 5: Implementation & Test Cases (Lines 1757–1822)
@@ -508,6 +530,7 @@ CreatedAt & Timestamp & No & - & - & Listing creation timestamp. \\ \hline
 | **TC-23** | Marketplace Item Publication | Marketplace | Title, Category `seeds`, Price 4900 PKR | HTTP 201 Created; item active in marketplace feed | PASS |
 | **TC-24** | Marketplace Category Filtering | Marketplace | Filter: `category=seeds` | HTTP 200 OK; only seed listings returned | PASS |
 | **TC-25** | Marketplace Item Sold Toggle | Marketplace | `PATCH /api/v1/marketplace/items/{id}/sold` | HTTP 200 OK; `is_sold` flag updated to `true` | PASS |
+| **TC-26** | Public Profile & Friend Connection | Community | `GET /community/users/{id}/profile`, Connect, Disconnect | HTTP 200 OK; aggregates acreage & fields; bidirectional connect/disconnect succeeds | PASS |
 
 ---
 
@@ -522,26 +545,29 @@ CreatedAt & Timestamp & No & - & - & Listing creation timestamp. \\ \hline
 | `backend/app/models/__init__.py` | Model Registry | Exported all 11 new models for automatic schema creation |
 | `backend/app/schemas/machinery.py` | Pydantic v2 | Created DTO validation models for machinery rentals and bookings |
 | `backend/app/schemas/employee.py` | Pydantic v2 | Created DTO validation models for employee management and field assignments |
-| `backend/app/schemas/community.py` | Pydantic v2 | Created DTO validation models for posts, likes, comments, and direct chat |
+| `backend/app/schemas/community.py` | Pydantic v2 | Created DTO validation models for posts, likes, comments, direct chat, and `PublicUserProfileResponse` |
 | `backend/app/schemas/marketplace.py` | Pydantic v2 | Created DTO validation models for marketplace listings |
+| `backend/app/schemas/field.py` | Pydantic v2 | Hydrated `FieldResponse` with active cycle fields (`crop_cycle_id`, `sowing_date`, `phenological_stage`, `current_das`, `has_active_cycle`) |
+| `backend/app/schemas/advisory.py` | Pydantic v2 | Standardized `AdvisoryRuleResponse` aliases and field compatibility |
 | `backend/app/routers/machinery.py` | REST Router | Endpoints for listing, filtering, booking, and managing machinery |
 | `backend/app/routers/employees.py` | REST Router | Endpoints for adding employees, delegating fields, and employee field queries |
-| `backend/app/routers/community.py` | REST Router | Endpoints for social feed, likes, comments, connections, and chat |
+| `backend/app/routers/community.py` | REST Router | Endpoints for social feed, likes, comments, connections, chat, public farmer profile (`/users/{id}/profile`), and disconnect (`/farmers/{id}/disconnect`) |
 | `backend/app/routers/marketplace.py` | REST Router | Endpoints for agricultural marketplace items, filters, sold toggling |
-| `backend/app/routers/fields.py` | REST Router | Updated `get_user_fields` & `get_field_by_id` to include assigned employee fields |
+| `backend/app/routers/fields.py` | REST Router | Updated `get_user_fields` & `get_field_by_id` to include assigned employee fields and active cycle data |
 | `backend/app/main.py` | FastAPI Application | Registered all 4 new routers into API v1 |
 | `backend/app/core/seed_data.py` | Database Seeder | Idempotent seeding of machinery, community posts, and marketplace items |
-| `backend/tests/test_backend_flow.py` | Integration Tests | Added 4 end-to-end integration tests for all new modules |
-| `frontend/services/api-client.ts` | TypeScript API | Added DTO interfaces and client methods for all 4 new feature sets |
+| `backend/tests/test_backend_flow.py` | Integration Tests | Added 5 end-to-end integration tests (TC-15 through TC-26) |
+| `frontend/services/api-client.ts` | TypeScript API | Added DTO interfaces (`PublicUserProfileDTO`, etc.) and client methods |
 | `frontend/hooks/use-machinery.ts` | TanStack Query | Query and mutation hooks for machinery rentals and bookings |
 | `frontend/hooks/use-employees.ts` | TanStack Query | Query and mutation hooks for farm employees and field assignments |
-| `frontend/hooks/use-community.ts` | TanStack Query | Query and mutation hooks for community feed, comments, likes, and chat |
+| `frontend/hooks/use-community.ts` | TanStack Query | Query and mutation hooks for community feed, comments, likes, chat, user profile, and friend disconnect |
 | `frontend/hooks/use-marketplace.ts` | TanStack Query | Query and mutation hooks for marketplace items and listings |
 | `frontend/constants/translations.ts` | Bilingual Dictionary | Added English and Urdu translation tokens for all 4 feature sets |
 | `frontend/components/soil-prep-guide.tsx` | UI Component | 5-stage interactive animated guide with machinery rental modal |
 | `frontend/components/farm-team-manager.tsx` | UI Component | Employee management modal with Pakistani phone validation and field assignment |
-| `frontend/app/(tabs)/community.tsx` | UI Screen | Farmers Community tab with Feed, Network, and Direct Chat |
-| `frontend/app/(tabs)/marketplace.tsx` | UI Screen | Facebook-style Agricultural Marketplace with search, categories, and seller chat |
+| `frontend/components/user-profile-modal.tsx` | UI Component | Farmer public profile modal with verified badge, farm stats, call, chat, and "Add as Friend" / "Remove Friend" |
+| `frontend/app/(tabs)/community.tsx` | UI Screen | Farmers Community tab with Feed, Network, Direct Chat, and Profile trigger |
+| `frontend/app/(tabs)/marketplace.tsx` | UI Screen | Facebook-style Agricultural Marketplace with search, categories, seller chat, and Seller Profile modal |
 | `frontend/app/(tabs)/_layout.tsx` | Navigation Tabs | Configured bottom tab bar with 6 responsive tabs |
 | `frontend/app/(tabs)/index.tsx` | Home Dashboard | Added soil prep prompt on fallow field and quick platform service shortcuts |
 | `frontend/app/(tabs)/profile.tsx` | User Profile | Added Farm Management & Agri Services hub |

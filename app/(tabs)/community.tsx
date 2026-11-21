@@ -31,7 +31,8 @@ import {
   useSendMessageMutation,
   useStartConversationMutation,
 } from '@/hooks/use-community';
-import { CommunityPostDTO } from '@/services/api-client';
+import { CommunityPostDTO, PublicUserProfileDTO } from '@/services/api-client';
+import { UserProfileModal } from '@/components/user-profile-modal';
 
 const POST_CATEGORIES = [
   { key: 'all', labelEn: 'All Topics', labelUr: 'تمام موضوعات' },
@@ -60,6 +61,10 @@ export default function CommunityScreen() {
   // Expanded post comments ID
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+
+  // Selected User Profile Modal state
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
+  const [selectedProfileInitialData, setSelectedProfileInitialData] = useState<Partial<PublicUserProfileDTO> | undefined>(undefined);
 
   // Active Direct Chat state
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -269,7 +274,16 @@ export default function CommunityScreen() {
               postsQuery.data?.map((post) => (
                 <View key={post.post_id} style={styles.postCard}>
                   {/* Author Header */}
-                  <View style={styles.postAuthorRow}>
+                  <TouchableOpacity
+                    style={styles.postAuthorRow}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSelectedProfileUserId(post.user_id);
+                      setSelectedProfileInitialData({
+                        full_name: post.author_name,
+                        district: post.author_district,
+                      });
+                    }}>
                     <View style={styles.authorAvatar}>
                       <Text style={styles.avatarInitials}>{post.author_name.charAt(0)}</Text>
                     </View>
@@ -280,7 +294,7 @@ export default function CommunityScreen() {
                     <View style={styles.categoryBadge}>
                       <Text style={styles.categoryBadgeText}>{post.category.replace('_', ' ')}</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
 
                   {/* Post Title & Content */}
                   <Text style={styles.postTitle}>{post.title}</Text>
@@ -321,10 +335,19 @@ export default function CommunityScreen() {
                         <ActivityIndicator size="small" color="#16A34A" />
                       ) : (
                         commentsQuery.data?.map((c) => (
-                          <View key={c.comment_id} style={styles.singleComment}>
+                          <TouchableOpacity
+                            key={c.comment_id}
+                            style={styles.singleComment}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                              setSelectedProfileUserId(c.user_id);
+                              setSelectedProfileInitialData({
+                                full_name: c.author_name,
+                              });
+                            }}>
                             <Text style={styles.commentAuthor}>{c.author_name}:</Text>
                             <Text style={styles.commentContent}>{c.content}</Text>
-                          </View>
+                          </TouchableOpacity>
                         ))
                       )}
 
@@ -362,13 +385,25 @@ export default function CommunityScreen() {
           ) : (
             farmersQuery.data?.map((f) => (
               <View key={f.user_id} style={styles.farmerCard}>
-                <View style={styles.farmerAvatar}>
-                  <Text style={styles.avatarInitials}>{f.full_name.charAt(0)}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.farmerName}>{f.full_name}</Text>
-                  <Text style={styles.farmerDistrict}>📍 {f.district} · {f.role.toUpperCase()}</Text>
-                </View>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setSelectedProfileUserId(f.user_id);
+                    setSelectedProfileInitialData({
+                      full_name: f.full_name,
+                      district: f.district,
+                      role: f.role,
+                    });
+                  }}>
+                  <View style={styles.farmerAvatar}>
+                    <Text style={styles.avatarInitials}>{f.full_name.charAt(0)}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.farmerName}>{f.full_name}</Text>
+                    <Text style={styles.farmerDistrict}>📍 {f.district} · {f.role.toUpperCase()}</Text>
+                  </View>
+                </TouchableOpacity>
 
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   <TouchableOpacity
@@ -570,6 +605,18 @@ export default function CommunityScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Public Farmer Profile Modal */}
+      <UserProfileModal
+        visible={!!selectedProfileUserId}
+        userId={selectedProfileUserId}
+        initialData={selectedProfileInitialData}
+        onClose={() => {
+          setSelectedProfileUserId(null);
+          setSelectedProfileInitialData(undefined);
+        }}
+        onStartChat={(uid, uname) => handleStartChatWithUser(uid, uname)}
+      />
     </SafeAreaView>
   );
 }

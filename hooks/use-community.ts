@@ -5,6 +5,7 @@ import {
   PostCreateDTO,
   PostCommentDTO,
   UserConnectionDTO,
+  PublicUserProfileDTO,
   ChatConversationDTO,
   ChatMessageDTO,
 } from '@/services/api-client';
@@ -14,6 +15,7 @@ export const COMMUNITY_QUERY_KEYS = {
   posts: (category?: string) => ['community_posts', category || 'all'] as const,
   comments: (postId: string) => ['post_comments', postId] as const,
   farmers: ['farmers_network'] as const,
+  userProfile: (userId: string) => ['user_profile', userId] as const,
   conversations: ['chat_conversations'] as const,
   messages: (convId: string) => ['chat_messages', convId] as const,
 };
@@ -95,9 +97,35 @@ export function useConnectFarmerMutation() {
     mutationFn: async (targetUserId) => {
       return await api.connectWithFarmer(targetUserId);
     },
-    onSuccess: () => {
+    onSuccess: (_, targetUserId) => {
       queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.farmers });
+      queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.userProfile(targetUserId) });
     },
+  });
+}
+
+export function useDisconnectFarmerMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<{ status: string }, Error, string>({
+    mutationFn: async (targetUserId) => {
+      return await api.disconnectWithFarmer(targetUserId);
+    },
+    onSuccess: (_, targetUserId) => {
+      queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.farmers });
+      queryClient.invalidateQueries({ queryKey: COMMUNITY_QUERY_KEYS.userProfile(targetUserId) });
+    },
+  });
+}
+
+export function useUserProfileQuery(userId: string | null | undefined) {
+  return useQuery<PublicUserProfileDTO, Error>({
+    queryKey: COMMUNITY_QUERY_KEYS.userProfile(userId || ''),
+    queryFn: async () => {
+      if (!userId) throw new Error('User ID required');
+      return await api.getUserProfile(userId);
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2,
   });
 }
 

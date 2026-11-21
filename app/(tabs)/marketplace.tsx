@@ -26,7 +26,8 @@ import {
   useMyMarketplaceItemsQuery,
 } from '@/hooks/use-marketplace';
 import { useStartConversationMutation } from '@/hooks/use-community';
-import { MarketplaceItemDTO } from '@/services/api-client';
+import { MarketplaceItemDTO, PublicUserProfileDTO } from '@/services/api-client';
+import { UserProfileModal } from '@/components/user-profile-modal';
 
 const MARKET_CATEGORIES = [
   { key: 'all', labelEn: 'All', labelUr: 'سب', icon: 'apps' },
@@ -64,6 +65,10 @@ export default function MarketplaceScreen() {
   const [sellStatus, setSellStatus] = useState<'idle' | 'sending' | 'success'>('idle');
 
   const [isStartingChat, setIsStartingChat] = useState(false);
+
+  // Seller Profile Modal state
+  const [selectedSellerUserId, setSelectedSellerUserId] = useState<string | null>(null);
+  const [selectedSellerInitialData, setSelectedSellerInitialData] = useState<Partial<PublicUserProfileDTO> | undefined>(undefined);
 
   // TanStack Queries & Mutations
   const itemsQuery = useMarketplaceItemsQuery({
@@ -155,6 +160,27 @@ export default function MarketplaceScreen() {
       Alert.alert('Error', err?.message || 'Unable to start chat with seller.');
     } finally {
       setIsStartingChat(false);
+    }
+  };
+
+  const handleStartChatFromProfile = async (sellerId: string, sellerName: string) => {
+    try {
+      const conv = await startConversationMutation.mutateAsync({
+        recipientId: sellerId,
+        content: 'Salam! I saw your profile on NextGenYield and would like to connect.',
+      });
+      setSelectedSellerUserId(null);
+      setSelectedItem(null);
+      router.push({
+        pathname: '/(tabs)/community',
+        params: {
+          conversationId: conv.conversation_id,
+          recipientName: sellerName,
+          subTab: 'messages',
+        },
+      } as any);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Unable to start chat with farmer.');
     }
   };
 
@@ -388,15 +414,31 @@ export default function MarketplaceScreen() {
                 <Text style={styles.detailDesc}>{selectedItem.description}</Text>
 
                 {/* Seller Card */}
-                <View style={styles.sellerCard}>
+                <TouchableOpacity
+                  style={styles.sellerCard}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setSelectedSellerUserId(selectedItem.seller_id);
+                    setSelectedSellerInitialData({
+                      full_name: selectedItem.seller_name,
+                      district: selectedItem.district,
+                      phone_number: selectedItem.seller_phone,
+                    });
+                  }}>
                   <View style={styles.sellerAvatar}>
                     <Text style={styles.avatarInitials}>{selectedItem.seller_name.charAt(0)}</Text>
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.sellerName}>{selectedItem.seller_name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={styles.sellerName}>{selectedItem.seller_name}</Text>
+                      <View style={styles.viewProfileChip}>
+                        <Text style={styles.viewProfileChipText}>{isUrdu ? 'پروفائل' : 'Profile'}</Text>
+                        <Ionicons name="chevron-forward" size={13} color="#16A34A" />
+                      </View>
+                    </View>
                     <Text style={styles.sellerDistrict}>{selectedItem.district} · Verified Farmer</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Contact & Chat Buttons */}
                 <View style={styles.contactButtonsRow}>
@@ -548,6 +590,18 @@ export default function MarketplaceScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Seller Public Profile Modal */}
+      <UserProfileModal
+        visible={!!selectedSellerUserId}
+        userId={selectedSellerUserId}
+        initialData={selectedSellerInitialData}
+        onClose={() => {
+          setSelectedSellerUserId(null);
+          setSelectedSellerInitialData(undefined);
+        }}
+        onStartChat={handleStartChatFromProfile}
+      />
     </SafeAreaView>
   );
 }
@@ -919,6 +973,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FontFamily.regular,
     color: '#64748B',
+  },
+  viewProfileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  viewProfileChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: '#16A34A',
   },
   contactButtonsRow: {
     flexDirection: 'row',

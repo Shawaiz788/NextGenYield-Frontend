@@ -364,6 +364,20 @@ export interface UserConnectionDTO {
   created_at: string;
 }
 
+export interface PublicUserProfileDTO {
+  user_id: string;
+  full_name: string;
+  district: string;
+  role: string;
+  phone_number?: string;
+  total_fields: number;
+  total_acreage: number;
+  posts_count: number;
+  connection_status: 'none' | 'pending' | 'accepted' | 'self';
+  connection_id?: string;
+  created_at: string;
+}
+
 export interface ChatMessageDTO {
   message_id: string;
   conversation_id: string;
@@ -825,6 +839,16 @@ class ApiClient {
     return this.request<{ status: string; connection_id: string }>(`/community/farmers/${targetUserId}/connect`, {
       method: 'POST',
     });
+  }
+
+  async disconnectWithFarmer(targetUserId: string): Promise<{ status: string }> {
+    return this.request<{ status: string }>(`/community/farmers/${targetUserId}/disconnect`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUserProfile(userId: string): Promise<PublicUserProfileDTO> {
+    return this.request<PublicUserProfileDTO>(`/community/users/${userId}/profile`);
   }
 
   async getConversations(): Promise<ChatConversationDTO[]> {
