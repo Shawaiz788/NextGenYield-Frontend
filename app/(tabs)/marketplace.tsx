@@ -63,6 +63,8 @@ export default function MarketplaceScreen() {
   const [newImageUrl, setNewImageUrl] = useState('');
   const [sellStatus, setSellStatus] = useState<'idle' | 'sending' | 'success'>('idle');
 
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
   // TanStack Queries & Mutations
   const itemsQuery = useMarketplaceItemsQuery({
     category: selectedCategory,
@@ -132,16 +134,27 @@ export default function MarketplaceScreen() {
   };
 
   const handleChatWithSeller = async (item: MarketplaceItemDTO) => {
+    if (isStartingChat) return;
+    setIsStartingChat(true);
     try {
-      await startConversationMutation.mutateAsync({
+      const conv = await startConversationMutation.mutateAsync({
         recipientId: item.seller_id,
         content: `Salam! I am interested in your listing: "${item.title}" (PKR ${item.price_pkr.toLocaleString()}). Is it still available?`,
       });
       setSelectedItem(null);
-      // Switch tab to community
-      router.push('/(tabs)/community' as any);
+      // Directly open the conversation in community messages
+      router.push({
+        pathname: '/(tabs)/community',
+        params: {
+          conversationId: conv.conversation_id,
+          recipientName: item.seller_name,
+          subTab: 'messages',
+        },
+      } as any);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Unable to start chat with seller.');
+    } finally {
+      setIsStartingChat(false);
     }
   };
 
@@ -388,10 +401,17 @@ export default function MarketplaceScreen() {
                 {/* Contact & Chat Buttons */}
                 <View style={styles.contactButtonsRow}>
                   <TouchableOpacity
-                    style={styles.chatSellerBtn}
+                    style={[styles.chatSellerBtn, isStartingChat && { opacity: 0.7 }]}
+                    disabled={isStartingChat}
                     onPress={() => handleChatWithSeller(selectedItem)}>
-                    <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
-                    <Text style={styles.chatSellerBtnText}>{isUrdu ? 'چیٹ میں بات کریں' : 'Chat with Seller'}</Text>
+                    {isStartingChat ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
+                        <Text style={styles.chatSellerBtnText}>{isUrdu ? 'چیٹ میں بات کریں' : 'Chat with Seller'}</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity

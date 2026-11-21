@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
@@ -41,6 +42,7 @@ const POST_CATEGORIES = [
 ];
 
 export default function CommunityScreen() {
+  const params = useLocalSearchParams<{ conversationId?: string; recipientName?: string; subTab?: string }>();
   const { language, t } = useApp();
   const isUrdu = language === 'ur';
 
@@ -63,6 +65,19 @@ export default function CommunityScreen() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeChatRecipientName, setActiveChatRecipientName] = useState<string>('');
   const [chatMessageText, setChatMessageText] = useState('');
+
+  // Auto-open chat if navigated with route params
+  useEffect(() => {
+    if (params.conversationId) {
+      setActiveConversationId(params.conversationId);
+      if (params.recipientName) {
+        setActiveChatRecipientName(params.recipientName);
+      }
+      setActiveSubTab('messages');
+    } else if (params.subTab === 'messages') {
+      setActiveSubTab('messages');
+    }
+  }, [params.conversationId, params.recipientName, params.subTab]);
 
   // TanStack Queries & Mutations
   const postsQuery = useCommunityPostsQuery(selectedCategory);
