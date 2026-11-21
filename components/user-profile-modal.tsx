@@ -55,18 +55,18 @@ export function UserProfileModal({
     } as any);
   };
 
-  if (!visible || !userId) return null;
-
   const profile: Partial<PublicUserProfileDTO> = userProfile || initialData || {};
   const displayName = profile.full_name || 'Farmer';
   const displayDistrict = profile.district || 'Punjab, Pakistan';
   const displayRole = profile.role || (isUrdu ? 'ترقی پسند گندم کاشتکار' : 'Progressive Wheat Farmer');
-  const isSelf = profile.connection_status === 'self' || (Boolean((myProfile as any)?.user_id) && userId === (myProfile as any)?.user_id);
+  const isSelf = profile.connection_status === 'self' || (Boolean((myProfile as any)?.user_id) && Boolean(userId) && userId === (myProfile as any)?.user_id);
   const isFriend = profile.connection_status === 'accepted';
   const isPending = connectMutation.isPending || disconnectMutation.isPending;
 
   // Unified and authentic parcels calculation
   const effectiveFields = useMemo(() => {
+    if (!visible || !userId) return [];
+
     // 1. Direct fields in user profile response from backend
     if (profile.fields && profile.fields.length > 0) {
       return profile.fields;
@@ -121,7 +121,7 @@ export function UserProfileModal({
   }, [effectiveFields]);
 
   const handleToggleFriend = async () => {
-    if (isSelf) return;
+    if (isSelf || !userId) return;
 
     if (isFriend) {
       Alert.alert(
@@ -165,6 +165,8 @@ export function UserProfileModal({
       onStartChat(userId, displayName);
     }
   };
+
+  if (!visible || !userId) return null;
 
   return (
     <Modal
