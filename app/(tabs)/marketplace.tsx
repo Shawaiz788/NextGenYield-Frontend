@@ -169,10 +169,11 @@ export default function MarketplaceScreen() {
         <View style={styles.searchBarBox}>
           <Ionicons name="search" size={18} color="#64748B" />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: '#000000' }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder={isUrdu ? 'بیج، ڈی اے پی کھاد، ٹریکٹر تلاش کریں...' : 'Search seeds, DAP, machinery, grain...'}
+            placeholderTextColor="#64748B"
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#000000',
     fontFamily: FontFamily.regular,
   },
   toggleRow: {
