@@ -55,7 +55,7 @@ export default function FarmMapScreen() {
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([]);
   const [clearTrigger, setClearTrigger] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const fieldsQuery = useFieldsQuery();
+  const fieldsQuery = useFieldsQuery(true);
   const createFieldMutation = useCreateFieldMutation();
   const deleteFieldMutation = useDeleteFieldMutation();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');

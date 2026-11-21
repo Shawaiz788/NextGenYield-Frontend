@@ -76,13 +76,15 @@ export default function DashboardScreen() {
     isError: isFieldsError,
     error: fieldsError,
     refetch: refetchFields,
-  } = useFieldsQuery(isAuthenticated && !isAuthLoading);
+  } = useFieldsQuery(false, isAuthenticated && !isAuthLoading);
 
-  // Unified active fields list: if context fields haven't synced yet, immediately derive from backendFields
+  // Unified active fields list: strictly user's own demarcated parcels
   const activeFields = React.useMemo(() => {
-    if (fields.length > 0) return fields;
+    const myContextFields = fields.filter((f) => (f as any).is_mine !== false && (f as any).isUserField !== false);
+    if (myContextFields.length > 0) return myContextFields;
     if (backendFields && backendFields.length > 0) {
-      return backendFields.map((bf) =>
+      const myBackendFields = backendFields.filter((bf) => bf.is_mine !== false);
+      return myBackendFields.map((bf) =>
         mapBackendFieldToFieldData(
           bf,
           fields.find((f) => f.id === bf.field_id)

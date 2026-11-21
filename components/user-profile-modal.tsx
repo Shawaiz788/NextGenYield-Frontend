@@ -69,26 +69,32 @@ export function UserProfileModal({
 
     // 1. Direct fields in user profile response from backend
     if (profile.fields && profile.fields.length > 0) {
+      if (isSelf) {
+        return profile.fields.filter((f) => f.is_mine !== false);
+      }
       return profile.fields;
     }
 
     // 2. If viewing self, fallback to context active fields
     if (isSelf && contextFields && contextFields.length > 0) {
-      return contextFields.map((cf) => ({
-        field_id: cf.id,
-        field_code: cf.code,
-        field_name: cf.displayName,
-        area_acres: cf.areaAcres,
-        wheat_variety: cf.wheatVariety,
-        cycle_status: cf.cycleStatus,
-        is_mine: true,
-      }));
+      const myContext = contextFields.filter((cf) => (cf as any).is_mine !== false && (cf as any).isUserField !== false);
+      if (myContext.length > 0) {
+        return myContext.map((cf) => ({
+          field_id: cf.id,
+          field_code: cf.code,
+          field_name: cf.displayName,
+          area_acres: cf.areaAcres,
+          wheat_variety: cf.wheatVariety,
+          cycle_status: cf.cycleStatus,
+          is_mine: true,
+        }));
+      }
     }
 
     // 3. Fallback to allMapFields if cached from map query
     if (allMapFields && allMapFields.length > 0) {
       const matched = allMapFields.filter(
-        (f) => (isSelf && f.is_mine) || f.user_id === userId || f.owner_id === userId
+        (f) => isSelf ? Boolean(f.is_mine) : (!f.is_mine && (f.user_id === userId || f.owner_id === userId))
       );
       if (matched.length > 0) {
         return matched.map((f) => ({

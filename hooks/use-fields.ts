@@ -11,7 +11,7 @@ export const FIELD_QUERY_KEYS = {
 /**
  * TanStack Query Hook: Fetch farm parcels (supports including community neighbor plots)
  */
-export function useFieldsQuery(includeCommunity: boolean = true, authEnabled: boolean = true) {
+export function useFieldsQuery(includeCommunity: boolean = false, authEnabled: boolean = true) {
   const token = getAuthToken();
 
   return useQuery<FieldResponseDTO[], Error>({

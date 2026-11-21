@@ -642,7 +642,7 @@ class ApiClient {
   }
 
   // --- Fields Endpoints ---
-  async getFields(includeCommunity: boolean = true): Promise<FieldResponseDTO[]> {
+  async getFields(includeCommunity: boolean = false): Promise<FieldResponseDTO[]> {
     return this.request<FieldResponseDTO[]>(includeCommunity ? '/fields/?include_community=true' : '/fields/?include_community=false');
   }
 

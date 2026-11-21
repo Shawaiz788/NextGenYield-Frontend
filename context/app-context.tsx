@@ -304,17 +304,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [queryClient]);
 
-  const { data: backendFields } = useFieldsQuery(isAuthenticated);
+  const { data: backendFields } = useFieldsQuery(false, isAuthenticated);
 
-  // Sync backend fields to AppContext
+  // Sync backend fields to AppContext (strictly user's own parcels)
   useEffect(() => {
     if (backendFields && Array.isArray(backendFields)) {
-      if (backendFields.length === 0) {
+      const myFields = backendFields.filter((bf) => bf.is_mine !== false);
+      if (myFields.length === 0) {
         setFields([]);
         setSelectedFieldIdState('');
       } else {
         setFields((prevFields) =>
-          backendFields.map((bf) =>
+          myFields.map((bf) =>
             mapBackendFieldToFieldData(
               bf,
               prevFields.find((f) => f.id === bf.field_id)
@@ -323,9 +324,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
 
         setSelectedFieldIdState((prevId) => {
-          const exists = backendFields.some((f) => f.field_id === prevId);
+          const exists = myFields.some((f) => f.field_id === prevId);
           if (exists) return prevId;
-          return backendFields[0].field_id;
+          return myFields[0].field_id;
         });
       }
     }

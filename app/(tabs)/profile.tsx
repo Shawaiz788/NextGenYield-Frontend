@@ -44,6 +44,17 @@ export default function ProfileScreen() {
 
   const isUrdu = language === 'ur';
 
+  const myFields = React.useMemo(
+    () => fields.filter((f) => (f as any).is_mine !== false && (f as any).isUserField !== false),
+    [fields]
+  );
+  const myTotalAcreage = React.useMemo(() => {
+    if (myFields.length > 0) {
+      return Math.round(myFields.reduce((sum, f) => sum + (f.areaAcres || 0), 0) * 10) / 10;
+    }
+    return userProfile.wheatAcreage || 0.0;
+  }, [myFields, userProfile.wheatAcreage]);
+
   const checkPermissions = async () => {
     try {
       const cam = await Camera.getCameraPermissionsAsync();
@@ -230,7 +241,7 @@ export default function ProfileScreen() {
               <MaterialCommunityIcons name="image-filter-hdr" size={18} color="#16A34A" />
             </View>
             <Text style={[styles.statValue, { fontSize: 16 * fontMultiplier }]}>
-              {userProfile.wheatAcreage || 18.5} ac
+              {myTotalAcreage} ac
             </Text>
             <Text style={styles.statLabel}>
               {isUrdu ? 'کل گندم رقبہ' : 'Wheat Land'}
@@ -243,7 +254,7 @@ export default function ProfileScreen() {
               <Ionicons name="map-outline" size={18} color="#0284C7" />
             </View>
             <Text style={[styles.statValue, { fontSize: 16 * fontMultiplier }]}>
-              {fields.length}
+              {myFields.length}
             </Text>
             <Text style={styles.statLabel}>
               {isUrdu ? 'محفوظ شدہ کھیت' : 'Parcels'}
@@ -287,26 +298,35 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.fieldParcelsList}>
-            {fields.map((f, idx) => (
-              <TouchableOpacity
-                key={f.id}
-                onPress={() => router.push('/field-profile')}
-                style={styles.parcelRow}
-                activeOpacity={0.75}>
-                <View style={styles.parcelIdxCircle}>
-                  <Text style={styles.parcelIdxText}>{idx + 1}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={[styles.parcelCode, { fontSize: 14 * fontMultiplier }]}>
-                    {f.code} · {f.displayName}
-                  </Text>
-                  <Text style={styles.parcelDetails}>
-                    {f.areaAcres} Acres · {f.wheatVariety} · {f.soilTexture}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            ))}
+            {myFields.length === 0 ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <MaterialCommunityIcons name="map-marker-off-outline" size={32} color="#94A3B8" />
+                <Text style={{ fontFamily: FontFamily.medium, color: '#64748B', fontSize: 13 * fontMultiplier, marginTop: 8 }}>
+                  {isUrdu ? 'ابھی تک کوئی کھیت رجسٹرڈ نہیں ہے۔' : 'No parcels demarcated yet.'}
+                </Text>
+              </View>
+            ) : (
+              myFields.map((f, idx) => (
+                <TouchableOpacity
+                  key={f.id}
+                  onPress={() => router.push('/field-profile')}
+                  style={styles.parcelRow}
+                  activeOpacity={0.75}>
+                  <View style={styles.parcelIdxCircle}>
+                    <Text style={styles.parcelIdxText}>{idx + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[styles.parcelCode, { fontSize: 14 * fontMultiplier }]}>
+                      {f.code} · {f.displayName}
+                    </Text>
+                    <Text style={styles.parcelDetails}>
+                      {f.areaAcres} Acres · {f.wheatVariety} · {f.soilTexture}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
 
