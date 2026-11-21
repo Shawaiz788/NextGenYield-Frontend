@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
@@ -235,8 +236,8 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <View style={styles.container}>
+    <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={onClose}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header Bar */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -410,8 +411,8 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
         </ScrollView>
 
         {/* Machinery Hire & Booking Modal */}
-        <Modal visible={isRentalModalOpen} animationType="slide" transparent={false} onRequestClose={() => setIsRentalModalOpen(false)}>
-          <View style={styles.modalFullContainer}>
+        <Modal visible={isRentalModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsRentalModalOpen(false)}>
+          <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
             <View style={styles.header}>
               <TouchableOpacity onPress={() => setIsRentalModalOpen(false)} style={styles.closeBtn}>
                 <Ionicons name="arrow-back" size={24} color="#0F172A" />
@@ -497,11 +498,11 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
                 ))
               )}
             </ScrollView>
-          </View>
+          </SafeAreaView>
         </Modal>
 
         {/* Selected Machinery Booking Drawer / Form Modal */}
-        <Modal visible={!!selectedMachine} animationType="fade" transparent={true} onRequestClose={() => setSelectedMachine(null)}>
+        <Modal visible={!!selectedMachine} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setSelectedMachine(null)}>
           <View style={styles.modalBackdrop}>
             <View style={styles.bookingDialog}>
               <View style={styles.dialogHeader}>
@@ -564,8 +565,8 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
         </Modal>
 
         {/* Offer Machinery for Rent Modal */}
-        <Modal visible={isOfferModalOpen} animationType="slide" transparent={false} onRequestClose={() => setIsOfferModalOpen(false)}>
-          <View style={styles.modalFullContainer}>
+        <Modal visible={isOfferModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsOfferModalOpen(false)}>
+          <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
             <View style={styles.header}>
               <TouchableOpacity onPress={() => setIsOfferModalOpen(false)} style={styles.closeBtn}>
                 <Ionicons name="arrow-back" size={24} color="#0F172A" />
@@ -676,9 +677,9 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
                 )}
               </TouchableOpacity>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         </Modal>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -686,17 +687,17 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 48 : 16,
+    paddingTop: 12,
     paddingBottom: 14,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -770,6 +771,7 @@ const styles = StyleSheet.create({
   },
   bodyScroll: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   bodyContent: {
     padding: 16,

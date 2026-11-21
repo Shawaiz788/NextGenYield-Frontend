@@ -431,6 +431,7 @@ export default function CommunityScreen() {
         visible={!!activeConversationId}
         animationType="slide"
         transparent={false}
+        statusBarTranslucent
         onRequestClose={() => setActiveConversationId(null)}>
         <SafeAreaView style={styles.chatModalContainer} edges={['top', 'bottom']}>
           {/* Chat Header */}
@@ -486,8 +487,8 @@ export default function CommunityScreen() {
       </Modal>
 
       {/* Create New Post Modal */}
-      <Modal visible={isCreateModalOpen} animationType="slide" transparent={false} onRequestClose={() => setIsCreateModalOpen(false)}>
-        <SafeAreaView style={styles.modalFullContainer}>
+      <Modal visible={isCreateModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsCreateModalOpen(false)}>
+        <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
           <View style={styles.topHeader}>
             <TouchableOpacity onPress={() => setIsCreateModalOpen(false)} style={styles.backBtn}>
               <Ionicons name="close" size={24} color="#0F172A" />
@@ -561,11 +562,11 @@ export default function CommunityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   topHeader: {
     flexDirection: 'row',
@@ -663,6 +664,7 @@ const styles = StyleSheet.create({
   },
   feedScroll: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   feedContent: {
     padding: 16,

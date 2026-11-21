@@ -332,9 +332,9 @@ export default function MarketplaceScreen() {
       )}
 
       {/* Item Details Modal */}
-      <Modal visible={!!selectedItem} animationType="slide" transparent={false} onRequestClose={() => setSelectedItem(null)}>
+      <Modal visible={!!selectedItem} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setSelectedItem(null)}>
         {selectedItem && (
-          <SafeAreaView style={styles.modalFullContainer}>
+          <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
             <View style={styles.detailHeader}>
               <TouchableOpacity onPress={() => setSelectedItem(null)} style={styles.backBtn}>
                 <Ionicons name="close" size={24} color="#0F172A" />
@@ -407,8 +407,8 @@ export default function MarketplaceScreen() {
       </Modal>
 
       {/* Post / Sell Item Modal */}
-      <Modal visible={isSellModalOpen} animationType="slide" transparent={false} onRequestClose={() => setIsSellModalOpen(false)}>
-        <SafeAreaView style={styles.modalFullContainer}>
+      <Modal visible={isSellModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsSellModalOpen(false)}>
+        <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
           <View style={styles.topHeader}>
             <TouchableOpacity onPress={() => setIsSellModalOpen(false)} style={styles.backBtn}>
               <Ionicons name="close" size={24} color="#0F172A" />
@@ -534,11 +534,11 @@ export default function MarketplaceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   topHeader: {
     flexDirection: 'row',
@@ -661,6 +661,7 @@ const styles = StyleSheet.create({
   },
   feedScroll: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   gridContainer: {
     padding: 12,

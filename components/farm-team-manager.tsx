@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
@@ -128,8 +129,8 @@ export function FarmTeamModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <View style={styles.container}>
+    <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={onClose}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -239,8 +240,8 @@ export function FarmTeamModal({ visible, onClose }: Props) {
         </ScrollView>
 
         {/* Add Employee Modal */}
-        <Modal visible={isAddOpen} animationType="slide" transparent={false} onRequestClose={() => setIsAddOpen(false)}>
-          <View style={styles.modalFullContainer}>
+        <Modal visible={isAddOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsAddOpen(false)}>
+          <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
             <View style={styles.header}>
               <TouchableOpacity onPress={() => setIsAddOpen(false)} style={styles.closeBtn}>
                 <Ionicons name="arrow-back" size={24} color="#0F172A" />
@@ -339,11 +340,11 @@ export function FarmTeamModal({ visible, onClose }: Props) {
                 )}
               </TouchableOpacity>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         </Modal>
 
         {/* Assign Fields Dialog Modal */}
-        <Modal visible={!!assigningEmp} animationType="fade" transparent={true} onRequestClose={() => setAssigningEmp(null)}>
+        <Modal visible={!!assigningEmp} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setAssigningEmp(null)}>
           <View style={styles.backdrop}>
             <View style={styles.dialogBox}>
               <View style={styles.dialogHeader}>
@@ -395,7 +396,7 @@ export function FarmTeamModal({ visible, onClose }: Props) {
             </View>
           </View>
         </Modal>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -403,17 +404,17 @@ export function FarmTeamModal({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   modalFullContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
     paddingBottom: 14,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -455,6 +456,7 @@ const styles = StyleSheet.create({
   },
   bodyScroll: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   bodyContent: {
     padding: 16,
