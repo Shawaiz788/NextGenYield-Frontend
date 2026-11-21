@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -20,6 +20,7 @@ import {
   useConnectFarmerMutation,
   useDisconnectFarmerMutation,
 } from '@/hooks/use-community';
+import { useFieldsQuery } from '@/hooks/use-fields';
 import { PublicUserProfileDTO } from '@/services/api-client';
 
 interface UserProfileModalProps {
@@ -38,10 +39,11 @@ export function UserProfileModal({
   onStartChat,
 }: UserProfileModalProps) {
   const router = useRouter();
-  const { language, fontMultiplier } = useApp();
+  const { language, fontMultiplier, fields: contextFields, userProfile: myProfile } = useApp();
   const isUrdu = language === 'ur';
 
   const { data: userProfile, isLoading } = useUserProfileQuery(visible ? userId : null);
+  const { data: allMapFields } = useFieldsQuery(true, visible);
   const connectMutation = useConnectFarmerMutation();
   const disconnectMutation = useDisconnectFarmerMutation();
 
@@ -59,9 +61,64 @@ export function UserProfileModal({
   const displayName = profile.full_name || 'Farmer';
   const displayDistrict = profile.district || 'Punjab, Pakistan';
   const displayRole = profile.role || (isUrdu ? 'ترقی پسند گندم کاشتکار' : 'Progressive Wheat Farmer');
-  const isSelf = profile.connection_status === 'self';
+  const isSelf = profile.connection_status === 'self' || (Boolean((myProfile as any)?.user_id) && userId === (myProfile as any)?.user_id);
   const isFriend = profile.connection_status === 'accepted';
   const isPending = connectMutation.isPending || disconnectMutation.isPending;
+
+  // Unified and authentic parcels calculation
+  const effectiveFields = useMemo(() => {
+    // 1. Direct fields in user profile response from backend
+    if (profile.fields && profile.fields.length > 0) {
+      return profile.fields;
+    }
+
+    // 2. If viewing self, fallback to context active fields
+    if (isSelf && contextFields && contextFields.length > 0) {
+      return contextFields.map((cf) => ({
+        field_id: cf.id,
+        field_code: cf.code,
+        field_name: cf.displayName,
+        area_acres: cf.areaAcres,
+        wheat_variety: cf.wheatVariety,
+        cycle_status: cf.cycleStatus,
+        is_mine: true,
+      }));
+    }
+
+    // 3. Fallback to allMapFields if cached from map query
+    if (allMapFields && allMapFields.length > 0) {
+      const matched = allMapFields.filter(
+        (f) => (isSelf && f.is_mine) || f.user_id === userId || f.owner_id === userId
+      );
+      if (matched.length > 0) {
+        return matched.map((f) => ({
+          field_id: f.field_id,
+          field_code: f.field_code,
+          field_name: f.field_name,
+          area_acres: f.area_acres,
+          wheat_variety: f.wheat_variety || 'Akbar-2019',
+          cycle_status: f.cycle_status || 'active',
+          is_mine: Boolean(f.is_mine),
+        }));
+      }
+    }
+
+    return [];
+  }, [profile.fields, isSelf, contextFields, allMapFields, userId]);
+
+  const effectiveTotalFields = effectiveFields.length;
+  const effectiveAcreage = useMemo(() => {
+    if (effectiveFields.length > 0) {
+      return Math.round(effectiveFields.reduce((sum, f) => sum + (Number(f.area_acres) || 0), 0) * 10) / 10;
+    }
+    return 0.0;
+  }, [effectiveFields]);
+
+  const effectiveActiveCrops = useMemo(() => {
+    return effectiveFields.filter(
+      (f: any) => f.cycle_status === 'active' || f.current_cycle_id || f.cycleStatus === 'active'
+    ).length;
+  }, [effectiveFields]);
 
   const handleToggleFriend = async () => {
     if (isSelf) return;
@@ -222,9 +279,7 @@ export function UserProfileModal({
                   <MaterialCommunityIcons name="image-filter-hdr" size={20} color="#16A34A" />
                 </View>
                 <Text style={styles.statValue}>
-                  {typeof profile.total_acreage === 'number'
-                    ? `${profile.total_acreage} ac`
-                    : '0 ac'}
+                  {`${effectiveAcreage} ac`}
                 </Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'کل اراضی' : 'Total Acreage'}</Text>
               </View>
@@ -234,9 +289,7 @@ export function UserProfileModal({
                   <Ionicons name="map-outline" size={20} color="#2563EB" />
                 </View>
                 <Text style={styles.statValue}>
-                  {typeof profile.total_fields === 'number'
-                    ? `${profile.total_fields}`
-                    : '0'}
+                  {`${effectiveTotalFields}`}
                 </Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'کھیت' : 'Parcels'}</Text>
               </View>
@@ -245,7 +298,7 @@ export function UserProfileModal({
                 <View style={[styles.statIconWrap, { backgroundColor: '#F0FDF4' }]}>
                   <MaterialCommunityIcons name="sprout" size={20} color="#16A34A" />
                 </View>
-                <Text style={styles.statValue}>{profile.active_crops_count ?? 0}</Text>
+                <Text style={styles.statValue}>{effectiveActiveCrops}</Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'فعال فصل' : 'Active Crops'}</Text>
               </View>
 
@@ -253,7 +306,7 @@ export function UserProfileModal({
                 <View style={[styles.statIconWrap, { backgroundColor: '#FEF3C7' }]}>
                   <Ionicons name="newspaper-outline" size={20} color="#D97706" />
                 </View>
-                <Text style={styles.statValue}>{profile.posts_count ?? 0}</Text>
+                <Text style={styles.statValue}>{profile.recent_posts?.length || profile.posts_count || 0}</Text>
                 <Text style={styles.statLabel}>{isUrdu ? 'پوسٹس' : 'Posts'}</Text>
               </View>
             </View>
@@ -264,9 +317,9 @@ export function UserProfileModal({
             <Text style={[styles.sectionTitle, { fontSize: 13.5 * fontMultiplier, marginBottom: 0 }]}>
               {isUrdu ? 'کھیت اور رقبے' : 'REGISTERED PARCELS'}
             </Text>
-            {profile.fields && profile.fields.length > 0 && (
+            {effectiveFields.length > 0 && (
               <TouchableOpacity
-                onPress={() => handleViewFieldOnMap(profile.fields?.[0]?.field_id)}
+                onPress={() => handleViewFieldOnMap(effectiveFields[0]?.field_id)}
                 style={styles.viewAllMapPill}
                 activeOpacity={0.7}>
                 <Ionicons name="map" size={13} color="#16A34A" />
@@ -277,9 +330,9 @@ export function UserProfileModal({
             )}
           </View>
 
-          {profile.fields && profile.fields.length > 0 ? (
+          {effectiveFields.length > 0 ? (
             <View style={styles.parcelsList}>
-              {profile.fields.map((field) => (
+              {effectiveFields.map((field) => (
                 <TouchableOpacity
                   key={field.field_id}
                   style={styles.parcelCard}
@@ -392,22 +445,22 @@ export function UserProfileModal({
             <View style={styles.detailRow}>
               <View style={styles.detailIconCircle}>
                 <Ionicons
-                  name={(profile.total_fields ?? 0) > 0 ? "shield-checkmark" : "person-outline"}
+                  name={effectiveTotalFields > 0 ? "shield-checkmark" : "person-outline"}
                   size={18}
-                  color={(profile.total_fields ?? 0) > 0 ? "#16A34A" : "#64748B"}
+                  color={effectiveTotalFields > 0 ? "#16A34A" : "#64748B"}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.detailTitle}>
-                  {(profile.total_fields ?? 0) > 0
+                  {effectiveTotalFields > 0
                     ? (isUrdu ? 'تصدیق شدہ کسان اور زمیندار' : 'Verified Farmer & Landowner')
                     : (isUrdu ? 'رجسٹرڈ کمیونٹی ممبر' : 'Registered Community Member')}
                 </Text>
                 <Text style={styles.detailSub}>
-                  {(profile.total_fields ?? 0) > 0
+                  {effectiveTotalFields > 0
                     ? (isUrdu
-                        ? `${profile.total_fields} رجسٹرڈ کھیت، پنجاب زرعی ڈیٹا بیس سے تصدیق شدہ`
-                        : `Verified Punjab cultivator with ${profile.total_fields} registered parcel(s)`)
+                        ? `${effectiveTotalFields} رجسٹرڈ کھیت، پنجاب زرعی ڈیٹا بیس سے تصدیق شدہ`
+                        : `Verified Punjab cultivator with ${effectiveTotalFields} registered parcel(s)`)
                     : (isUrdu
                         ? 'کسان کمیونٹی کا تصدیق شدہ رکن'
                         : 'Active agricultural network member')}

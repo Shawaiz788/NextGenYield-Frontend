@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -31,7 +31,7 @@ import {
   useSendMessageMutation,
   useStartConversationMutation,
 } from '@/hooks/use-community';
-import { CommunityPostDTO, PublicUserProfileDTO } from '@/services/api-client';
+import { CommunityPostDTO, PublicUserProfileDTO, UserConnectionDTO } from '@/services/api-client';
 import { UserProfileModal } from '@/components/user-profile-modal';
 
 const POST_CATEGORIES = [
@@ -105,6 +105,59 @@ export default function CommunityScreen() {
     limit: 6,
   });
   const connectMutation = useConnectFarmerMutation();
+
+  // Defensive normalization of farmers data (handles both array and paginated DTO gracefully)
+  const rawFarmers = farmersQuery.data;
+  const isArrayFarmers = Array.isArray(rawFarmers);
+
+  const allFarmersList: UserConnectionDTO[] = useMemo(() => {
+    if (Array.isArray(rawFarmers)) {
+      return rawFarmers as UserConnectionDTO[];
+    }
+    if (rawFarmers && Array.isArray((rawFarmers as any).items)) {
+      return (rawFarmers as any).items as UserConnectionDTO[];
+    }
+    return [];
+  }, [rawFarmers]);
+
+  const filteredFarmers = useMemo(() => {
+    if (isArrayFarmers && farmerSearchQuery.trim()) {
+      const q = farmerSearchQuery.trim().toLowerCase();
+      return allFarmersList.filter(
+        (f) =>
+          f.full_name?.toLowerCase().includes(q) ||
+          f.district?.toLowerCase().includes(q) ||
+          f.role?.toLowerCase().includes(q)
+      );
+    }
+    return allFarmersList;
+  }, [isArrayFarmers, allFarmersList, farmerSearchQuery]);
+
+  const totalFarmersCount = useMemo(() => {
+    if (isArrayFarmers) return filteredFarmers.length;
+    if (rawFarmers && typeof (rawFarmers as any).total === 'number') {
+      return (rawFarmers as any).total;
+    }
+    return allFarmersList.length;
+  }, [rawFarmers, isArrayFarmers, filteredFarmers.length, allFarmersList.length]);
+
+  const totalFarmerPages = useMemo(() => {
+    if (isArrayFarmers) {
+      return Math.max(1, Math.ceil(filteredFarmers.length / 6));
+    }
+    if (rawFarmers && typeof (rawFarmers as any).total_pages === 'number') {
+      return Math.max(1, (rawFarmers as any).total_pages);
+    }
+    return 1;
+  }, [rawFarmers, isArrayFarmers, filteredFarmers.length]);
+
+  const displayFarmers = useMemo(() => {
+    if (isArrayFarmers) {
+      const start = (farmerPage - 1) * 6;
+      return filteredFarmers.slice(start, start + 6);
+    }
+    return allFarmersList;
+  }, [isArrayFarmers, filteredFarmers, farmerPage, allFarmersList]);
 
   const conversationsQuery = useConversationsQuery();
   const messagesQuery = useConversationMessagesQuery(activeConversationId);
@@ -416,17 +469,17 @@ export default function CommunityScreen() {
           </View>
 
           {/* Results Summary Bar */}
-          {farmersQuery.data && (
+          {totalFarmersCount > 0 && (
             <View style={styles.resultsSummaryRow}>
               <Text style={styles.resultsCountText}>
                 {isUrdu
-                  ? `کل ${farmersQuery.data.total} کسان دستیاب ہیں`
-                  : `Showing ${farmersQuery.data.items.length} of ${farmersQuery.data.total} farmers`}
+                  ? `کل ${totalFarmersCount} کسان دستیاب ہیں`
+                  : `Showing ${displayFarmers.length} of ${totalFarmersCount} farmers`}
               </Text>
               <Text style={styles.resultsPageBadge}>
                 {isUrdu
-                  ? `صفحہ ${farmerPage} / ${farmersQuery.data.total_pages}`
-                  : `Page ${farmerPage} of ${farmersQuery.data.total_pages}`}
+                  ? `صفحہ ${farmerPage} / ${totalFarmerPages}`
+                  : `Page ${farmerPage} of ${totalFarmerPages}`}
               </Text>
             </View>
           )}
@@ -436,7 +489,7 @@ export default function CommunityScreen() {
               <ActivityIndicator size="large" color="#16A34A" />
               <Text style={styles.loadingText}>{isUrdu ? 'کسان نیٹ ورک لوڈ ہو رہا ہے...' : 'Discovering farmers...'}</Text>
             </View>
-          ) : !farmersQuery.data?.items || farmersQuery.data.items.length === 0 ? (
+          ) : displayFarmers.length === 0 ? (
             <View style={styles.emptyFarmersBox}>
               <MaterialCommunityIcons name="account-search-outline" size={44} color="#94A3B8" />
               <Text style={styles.emptyFarmersText}>
@@ -454,7 +507,7 @@ export default function CommunityScreen() {
               )}
             </View>
           ) : (
-            farmersQuery.data.items.map((f) => (
+            displayFarmers.map((f) => (
               <View key={f.user_id} style={styles.farmerCard}>
                 <TouchableOpacity
                   style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
@@ -501,7 +554,7 @@ export default function CommunityScreen() {
           )}
 
           {/* Pagination Controls */}
-          {farmersQuery.data && farmersQuery.data.total_pages > 1 && (
+          {totalFarmerPages > 1 && (
             <View style={styles.paginationBar}>
               <TouchableOpacity
                 disabled={farmerPage <= 1}
@@ -517,20 +570,20 @@ export default function CommunityScreen() {
               <View style={styles.pageIndicatorPill}>
                 <Text style={styles.pageIndicatorText}>
                   {isUrdu
-                    ? `صفحہ ${farmerPage} از ${farmersQuery.data.total_pages}`
-                    : `Page ${farmerPage} of ${farmersQuery.data.total_pages}`}
+                    ? `صفحہ ${farmerPage} از ${totalFarmerPages}`
+                    : `Page ${farmerPage} of ${totalFarmerPages}`}
                 </Text>
               </View>
 
               <TouchableOpacity
-                disabled={farmerPage >= farmersQuery.data.total_pages}
-                style={[styles.pageBtn, farmerPage >= farmersQuery.data.total_pages && styles.pageBtnDisabled]}
-                onPress={() => setFarmerPage((prev) => Math.min(farmersQuery.data!.total_pages, prev + 1))}
+                disabled={farmerPage >= totalFarmerPages}
+                style={[styles.pageBtn, farmerPage >= totalFarmerPages && styles.pageBtnDisabled]}
+                onPress={() => setFarmerPage((prev) => Math.min(totalFarmerPages, prev + 1))}
                 activeOpacity={0.7}>
-                <Text style={[styles.pageBtnText, farmerPage >= farmersQuery.data.total_pages && styles.pageBtnTextDisabled]}>
+                <Text style={[styles.pageBtnText, farmerPage >= totalFarmerPages && styles.pageBtnTextDisabled]}>
                   {isUrdu ? 'اگلا' : 'Next'}
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={farmerPage >= farmersQuery.data.total_pages ? '#CBD5E1' : '#0F172A'} />
+                <Ionicons name="chevron-forward" size={16} color={farmerPage >= totalFarmerPages ? '#CBD5E1' : '#0F172A'} />
               </TouchableOpacity>
             </View>
           )}

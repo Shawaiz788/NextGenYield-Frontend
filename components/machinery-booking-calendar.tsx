@@ -112,16 +112,102 @@ export function MachineryBookingCalendarModal({
     return { blanks, days, year, month };
   }, [selectedMonthDate]);
 
-  // Find availability data for a day
-  const availabilityMap = useMemo(() => {
+  // Client-side fallback schedule calculation from machinery.bookings
+  const fallbackSchedule = useMemo(() => {
+    if (!machinery) return new Map<string, MachineryDayAvailabilityDTO>();
+
+    const year = selectedMonthDate.getFullYear();
+    const month = selectedMonthDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const map = new Map<string, MachineryDayAvailabilityDTO>();
-    if (scheduleQuery.data?.days) {
+
+    const hourlyRate = machinery.hourly_rate_pkr || Math.round(machinery.daily_rate_pkr / 8);
+    const dailyRate = machinery.daily_rate_pkr;
+    const bookings = machinery.bookings || [];
+
+    const slotDefs = [
+      { slot_id: 'morning', label_en: 'Morning Slot (8 AM - 12 PM)', label_ur: 'صبح کا وقت (8 تا 12)', start: [8, 0], end: [12, 0], hours: 4.0, price: Math.round(hourlyRate * 4.0) },
+      { slot_id: 'afternoon', label_en: 'Afternoon Slot (1 PM - 5 PM)', label_ur: 'دوپہر کا وقت (1 تا 5)', start: [13, 0], end: [17, 0], hours: 4.0, price: Math.round(hourlyRate * 4.0) },
+      { slot_id: 'evening', label_en: 'Evening Slot (6 PM - 9 PM)', label_ur: 'شام کا وقت (6 تا 9)', start: [18, 0], end: [21, 0], hours: 3.0, price: Math.round(hourlyRate * 3.0) },
+      { slot_id: 'full_day', label_en: 'Full Working Day (8 AM - 6 PM)', label_ur: 'مکمل دن (8 تا 6)', start: [8, 0], end: [18, 0], hours: 10.0, price: dailyRate },
+    ];
+
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayDate = new Date(year, month, d);
+      const isPast = dayDate < todayDate;
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      let regularSlotsBooked = 0;
+      const slots: MachineryDailySlotDTO[] = [];
+
+      for (const sDef of slotDefs) {
+        const slotStart = new Date(year, month, d, sDef.start[0], sDef.start[1], 0);
+        const slotEnd = new Date(year, month, d, sDef.end[0], sDef.end[1], 0);
+
+        // 1-hour transit buffer
+        let isAvail = !isPast;
+        if (isAvail) {
+          for (const b of bookings) {
+            const bStart = new Date(b.start_date);
+            const bEnd = new Date(b.end_date);
+            const bufferMs = 60 * 60 * 1000;
+            if (slotStart.getTime() < (bEnd.getTime() + bufferMs) && slotEnd.getTime() > (bStart.getTime() - bufferMs)) {
+              isAvail = false;
+              break;
+            }
+          }
+        }
+
+        if (sDef.slot_id !== 'full_day' && !isAvail) {
+          regularSlotsBooked++;
+        }
+
+        slots.push({
+          slot_id: sDef.slot_id,
+          label_en: sDef.label_en,
+          label_ur: sDef.label_ur,
+          start_time: `${String(sDef.start[0]).padStart(2, '0')}:${String(sDef.start[1]).padStart(2, '0')}`,
+          end_time: `${String(sDef.end[0]).padStart(2, '0')}:${String(sDef.end[1]).padStart(2, '0')}`,
+          duration_hours: sDef.hours,
+          is_available: isAvail,
+          price_pkr: sDef.price,
+        });
+      }
+
+      // Full day is only available if all 3 partial slots are available
+      for (const s of slots) {
+        if (s.slot_id === 'full_day' && regularSlotsBooked > 0) {
+          s.is_available = false;
+        }
+      }
+
+      const isFullyBooked = !isPast && regularSlotsBooked >= 3;
+      const dayStatus = isPast ? 'past' : isFullyBooked ? 'fully_booked' : 'available';
+
+      map.set(dateStr, {
+        date: dateStr,
+        day_status: dayStatus,
+        is_fully_booked: isFullyBooked,
+        slots,
+      });
+    }
+
+    return map;
+  }, [machinery, selectedMonthDate, today]);
+
+  // Combined availability map: prefer server data if available, fallback to client-side
+  const availabilityMap = useMemo(() => {
+    if (scheduleQuery.data?.days && scheduleQuery.data.days.length > 0) {
+      const map = new Map<string, MachineryDayAvailabilityDTO>();
       for (const d of scheduleQuery.data.days) {
         map.set(d.date, d);
       }
+      return map;
     }
-    return map;
-  }, [scheduleQuery.data]);
+    return fallbackSchedule;
+  }, [scheduleQuery.data, fallbackSchedule]);
 
   const selectedDayAvailability = useMemo(() => {
     return availabilityMap.get(selectedDateStr);
