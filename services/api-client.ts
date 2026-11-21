@@ -68,6 +68,14 @@ export interface FieldResponseDTO {
   center_longitude: number;
   soil_texture?: string;
   current_cycle_id?: string | null;
+  wheat_variety?: string | null;
+  seed_company?: string | null;
+  fertilizer_company?: string | null;
+  sowing_date?: string | null;
+  target_harvest_date?: string | null;
+  cycle_status?: 'active' | 'not_started' | 'completed';
+  current_stage_index?: number;
+  days_after_sowing?: number | null;
   created_at: string;
 }
 
@@ -153,16 +161,24 @@ export interface UploadObservationParams {
 // Advisory DTOs
 // ==========================================
 export interface AdvisoryRuleDTO {
-  rule_id: number;
+  rule_id: string | number;
   stage_index: number;
   stage_name: string;
-  primary_action: string;
-  primary_action_ur: string;
-  secondary_advice: string;
-  secondary_advice_ur: string;
-  critical_nutrient: string;
-  water_recommendation: string;
-  weed_management: string;
+  summary_text_en?: string;
+  summary_text_ur?: string;
+  irrigation_advice_en?: string;
+  irrigation_advice_ur?: string;
+  nutrient_advice_en?: string;
+  nutrient_advice_ur?: string;
+  risk_alerts?: Array<{ type?: string; title: string; desc: string } | string>;
+  audio_script_ur?: string;
+  primary_action?: string;
+  primary_action_ur?: string;
+  secondary_advice?: string;
+  secondary_advice_ur?: string;
+  critical_nutrient?: string;
+  water_recommendation?: string;
+  weed_management?: string;
 }
 
 // ==========================================

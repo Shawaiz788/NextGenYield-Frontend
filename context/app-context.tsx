@@ -45,24 +45,65 @@ export function mapBackendFieldToFieldData(
     } catch (_) {}
   }
 
+  const isCycleActive = Boolean(
+    bf.cycle_status === 'active' ||
+    (bf.current_cycle_id && bf.current_cycle_id !== '') ||
+    existing?.cycleStatus === 'active'
+  );
+
+  const wheatVariety =
+    bf.wheat_variety ||
+    existing?.wheatVariety ||
+    (isCycleActive ? 'Akbar-2019' : 'Unplanted');
+
+  const sowingDate =
+    bf.sowing_date ||
+    existing?.sowingDate ||
+    (isCycleActive ? 'In Season' : 'Not Started');
+
+  const stageIndex =
+    typeof bf.current_stage_index === 'number'
+      ? bf.current_stage_index
+      : (existing?.currentStageIndex ?? 0);
+
+  const daysAfterSowing =
+    typeof bf.days_after_sowing === 'number'
+      ? bf.days_after_sowing
+      : existing?.daysAfterSowing;
+
+  const defaultAdvisory = isCycleActive
+    ? (DETERMINISTIC_ADVISORY[stageIndex] || DETERMINISTIC_ADVISORY[0])
+    : {
+        summary: 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
+        irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
+        nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
+        riskAlerts: ['Ensure soil moisture check before sowing.'],
+        actionRequired: true,
+      };
+
+  const currentAdv = existing?.advisory;
+  const isAdvisoryStalePreSowing = isCycleActive && currentAdv?.irrigationGuidance?.includes('pre-sowing');
+  const resolvedAdvisory = (!currentAdv || isAdvisoryStalePreSowing) ? defaultAdvisory : currentAdv;
+
   return {
     id: bf.field_id,
     code: bf.field_code || 'PK-FSD-01',
     displayName: bf.field_name,
     areaAcres: bf.area_acres,
     areaSqm: bf.area_acres * 4046.86,
-    wheatVariety: existing?.wheatVariety || (bf.current_cycle_id ? 'Akbar-2019' : 'Unplanted'),
-    seedCompany: existing?.seedCompany || '',
-    fertilizerCompany: existing?.fertilizerCompany || '',
-    sowingDate: existing?.sowingDate || (bf.current_cycle_id ? 'In Season' : 'Not Started'),
+    wheatVariety,
+    seedCompany: bf.seed_company || existing?.seedCompany || '',
+    fertilizerCompany: bf.fertilizer_company || existing?.fertilizerCompany || '',
+    sowingDate,
     sowingMethod: existing?.sowingMethod || 'Drill Sowing (9 inch)',
     soilTexture: bf.soil_texture || 'Sandy Loam',
     district: 'Faisalabad',
-    currentStageIndex: existing?.currentStageIndex ?? 0,
+    currentStageIndex: stageIndex,
+    daysAfterSowing,
     stageConfidence: existing?.stageConfidence ?? 0.0,
     lastUpdated: existing?.lastUpdated || 'Recently updated',
     isUserField: true,
-    cycleStatus: (existing?.cycleStatus || (bf.current_cycle_id ? 'active' : 'not_started')) as any,
+    cycleStatus: (isCycleActive ? 'active' : 'not_started') as any,
     yieldReturnKgSqm: existing?.yieldReturnKgSqm || 0.0,
     yieldMaundsPerAcre: existing?.yieldMaundsPerAcre || 0.0,
     coordinates: { latitude: lat, longitude: lng },
@@ -75,15 +116,7 @@ export function mapBackendFieldToFieldData(
     history: existing?.history || [],
     fertilizerPlan: existing?.fertilizerPlan || [],
     irrigationPlan: existing?.irrigationPlan || [],
-    advisory: existing?.advisory || {
-      summary: bf.current_cycle_id
-        ? 'Active wheat crop cycle in progress.'
-        : 'Cycle not started. Field boundary is demarcated and land is prepared for sowing.',
-      irrigationGuidance: 'Perform Rauni (pre-sowing irrigation) before drilling.',
-      nutrientGuidance: 'Select your wheat seed variety and fertilizer company to start cycle tracking.',
-      riskAlerts: ['Ensure soil moisture check before sowing.'],
-      actionRequired: !bf.current_cycle_id,
-    },
+    advisory: resolvedAdvisory,
   };
 }
 
@@ -510,6 +543,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             yieldMaundsPerAcre: yieldMaunds,
             yieldReturnKgSqm: yieldKg,
             currentStageIndex: 0,
+            daysAfterSowing: 1,
             stageConfidence: 0.95,
             lastUpdated: 'Cycle started today',
             advisory: DETERMINISTIC_ADVISORY[0],

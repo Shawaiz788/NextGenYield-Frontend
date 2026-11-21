@@ -55,6 +55,7 @@ export interface FieldData {
   soilTexture: string;
   district: string;
   currentStageIndex: number;
+  daysAfterSowing?: number;
   stageConfidence: number;
   lastUpdated: string;
   isUserField: boolean;

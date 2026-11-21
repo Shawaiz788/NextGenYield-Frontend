@@ -17,6 +17,24 @@ import { useStartCropCycleMutation } from '@/hooks/use-crop-cycles';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 import { logger } from '@/services/logger';
 
+function formatDateForDisplay(d: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(d.getDate()).padStart(2, '0');
+  const mon = months[d.getMonth()];
+  const yr = d.getFullYear();
+  return `${day} ${mon} ${yr}`;
+}
+
+function getTodayFormatted(): string {
+  return formatDateForDisplay(new Date());
+}
+
+function getDaysAgoFormatted(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return formatDateForDisplay(d);
+}
+
 function normalizeToIsoDate(dateStr: string): string {
   const trimmed = dateStr.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -72,7 +90,7 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
 
   const [selectedSeedCompany, setSelectedSeedCompany] = useState('Punjab Seed Corporation (PSC)');
   const [selectedFertilizerCompany, setSelectedFertilizerCompany] = useState('FFC (Fauji Fertilizer Company)');
-  const [sowingDate, setSowingDate] = useState('02 Oct 2026');
+  const [sowingDate, setSowingDate] = useState(() => getTodayFormatted());
   const [sowingMethod, setSowingMethod] = useState('Drill Sowing (9 inch)');
   const [targetYield, setTargetYield] = useState('55');
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'success'>('idle');
@@ -305,6 +323,33 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
                     placeholder="e.g. 02 Oct 2026"
                     style={styles.textInput}
                   />
+                  {/* Quick Preset Buttons */}
+                  <View style={styles.quickDateRow}>
+                    <TouchableOpacity
+                      onPress={() => setSowingDate(getTodayFormatted())}
+                      style={[styles.quickDatePill, sowingDate === getTodayFormatted() && styles.quickDatePillActive]}
+                      activeOpacity={0.7}>
+                      <Text style={[styles.quickDateText, sowingDate === getTodayFormatted() && styles.quickDateTextActive]}>
+                        {language === 'ur' ? 'آج' : 'Today'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSowingDate(getDaysAgoFormatted(15))}
+                      style={[styles.quickDatePill, sowingDate === getDaysAgoFormatted(15) && styles.quickDatePillActive]}
+                      activeOpacity={0.7}>
+                      <Text style={[styles.quickDateText, sowingDate === getDaysAgoFormatted(15) && styles.quickDateTextActive]}>
+                        {language === 'ur' ? '15 دن قبل' : '15d ago'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSowingDate(getDaysAgoFormatted(30))}
+                      style={[styles.quickDatePill, sowingDate === getDaysAgoFormatted(30) && styles.quickDatePillActive]}
+                      activeOpacity={0.7}>
+                      <Text style={[styles.quickDateText, sowingDate === getDaysAgoFormatted(30) && styles.quickDateTextActive]}>
+                        {language === 'ur' ? '30 دن قبل' : '30d ago'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputSubLabel}>{language === 'ur' ? 'ہدف پیداوار (من)' : 'Target Yield (Maunds/Ac)'}</Text>
@@ -621,6 +666,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0F172A',
     fontWeight: '600',
+  },
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+  },
+  quickDatePill: {
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 6,
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+  },
+  quickDatePillActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+  },
+  quickDateText: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  quickDateTextActive: {
+    color: '#15803D',
   },
   methodChip: {
     paddingVertical: 7,

@@ -82,7 +82,12 @@ export default function DashboardScreen() {
   const activeFields = React.useMemo(() => {
     if (fields.length > 0) return fields;
     if (backendFields && backendFields.length > 0) {
-      return backendFields.map((bf) => mapBackendFieldToFieldData(bf));
+      return backendFields.map((bf) =>
+        mapBackendFieldToFieldData(
+          bf,
+          fields.find((f) => f.id === bf.field_id)
+        )
+      );
     }
     return [];
   }, [fields, backendFields]);
@@ -135,23 +140,57 @@ export default function DashboardScreen() {
     return selectedField?.history || [];
   }, [cycleObservations, selectedField?.history, language]);
 
+  const computedDas = React.useMemo(() => {
+    const rawDate =
+      activeCycle?.sowing_date ||
+      (selectedField?.sowingDate &&
+      selectedField.sowingDate !== 'In Season' &&
+      selectedField.sowingDate !== 'Not Started'
+        ? selectedField.sowingDate
+        : null);
+
+    if (rawDate) {
+      const sowingTime = new Date(rawDate).getTime();
+      if (!isNaN(sowingTime)) {
+        const diffDays = Math.max(1, Math.floor((Date.now() - sowingTime) / (1000 * 60 * 60 * 24)) + 1);
+        const das = Math.min(diffDays, 140);
+        const pct = Math.max(1, Math.min(100, Math.round((das / 140) * 100)));
+        return { das, pct, label: `Day ${das} / 140 (${pct}%)` };
+      }
+    }
+
+    if (selectedField?.daysAfterSowing && selectedField.daysAfterSowing > 0) {
+      const das = Math.min(selectedField.daysAfterSowing, 140);
+      const pct = Math.max(1, Math.min(100, Math.round((das / 140) * 100)));
+      return { das, pct, label: `Day ${das} / 140 (${pct}%)` };
+    }
+
+    if (isCycleActive) {
+      const stageTypicalDas = [15, 45, 75, 95, 115, 135][inspectedStageIndex ?? selectedField?.currentStageIndex ?? 0] || 15;
+      const pct = Math.round((stageTypicalDas / 140) * 100);
+      return { das: stageTypicalDas, pct, label: `Day ${stageTypicalDas} / 140 (${pct}%)` };
+    }
+
+    return { das: 1, pct: 1, label: 'Day 1 / 140 (1%)' };
+  }, [activeCycle?.sowing_date, selectedField?.sowingDate, selectedField?.daysAfterSowing, isCycleActive, inspectedStageIndex, selectedField?.currentStageIndex]);
+
   const activeStageIndex = React.useMemo(() => {
     if (timelineObservations.length > 0) {
       return timelineObservations[0].stageIndex;
     }
-    return selectedField?.currentStageIndex || 0;
-  }, [timelineObservations, selectedField?.currentStageIndex]);
-
-  const computedDas = React.useMemo(() => {
-    if (activeCycle?.sowing_date) {
-      const sowingTime = new Date(activeCycle.sowing_date).getTime();
-      const diffDays = Math.max(1, Math.floor((Date.now() - sowingTime) / (1000 * 60 * 60 * 24)));
-      const das = Math.min(diffDays, 140);
-      const pct = Math.round((das / 140) * 100);
-      return { das, pct, label: `Day ${das} / 140 (${pct}%)` };
+    if (selectedField?.currentStageIndex !== undefined && selectedField?.currentStageIndex !== null && selectedField.currentStageIndex > 0) {
+      return selectedField.currentStageIndex;
     }
-    return { das: 1, pct: 1, label: 'Day 1 / 140 (1%)' };
-  }, [activeCycle?.sowing_date]);
+    if (isCycleActive && computedDas.das > 0) {
+      if (computedDas.das <= 35) return 0;
+      if (computedDas.das <= 65) return 1;
+      if (computedDas.das <= 85) return 2;
+      if (computedDas.das <= 105) return 3;
+      if (computedDas.das <= 125) return 4;
+      return 5;
+    }
+    return selectedField?.currentStageIndex || 0;
+  }, [timelineObservations, selectedField?.currentStageIndex, isCycleActive, computedDas.das]);
 
   const currentStage = STAGE_CONFIG[activeStageIndex];
   const displayedStageIndex = inspectedStageIndex !== null ? inspectedStageIndex : activeStageIndex;
@@ -644,7 +683,7 @@ export default function DashboardScreen() {
                 {t.whatToDoNow}
               </Text>
               <Text style={[styles.sectionSub, { fontSize: 12 * fontMultiplier }]}>
-                {t.guidanceFor} {stageNames[selectedField.currentStageIndex]}
+                {t.guidanceFor} {stageNames[displayedStageIndex]}
               </Text>
             </View>
 
@@ -652,22 +691,23 @@ export default function DashboardScreen() {
             <TouchableOpacity
               onPress={() => {
                 const isUrdu = language === 'ur';
-                const stageTitle = stageNames[selectedField.currentStageIndex] || 'Wheat';
+                const stageTitle = stageNames[displayedStageIndex] || 'Wheat';
 
                 const irrigationText = isUrdu
-                  ? 'گوبھ کا مرحلہ پانی کے لیے نہایت اہم ہے۔ زمین میں نمی برقرار رکھیں تاکہ سٹے میں دانوں کی تعداد کم نہ ہو۔'
-                  : (activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance);
+                  ? (activeStageRule?.irrigation_advice_ur || activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance)
+                  : (activeStageRule?.irrigation_advice_en || activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance);
 
                 const fertilizerText = isUrdu
-                  ? 'اس مرحلے پر یوریا کھاد کا اضافی استعمال مت کریں تاکہ پودا گرنے سے محفوظ رہے، اور جھنڈا پتے کی صحت کا خیال رکھیں۔'
-                  : (activeStageRule ? `${activeStageRule.critical_nutrient}. ${activeStageRule.primary_action}` : selectedField.advisory.nutrientGuidance);
+                  ? (activeStageRule?.nutrient_advice_ur || selectedField.advisory.nutrientGuidance)
+                  : (activeStageRule?.nutrient_advice_en || (activeStageRule?.critical_nutrient && activeStageRule?.critical_nutrient !== 'undefined' ? `${activeStageRule.critical_nutrient} — ${activeStageRule.primary_action}` : null) || selectedField.advisory.nutrientGuidance);
 
-                const diseaseText = isUrdu
-                  ? 'پتوں پر زرد کنگی کا معائنہ کریں اور صبح کی دھند میں روزانہ چیک کریں۔'
+                const diseaseAlert = activeStageRule?.risk_alerts?.[0];
+                const diseaseText = diseaseAlert
+                  ? (typeof diseaseAlert === 'string' ? diseaseAlert : (diseaseAlert.desc || diseaseAlert.title))
                   : (selectedField.advisory.riskAlerts?.[0] || 'Inspect leaves for early rust spots.');
 
                 const fullSpeech = isUrdu
-                  ? `فصل کا مرحلہ: ${stageTitle}۔ آبپاشی کی رہنمائی: ${irrigationText}۔ کھاد کا مشورہ: ${fertilizerText}۔ بیماری سے بچاؤ: ${diseaseText}`
+                  ? (activeStageRule?.audio_script_ur || `فصل کا مرحلہ: ${stageTitle}۔ آبپاشی کی رہنمائی: ${irrigationText}۔ کھاد کا مشورہ: ${fertilizerText}۔ بیماری سے بچاؤ: ${diseaseText}`)
                   : `Current growth stage: ${stageTitle}. Water advice: ${irrigationText}. Fertilizer advice: ${fertilizerText}. Disease watch: ${diseaseText}`;
 
                 playAudio('dashboard_advice', fullSpeech);
@@ -701,8 +741,8 @@ export default function DashboardScreen() {
               </View>
               <Text style={[styles.adviceBody, { fontSize: 13 * fontMultiplier, lineHeight: 19 * fontMultiplier }]}>
                 {language === 'ur'
-                  ? 'گوبھ کا مرحلہ پانی کے لیے نہایت اہم ہے۔ زمین میں نمی برقرار رکھیں تاکہ سٹے میں دانوں کی تعداد کم نہ ہو۔'
-                  : (activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance)}
+                  ? (activeStageRule?.irrigation_advice_ur || activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance)
+                  : (activeStageRule?.irrigation_advice_en || activeStageRule?.water_recommendation || selectedField.advisory.irrigationGuidance)}
               </Text>
             </View>
 
@@ -721,8 +761,8 @@ export default function DashboardScreen() {
               </View>
               <Text style={[styles.adviceBody, { fontSize: 13 * fontMultiplier, lineHeight: 19 * fontMultiplier }]}>
                 {language === 'ur'
-                  ? 'اس مرحلے پر یوریا کھاد کا اضافی استعمال مت کریں تاکہ پودا گرنے سے محفوظ رہے، اور جھنڈا پتے کی صحت کا خیال رکھیں۔'
-                  : (activeStageRule ? `${activeStageRule.critical_nutrient} — ${activeStageRule.primary_action}` : selectedField.advisory.nutrientGuidance)}
+                  ? (activeStageRule?.nutrient_advice_ur || selectedField.advisory.nutrientGuidance)
+                  : (activeStageRule?.nutrient_advice_en || (activeStageRule?.critical_nutrient && activeStageRule?.critical_nutrient !== 'undefined' ? `${activeStageRule.critical_nutrient} — ${activeStageRule.primary_action}` : null) || selectedField.advisory.nutrientGuidance)}
               </Text>
             </View>
 
@@ -740,9 +780,16 @@ export default function DashboardScreen() {
                 </View>
               </View>
               <Text style={[styles.adviceBody, { fontSize: 13 * fontMultiplier, lineHeight: 19 * fontMultiplier }]}>
-                {language === 'ur'
-                  ? 'پتوں پر زرد کنگی (دھبے / پاؤڈر) کا معائنہ کریں اور صبح کی دھند میں روزانہ چیک کریں۔'
-                  : selectedField.advisory.riskAlerts[0]}
+                {(() => {
+                  const alertItem = activeStageRule?.risk_alerts?.[0];
+                  if (alertItem) {
+                    if (typeof alertItem === 'string') return alertItem;
+                    return alertItem.desc ? `${alertItem.title}: ${alertItem.desc}` : alertItem.title;
+                  }
+                  return language === 'ur'
+                    ? 'پتوں پر زرد کنگی (دھبے / پاؤڈر) کا معائنہ کریں اور صبح کی دھند میں روزانہ چیک کریں۔'
+                    : (selectedField.advisory.riskAlerts?.[0] || 'Inspect leaves for early rust spots.');
+                })()}
               </Text>
             </View>
           </View>
