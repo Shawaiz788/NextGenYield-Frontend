@@ -60,17 +60,101 @@ export default function BestPracticeShowcaseScreen() {
       const yieldKg = item.yield_kg_sqm || parseFloat((actualYield * 0.0098).toFixed(2));
       const code = item.field_code || `PK-${regionClean}-0${idx + 1}`;
 
-      const cycleEvents: CropCycleEvent[] = Array.isArray(item.cycle_event_log)
-        ? item.cycle_event_log.map((ev: any, evIdx: number) => ({
-            day: typeof ev?.day === 'number' ? ev.day : evIdx * 20,
-            date: ev?.date || `Day ${typeof ev?.day === 'number' ? ev.day : evIdx * 20}`,
-            stageName: ev?.stageName || 'Milestone',
-            title: ev?.title || ev?.event || 'Agronomic Event',
-            category: (['water', 'fertilizer', 'filter', 'sow', 'harvest'].includes(ev?.category) ? ev.category : 'fertilizer') as CropCycleEvent['category'],
-            companyOrSource: ev?.companyOrSource || item.fertilizer_company || 'Standard',
-            description: ev?.description || ev?.event || 'Recommended milestone management practice.',
-          }))
+      const inferStageAndCategory = (
+        day: number,
+        text: string
+      ): { stageName: string; category: CropCycleEvent['category'] } => {
+        const lower = text.toLowerCase();
+        let category: CropCycleEvent['category'] = 'fertilizer';
+        if (day === 0 || lower.includes('sow') || lower.includes('plant') || lower.includes('drill')) {
+          category = 'sow';
+        } else if (day >= 135 || lower.includes('harvest') || lower.includes('combine')) {
+          category = 'harvest';
+        } else if (lower.includes('weed') || lower.includes('rust') || lower.includes('spray') || lower.includes('fungicide')) {
+          category = 'filter';
+        } else if (lower.includes('irrigat') || lower.includes('water') || lower.includes('cri')) {
+          category = 'water';
+        }
+
+        let stageName = 'Tillering';
+        if (day === 0) stageName = 'Sowing';
+        else if (day <= 35) stageName = 'Tillering (CRI)';
+        else if (day <= 65) stageName = 'Jointing';
+        else if (day <= 85) stageName = 'Booting';
+        else if (day <= 105) stageName = 'Flowering / Anthesis';
+        else if (day <= 128) stageName = 'Grain Filling';
+        else stageName = 'Maturity & Harvest';
+
+        return { stageName, category };
+      };
+
+      const formatDayDate = (sowDateStr: string | null | undefined, offsetDays: number): string => {
+        if (!sowDateStr) return `Day ${offsetDays}`;
+        const parsed = new Date(sowDateStr);
+        if (isNaN(parsed.getTime())) return `Day ${offsetDays}`;
+        const target = new Date(parsed.getTime() + offsetDays * 86400000);
+        return target.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      };
+
+      // Filter out submission metadata objects (which have submitted_by_user_id or no event/day)
+      const rawEvents = Array.isArray(item.cycle_event_log)
+        ? item.cycle_event_log.filter(
+            (ev: any) =>
+              ev &&
+              typeof ev === 'object' &&
+              !ev.submitted_by_user_id &&
+              (typeof ev.day === 'number' || typeof ev.event === 'string' || typeof ev.title === 'string')
+          )
         : [];
+
+      const mappedEvents: CropCycleEvent[] = rawEvents.map((ev: any, evIdx: number) => {
+        const dayNum = typeof ev?.day === 'number' ? ev.day : evIdx * 20;
+        const eventText = ev?.title || ev?.event || 'Agronomic Milestone';
+        const inferred = inferStageAndCategory(dayNum, eventText);
+        return {
+          day: dayNum,
+          date: ev?.date || formatDayDate(item.sowing_date, dayNum),
+          stageName: ev?.stageName || inferred.stageName,
+          title: eventText,
+          category: (['water', 'fertilizer', 'filter', 'sow', 'harvest'].includes(ev?.category)
+            ? ev.category
+            : inferred.category) as CropCycleEvent['category'],
+          companyOrSource: ev?.companyOrSource || item.fertilizer_company || 'Standard Agronomic Practice',
+          description: ev?.description || ev?.event || 'Recommended milestone management practice.',
+        };
+      });
+
+      // Ensure every showcase displays a complete 140-day wheat lifecycle even for sparse user submissions
+      const standardMilestones: Array<{ day: number; title: string; description: string }> = [
+        { day: 0, title: `Drill Sowing (${item.wheat_variety}) + Basal DAP`, description: `Sowed ${item.wheat_variety} @ 50 kg/acre with 1 bag DAP basal application.` },
+        { day: 22, title: '1st Irrigation (CRI) + 1st Urea Topdress', description: 'Crown Root Initiation watering accompanied by 1 bag Urea/acre for strong tillering.' },
+        { day: 45, title: 'Broadleaf & Grassy Weed Control', description: 'Post-emergence selective herbicide inspection and field sanitation.' },
+        { day: 55, title: '2nd Irrigation (Jointing) + Urea & Zinc', description: 'Stem elongation irrigation with remaining split Urea and Zinc Sulphate.' },
+        { day: 78, title: 'Booting Irrigation + Foliar Potash', description: 'Critical moisture maintenance at booting with Potassium/Boron foliar boost.' },
+        { day: 96, title: 'Anthesis / Flowering Rust Monitoring', description: 'Calm-weather moisture check and Yellow Stripe Rust canopy inspection.' },
+        { day: 118, title: 'Final Light Grain-Filling Irrigation', description: 'Milk-to-soft-dough watering to prevent terminal heat kernel shriveling.' },
+        { day: 140, title: `Combine Harvest @ ${actualYield} Maunds/Acre`, description: `Harvested at <12% grain moisture achieving ${actualYield} maunds/acre.` },
+      ];
+
+      let cycleEvents: CropCycleEvent[] = [...mappedEvents];
+      if (cycleEvents.length < 5) {
+        for (const std of standardMilestones) {
+          const alreadyHasNearDay = cycleEvents.some((e) => Math.abs(e.day - std.day) <= 8);
+          if (!alreadyHasNearDay) {
+            const inferred = inferStageAndCategory(std.day, std.title);
+            cycleEvents.push({
+              day: std.day,
+              date: formatDayDate(item.sowing_date, std.day),
+              stageName: inferred.stageName,
+              title: std.title,
+              category: inferred.category,
+              companyOrSource: std.day === 0 ? (item.seed_company || 'Punjab Seed Corp') : (item.fertilizer_company || 'FFC / Engro'),
+              description: std.description,
+            });
+          }
+        }
+      }
+      cycleEvents.sort((a, b) => a.day - b.day);
 
       return {
         rank: idx + 1,
