@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,8 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -176,6 +178,85 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
   const [offerStatus, setOfferStatus] = useState<'idle' | 'sending' | 'success'>('idle');
 
   const currentStep = PREP_STEPS[activeStepIndex];
+
+  // Smooth 60fps native-driver animations for stage visuals
+  const glideAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const glideLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glideAnim, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glideAnim, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const spinLoop = Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 2600,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    glideLoop.start();
+    pulseLoop.start();
+    spinLoop.start();
+
+    return () => {
+      glideLoop.stop();
+      pulseLoop.stop();
+      spinLoop.stop();
+    };
+  }, [visible, glideAnim, pulseAnim, spinAnim]);
+
+  const tractorTranslateX = glideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-28, 28],
+  });
+  const waterBobY = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-6, 6],
+  });
+  const beaconScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.88, 1.25],
+  });
+  const rotavatorSpin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   // TanStack Queries & Mutations
   const machineryQuery = useMachineryListingsQuery({
@@ -360,6 +441,99 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
 
             {/* Card Body */}
             <View style={styles.stageCardBody}>
+              {/* Animated Stage Illustration Banner */}
+              <View style={[styles.animatedVisualBanner, { borderColor: currentStep.color + '30' }]}>
+                {activeStepIndex === 0 ? (
+                  /* Stage 1: Animated Deep Plowing & Soil Cross-Section */
+                  <View style={styles.plowVisualWrap}>
+                    <Animated.View style={{ transform: [{ translateX: tractorTranslateX }], marginBottom: 4 }}>
+                      <MaterialCommunityIcons name="tractor" size={34} color="#D97706" />
+                    </Animated.View>
+                    <View style={styles.soilLayersBox}>
+                      <View style={styles.soilLayerTop}>
+                        <Text style={styles.soilLayerTopText}>Topsoil (0–15 cm)</Text>
+                      </View>
+                      <View style={styles.soilLayerPan}>
+                        <Text style={styles.soilLayerPanText}>Broken Hardpan (25–30 cm)</Text>
+                      </View>
+                      <View style={styles.soilLayerSub}>
+                        <Text style={styles.soilLayerSubText}>Deep Root Zone (up to 1.5 m)</Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : activeStepIndex === 1 ? (
+                  /* Stage 2: Animated Laser Land Leveling */
+                  <View style={styles.laserVisualWrap}>
+                    <View style={styles.laserCaptionPill}>
+                      <Text style={styles.laserCaptionText}>
+                        {isUrdu ? 'لیزر سگنل · ۱۰۰٪ ہموار زمین' : 'Dual-Slope Laser · 0% Waterlogging'}
+                      </Text>
+                    </View>
+                    <View style={styles.laserSceneRow}>
+                      <View style={styles.laserMastWrap}>
+                        <Animated.View style={[styles.laserBeaconDot, { transform: [{ scale: beaconScale }] }]} />
+                        <View style={styles.laserMastStick} />
+                      </View>
+                      <View style={styles.laserBeamTrack}>
+                        <Animated.View style={[styles.laserBeamPulse, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] }) }]} />
+                        <Animated.View style={[styles.laserTractorAnimated, { transform: [{ translateX: tractorTranslateX }] }]}>
+                          <MaterialCommunityIcons name="tractor" size={42} color="#16A34A" />
+                          <View style={styles.scraperBladeBar} />
+                        </Animated.View>
+                      </View>
+                    </View>
+                    <View style={styles.groundLevelTrack} />
+                  </View>
+                ) : activeStepIndex === 2 ? (
+                  /* Stage 3: Animated Rauni Irrigation */
+                  <View style={styles.rauniVisualWrap}>
+                    <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
+                      <Animated.View style={{ transform: [{ translateY: waterBobY }] }}>
+                        <Ionicons name="water" size={26} color="#3B82F6" />
+                      </Animated.View>
+                      <Animated.View style={{ transform: [{ scale: beaconScale }] }}>
+                        <MaterialCommunityIcons name="water" size={44} color="#2563EB" />
+                      </Animated.View>
+                      <Animated.View style={{ transform: [{ translateY: waterBobY }] }}>
+                        <Ionicons name="water" size={26} color="#3B82F6" />
+                      </Animated.View>
+                    </View>
+                    <Text style={styles.rauniCaptionText}>
+                      {isUrdu ? '۳ تا ۴ انچ گہرا رونی پانی · مٹی میں وافر نمی' : '3–4 Inch Rauni Soaking Saturates Root Profile'}
+                    </Text>
+                  </View>
+                ) : activeStepIndex === 3 ? (
+                  /* Stage 4: Animated Rotavator Tilling */
+                  <View style={styles.rotavatorVisualWrap}>
+                    <Animated.View style={{ transform: [{ rotate: rotavatorSpin }] }}>
+                      <MaterialCommunityIcons name="rotate-3d-variant" size={50} color="#7C3AED" />
+                    </Animated.View>
+                    <Text style={styles.rotavatorCaptionText}>
+                      {isUrdu ? 'وتر حالت میں باریک اور نرم بیج کی تیاری' : '48-Blade Rotary Tiller · Fine Crumb Seedbed'}
+                    </Text>
+                  </View>
+                ) : (
+                  /* Stage 5: Animated Precision Seed Drilling */
+                  <View style={styles.drillVisualWrap}>
+                    <Animated.View style={{ transform: [{ translateX: tractorTranslateX }], flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <MaterialCommunityIcons name="tractor" size={38} color="#EA580C" />
+                      <MaterialCommunityIcons name="seed" size={26} color="#16A34A" />
+                    </Animated.View>
+                    <View style={styles.drillRowsTrack}>
+                      {[1, 2, 3, 4, 5].map((dot) => (
+                        <Animated.View
+                          key={dot}
+                          style={[styles.drillSeedDot, { transform: [{ scale: beaconScale }] }]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.drillCaptionText}>
+                      {isUrdu ? '۲۲ سینٹی میٹر قطار · ۵۰ کلو ڈی اے پی فی ایکڑ' : '22 cm Uniform Rows · Simultaneous Basal DAP'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
               {/* Key Metric Highlight */}
               <View style={[styles.metricHighlightPill, { backgroundColor: currentStep.color + '10', borderColor: currentStep.color + '30' }]}>
                 <Ionicons name="speedometer-outline" size={16} color={currentStep.color} />
@@ -410,60 +584,61 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
               </View>
             </View>
           </View>
+        </ScrollView>
 
-          {/* Single Unified Machinery Rental CTA */}
+        {/* Sticky Bottom Dock: Always-Visible Rent Machinery CTA + Navigation */}
+        <View style={styles.stickyFooterDock}>
           <TouchableOpacity
             style={styles.rentMachineryCta}
             activeOpacity={0.85}
             onPress={() => setIsRentalModalOpen(true)}>
             <View style={styles.rentCtaIconWrap}>
-              <MaterialCommunityIcons name="tractor" size={22} color="#16A34A" />
+              <MaterialCommunityIcons name="tractor" size={20} color="#16A34A" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rentMachineryCtaTitle}>
                 {isUrdu ? 'مشینری کرایہ پر لیں اور بک کریں' : 'Rent Machinery & Book Slot'}
               </Text>
-              <Text style={styles.rentMachineryCtaSub}>
+              <Text style={styles.rentMachineryCtaSub} numberOfLines={1}>
                 {isUrdu
                   ? 'ٹریکٹر، لیزر لیولر، روٹاویٹر اور ڈرل دستیاب ہیں'
-                  : 'Browse verified tractors, laser levelers, rotavators & drills'}
+                  : 'Tractors, laser levelers, rotavators & drills'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Sticky Bottom Navigation Bar */}
-        <View style={styles.stickyFooter}>
-          <TouchableOpacity
-            style={[styles.navBtn, activeStepIndex === 0 && { opacity: 0.4 }]}
-            disabled={activeStepIndex === 0}
-            activeOpacity={0.75}
-            onPress={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}>
-            <Ionicons name="arrow-back" size={18} color="#475569" />
-            <Text style={styles.navBtnText}>{isUrdu ? 'پچھلا' : 'Previous'}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {activeStepIndex < PREP_STEPS.length - 1 ? (
+          <View style={styles.stickyNavRow}>
             <TouchableOpacity
-              style={[styles.navBtn, styles.navBtnPrimary]}
-              activeOpacity={0.85}
-              onPress={() => setActiveStepIndex((prev) => prev + 1)}>
-              <Text style={styles.navBtnPrimaryText}>{isUrdu ? 'اگلا مرحلہ' : 'Next Stage'}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              style={[styles.navBtn, activeStepIndex === 0 && { opacity: 0.4 }]}
+              disabled={activeStepIndex === 0}
+              activeOpacity={0.75}
+              onPress={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}>
+              <Ionicons name="arrow-back" size={18} color="#475569" />
+              <Text style={styles.navBtnText}>{isUrdu ? 'پچھلا' : 'Previous'}</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.navBtn, styles.navBtnSuccess]}
-              activeOpacity={0.85}
-              onPress={() => {
-                onClose();
-                if (onStartCycle) onStartCycle();
-              }}>
-              <Text style={styles.navBtnPrimaryText}>{isUrdu ? 'فصل شروع کریں' : 'Start Crop Cycle'}</Text>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
+
+            {activeStepIndex < PREP_STEPS.length - 1 ? (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.navBtnPrimary]}
+                activeOpacity={0.85}
+                onPress={() => setActiveStepIndex((prev) => prev + 1)}>
+                <Text style={styles.navBtnPrimaryText}>{isUrdu ? 'اگلا مرحلہ' : 'Next Stage'}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.navBtnSuccess]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  onClose();
+                  if (onStartCycle) onStartCycle();
+                }}>
+                <Text style={styles.navBtnPrimaryText}>{isUrdu ? 'فصل شروع کریں' : 'Start Crop Cycle'}</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Machinery Hire & Booking Modal */}
@@ -845,7 +1020,179 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   stageCardBody: {
-    padding: 16,
+    padding: 14,
+  },
+  animatedVisualBanner: {
+    height: 136,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  plowVisualWrap: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  soilLayersBox: {
+    width: '92%',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  soilLayerTop: {
+    backgroundColor: '#92400E',
+    paddingVertical: 5,
+    alignItems: 'center',
+  },
+  soilLayerPan: {
+    backgroundColor: '#78350F',
+    paddingVertical: 5,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#F59E0B55',
+  },
+  soilLayerSub: {
+    backgroundColor: '#451A03',
+    paddingVertical: 5,
+    alignItems: 'center',
+  },
+  soilLayerTopText: {
+    color: '#FEF3C7',
+    fontSize: 10.5,
+    fontFamily: FontFamily.semiBold,
+  },
+  soilLayerPanText: {
+    color: '#FDE68A',
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
+  },
+  soilLayerSubText: {
+    color: '#D6D3D1',
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+  },
+  laserVisualWrap: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  laserCaptionPill: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  laserCaptionText: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#0F172A',
+  },
+  laserSceneRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    flex: 1,
+  },
+  laserMastWrap: {
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  laserBeaconDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
+  },
+  laserMastStick: {
+    width: 3,
+    height: 44,
+    backgroundColor: '#64748B',
+  },
+  laserBeamTrack: {
+    flex: 1,
+    height: 56,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  laserBeamPulse: {
+    position: 'absolute',
+    top: 5,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#EF4444',
+  },
+  laserTractorAnimated: {
+    alignItems: 'center',
+  },
+  scraperBladeBar: {
+    width: 48,
+    height: 5,
+    backgroundColor: '#334155',
+    borderRadius: 2,
+    marginTop: -2,
+  },
+  groundLevelTrack: {
+    height: 4,
+    backgroundColor: '#16A34A',
+    borderRadius: 2,
+    marginHorizontal: 8,
+  },
+  rauniVisualWrap: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  rauniCaptionText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#1E40AF',
+    textAlign: 'center',
+  },
+  rotavatorVisualWrap: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  rotavatorCaptionText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#5B21B6',
+    textAlign: 'center',
+  },
+  drillVisualWrap: {
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  drillRowsTrack: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 18,
+    width: '80%',
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  drillSeedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#16A34A',
+  },
+  drillCaptionText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#9A3412',
+    textAlign: 'center',
   },
   metricHighlightPill: {
     flexDirection: 'row',
@@ -932,45 +1279,48 @@ const styles = StyleSheet.create({
     color: '#166534',
     lineHeight: 18,
   },
+  stickyFooterDock: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 10,
+  },
   rentMachineryCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 16,
+    gap: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     backgroundColor: '#16A34A',
-    ...CardStyle,
   },
   rentCtaIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rentMachineryCtaTitle: {
     color: '#FFFFFF',
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontFamily: FontFamily.bold,
   },
   rentMachineryCtaSub: {
     color: '#DCFCE7',
-    fontSize: 11.5,
+    fontSize: 11,
     fontFamily: FontFamily.medium,
-    marginTop: 2,
+    marginTop: 1,
   },
-  stickyFooter: {
+  stickyNavRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    gap: 10,
   },
   navBtn: {
     flex: 1,
