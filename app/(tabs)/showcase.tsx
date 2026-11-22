@@ -32,7 +32,9 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
   const { peerShowcase, adoptedPlaybooks, adoptPlaybook, selectedField, t, language, fontMultiplier } = useApp();
 
   const [varietyFilter, setVarietyFilter] = useState<'all' | 'Akbar-2019' | 'Dilkash-20'>('all');
-  const [expandedId, setExpandedId] = useState<string | null>('peer_field_01');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 5;
+  const [expandedId, setExpandedId] = useState<string | null>('sc_01');
   const [adoptingField, setAdoptingField] = useState<PeerShowcaseField | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showcaseQuery = useShowcasePostsQuery();
@@ -183,7 +185,17 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
       };
     });
 
-    return [...backendItems, ...peerShowcase.filter((p) => !backendItems.some((b) => b.fieldId === p.fieldId))];
+    const merged = [
+      ...backendItems,
+      ...peerShowcase.filter(
+        (p) => !backendItems.some((b) => b.fieldId === p.fieldId || b.code === p.code)
+      ),
+    ];
+
+    return merged
+      .sort((a, b) => b.yieldMaundsPerAcre - a.yieldMaundsPerAcre)
+      .slice(0, 10)
+      .map((item, idx) => ({ ...item, rank: idx + 1 }));
   }, [showcaseQuery.data, peerShowcase]);
 
   const handleSubmitShowcase = async () => {
@@ -232,6 +244,10 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
     if (varietyFilter === 'all') return true;
     return f.wheatVariety === varietyFilter;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPosts = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleAdopt = (field: PeerShowcaseField) => {
     adoptPlaybook(field.fieldId);
@@ -322,7 +338,10 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
             ].map((f) => (
               <TouchableOpacity
                 key={f.key}
-                onPress={() => setVarietyFilter(f.key)}
+                onPress={() => {
+                  setVarietyFilter(f.key);
+                  setCurrentPage(1);
+                }}
                 style={[styles.filterChip, varietyFilter === f.key && styles.filterChipActive]}
                 activeOpacity={0.7}>
                 <Text style={[styles.filterChipText, varietyFilter === f.key && styles.filterChipTextActive]}>
@@ -372,7 +391,21 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
             style={{ marginHorizontal: 0, marginBottom: 12 }}
           />
         )}
-        {filtered.map((item) => {
+        {filtered.length > 0 && (
+          <View style={styles.resultsSummaryRow}>
+            <Text style={styles.resultsSummaryText}>
+              {language === 'ur'
+                ? `ٹاپ ${filtered.length} کامیاب پیداواری ریکارڈز`
+                : `Showing ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} of Top ${filtered.length} yields`}
+            </Text>
+            {totalPages > 1 && (
+              <Text style={styles.resultsPageText}>
+                {language === 'ur' ? `صفحہ ${safePage} / ${totalPages}` : `Page ${safePage} of ${totalPages}`}
+              </Text>
+            )}
+          </View>
+        )}
+        {paginatedPosts.map((item) => {
           const isAdopted = adoptedPlaybooks.includes(item.fieldId);
           const isExpanded = expandedId === item.fieldId;
 
@@ -542,6 +575,39 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
             </View>
           );
         })}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <View style={styles.paginationBar}>
+            <TouchableOpacity
+              disabled={safePage <= 1}
+              style={[styles.pageBtn, safePage <= 1 && styles.pageBtnDisabled]}
+              onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={16} color={safePage <= 1 ? '#CBD5E1' : '#0F172A'} />
+              <Text style={[styles.pageBtnText, safePage <= 1 && styles.pageBtnTextDisabled]}>
+                {language === 'ur' ? 'پچھلا' : 'Previous'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.pageIndicatorPill}>
+              <Text style={styles.pageIndicatorText}>
+                {language === 'ur' ? `صفحہ ${safePage} از ${totalPages}` : `Page ${safePage} of ${totalPages}`}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              disabled={safePage >= totalPages}
+              style={[styles.pageBtn, safePage >= totalPages && styles.pageBtnDisabled]}
+              onPress={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              activeOpacity={0.7}>
+              <Text style={[styles.pageBtnText, safePage >= totalPages && styles.pageBtnTextDisabled]}>
+                {language === 'ur' ? 'اگلا' : 'Next'}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={safePage >= totalPages ? '#CBD5E1' : '#0F172A'} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
@@ -1090,5 +1156,70 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     color: '#FFFFFF',
     fontSize: 13,
+  },
+  resultsSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  resultsSummaryText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: '#64748B',
+  },
+  resultsPageText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11.5,
+    color: '#16A34A',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  paginationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 6,
+    paddingVertical: 8,
+  },
+  pageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pageBtnDisabled: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#F1F5F9',
+  },
+  pageBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12.5,
+    color: '#0F172A',
+  },
+  pageBtnTextDisabled: {
+    color: '#CBD5E1',
+  },
+  pageIndicatorPill: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  pageIndicatorText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#15803D',
   },
 });
