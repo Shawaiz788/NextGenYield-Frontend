@@ -8,6 +8,8 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,14 +97,27 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
   const [targetYield, setTargetYield] = useState('55');
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'success'>('idle');
   const [cycleError, setCycleError] = useState<Error | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const startCycleMutation = useStartCropCycleMutation();
 
   if (!visible || !field) return null;
 
+  const isUrdu = language === 'ur';
+
   const handleConfirm = async () => {
+    if (isCustomVariety && !customVariety.trim()) {
+      setValidationError(isUrdu ? 'براہ کرم بیج کی قسم کا نام درج کریں۔' : 'Please enter a custom wheat variety name.');
+      return;
+    }
+    const yieldNum = parseFloat(targetYield);
+    if (isNaN(yieldNum) || yieldNum <= 0 || yieldNum > 150) {
+      setValidationError(isUrdu ? 'براہ کرم 1 سے 150 من فی ایکڑ کے درمیان ہدف درج کریں۔' : 'Please enter a realistic target yield (1–150 maunds/acre).');
+      return;
+    }
+    setValidationError(null);
+
     const varietyToUse = isCustomVariety && customVariety.trim() ? customVariety.trim() : selectedVariety;
-    const yieldNum = parseFloat(targetYield) || 55.0;
     const isoSowingDate = normalizeToIsoDate(sowingDate);
 
     setSubmitStatus('sending');
@@ -169,9 +184,12 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
   const fieldAcres = 'acres' in field ? field.acres : field.areaAcres;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom + 20, 32) }]}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}>
+        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom + 14, 24) }]}>
+          <View style={styles.dragHandle} />
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconCircle}>
@@ -200,7 +218,11 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
             </Text>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollArea}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            keyboardShouldPersistTaps="handled">
             {/* 1. Wheat Variety (Seed) */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { fontSize: 13 * fontMultiplier }]}>
@@ -250,9 +272,13 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
               {isCustomVariety && (
                 <TextInput
                   value={customVariety}
-                  onChangeText={setCustomVariety}
+                  onChangeText={(txt) => {
+                    setCustomVariety(txt);
+                    if (validationError) setValidationError(null);
+                  }}
                   placeholder={language === 'ur' ? 'مثلاً: بھکر سٹار، اجالا 16' : 'e.g., Fakhar-e-Bhakkar, Ujala-16'}
-                  style={styles.textInput}
+                  placeholderTextColor="#94A3B8"
+                  style={[styles.textInput, { marginTop: 8 }, validationError && !customVariety.trim() && styles.textInputError]}
                 />
               )}
             </View>
@@ -321,6 +347,7 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
                     value={sowingDate}
                     onChangeText={setSowingDate}
                     placeholder="e.g. 02 Oct 2026"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                   {/* Quick Preset Buttons */}
@@ -355,10 +382,14 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
                   <Text style={styles.inputSubLabel}>{language === 'ur' ? 'ہدف پیداوار (من)' : 'Target Yield (Maunds/Ac)'}</Text>
                   <TextInput
                     value={targetYield}
-                    onChangeText={setTargetYield}
+                    onChangeText={(txt) => {
+                      setTargetYield(txt);
+                      if (validationError) setValidationError(null);
+                    }}
                     keyboardType="numeric"
                     placeholder="55"
-                    style={styles.textInput}
+                    placeholderTextColor="#94A3B8"
+                    style={[styles.textInput, validationError && (!targetYield.trim() || isNaN(parseFloat(targetYield))) && styles.textInputError]}
                   />
                 </View>
               </View>
@@ -385,6 +416,13 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
             </View>
           </ScrollView>
 
+          {validationError && (
+            <View style={styles.validationBanner}>
+              <Ionicons name="alert-circle" size={16} color="#DC2626" />
+              <Text style={styles.validationBannerText}>{validationError}</Text>
+            </View>
+          )}
+
           {cycleError && (
             <View style={{ marginBottom: 6 }}>
               <BackendReachabilityBanner
@@ -402,36 +440,45 @@ export function StartCycleModal({ visible, field, onClose, onSuccess }: StartCyc
           )}
           {/* Bottom Actions */}
           <View style={styles.footer}>
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={submitStatus === 'sending'}
+              style={styles.cancelBtn}
+              activeOpacity={0.7}>
               <Text style={styles.cancelBtnText}>{t.cancel}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleConfirm}
-              disabled={submitStatus === 'sending'}
-              style={[styles.startBtn, submitStatus === 'sending' && { opacity: 0.85 }]}
+              disabled={submitStatus !== 'idle'}
+              style={[styles.startBtn, submitStatus !== 'idle' && { opacity: 0.85 }]}
               activeOpacity={0.85}>
-              <Text style={[styles.startBtnText, { fontSize: 15 * fontMultiplier }]}>
               {submitStatus === 'sending' ? (
                 <>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
                   <Text style={[styles.startBtnText, { fontSize: 14 * fontMultiplier }]}>
                     {language === 'ur' ? 'شروع ہو رہا ہے...' : 'Activating Cycle...'}
+                  </Text>
+                </>
+              ) : submitStatus === 'success' ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.startBtnText, { fontSize: 14 * fontMultiplier }]}>
+                    {language === 'ur' ? 'دورانیہ شروع ہو گیا!' : 'Cycle Activated!'}
                   </Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="leaf" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={[styles.startBtnText, { fontSize: 15 * fontMultiplier }]}>
-                    {language === 'ur' ? 'تصدیق کریں اور فصل شروع کریں' : 'Confirm & Start Cycle'}
+                  <Text style={[styles.startBtnText, { fontSize: 14.5 * fontMultiplier }]}>
+                    {language === 'ur' ? 'تصدیق کریں اور شروع کریں' : 'Confirm & Start Cycle'}
                   </Text>
                 </>
               )}
-              </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -446,9 +493,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 18,
+    paddingTop: 10,
     paddingHorizontal: 18,
-    maxHeight: '92%',
+    maxHeight: '90%',
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   header: {
     flexDirection: 'row',
@@ -498,7 +553,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   scrollArea: {
-    maxHeight: 440,
     flexShrink: 1,
   },
   section: {
@@ -647,7 +701,7 @@ const styles = StyleSheet.create({
   },
   inlineInputs: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   inputSubLabel: {
     fontSize: 11,
@@ -662,9 +716,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     fontSize: 13,
     color: '#0F172A',
+    fontWeight: '600',
+  },
+  textInputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  validationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  validationBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#DC2626',
     fontWeight: '600',
   },
   quickDateRow: {
