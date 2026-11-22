@@ -399,8 +399,18 @@ export default function CommunityScreen() {
                     <View style={styles.commentsContainer}>
                       {commentsQuery.isLoading ? (
                         <ActivityIndicator size="small" color="#16A34A" />
+                      ) : commentsQuery.isError ? (
+                        <TouchableOpacity onPress={() => commentsQuery.refetch()} style={styles.singleComment}>
+                          <Text style={[styles.commentContent, { color: '#EF4444' }]}>
+                            {isUrdu ? 'تبصرے لوڈ نہیں ہو سکے۔ دوبارہ کوشش کے لیے ٹیپ کریں۔' : 'Could not load comments. Tap to retry.'}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : !commentsQuery.data || commentsQuery.data.length === 0 ? (
+                        <Text style={[styles.commentContent, { color: '#64748B', fontStyle: 'italic', paddingVertical: 4 }]}>
+                          {isUrdu ? 'ابھی تک کوئی تبصرہ نہیں ہے۔ پہلی رائے دیں!' : 'No comments yet. Be the first to comment!'}
+                        </Text>
                       ) : (
-                        commentsQuery.data?.map((c) => (
+                        commentsQuery.data.map((c) => (
                           <TouchableOpacity
                             key={c.comment_id}
                             style={styles.singleComment}
@@ -424,11 +434,17 @@ export default function CommunityScreen() {
                           value={commentText}
                           onChangeText={setCommentText}
                           placeholder={isUrdu ? 'اپنی رائے لکھیں...' : 'Write a comment...'}
+                          placeholderTextColor="#94A3B8"
                         />
                         <TouchableOpacity
-                          style={styles.commentSendBtn}
+                          style={[styles.commentSendBtn, addCommentMutation.isPending && { opacity: 0.6 }]}
+                          disabled={addCommentMutation.isPending}
                           onPress={() => handleSendComment(post.post_id)}>
-                          <Ionicons name="send" size={16} color="#FFFFFF" />
+                          {addCommentMutation.isPending ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <Ionicons name="send" size={16} color="#FFFFFF" />
+                          )}
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1036,6 +1052,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 12,
+    color: '#0F172A',
     backgroundColor: '#FFFFFF',
   },
   commentSendBtn: {
