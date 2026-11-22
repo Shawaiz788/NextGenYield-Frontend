@@ -156,7 +156,7 @@ interface Props {
 }
 
 export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
-  const { language, t } = useApp();
+  const { language, t, playingAudioId, playAudio, stopAudio } = useApp();
   const isUrdu = language === 'ur';
 
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -342,12 +342,39 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
     }
   };
 
+  const stageAudioId = `soil_prep_step_${currentStep.id}`;
+  const isPlayingStageAudio = playingAudioId === stageAudioId;
+
+  const handleToggleStageAudio = () => {
+    if (isPlayingStageAudio) {
+      stopAudio();
+      return;
+    }
+    const script = isUrdu
+      ? `${currentStep.titleUr}۔ ${currentStep.descUr} تجویز کردہ مشینری: ${currentStep.equipmentUr}۔ ماہر زراعت کا مشورہ: ${currentStep.tipUr}`
+      : `Stage ${currentStep.id}: ${currentStep.titleEn}. ${currentStep.descEn} Recommended equipment: ${currentStep.equipmentEn}. Agronomist tip: ${currentStep.tipEn}`;
+    playAudio(stageAudioId, script);
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={() => {
+        if (isPlayingStageAudio) stopAudio();
+        onClose();
+      }}>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header Bar */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              if (isPlayingStageAudio) stopAudio();
+              onClose();
+            }}
+            style={styles.closeBtn}>
             <Ionicons name="close" size={24} color="#0F172A" />
           </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
@@ -359,10 +386,22 @@ export function SoilPrepGuideModal({ visible, onClose, onStartCycle }: Props) {
             </Text>
           </View>
           <TouchableOpacity
-            style={styles.offerBtnTop}
-            onPress={() => setIsOfferModalOpen(true)}>
-            <MaterialCommunityIcons name="plus-circle" size={18} color="#16A34A" />
-            <Text style={styles.offerBtnText}>{isUrdu ? 'مشین دیں' : 'Rent Out'}</Text>
+            style={[
+              styles.offerBtnTop,
+              isPlayingStageAudio && { backgroundColor: '#16A34A', borderColor: '#16A34A' },
+            ]}
+            activeOpacity={0.75}
+            onPress={handleToggleStageAudio}>
+            <Ionicons
+              name={isPlayingStageAudio ? 'stop-circle' : 'volume-high'}
+              size={18}
+              color={isPlayingStageAudio ? '#FFFFFF' : '#16A34A'}
+            />
+            <Text style={[styles.offerBtnText, isPlayingStageAudio && { color: '#FFFFFF' }]}>
+              {isPlayingStageAudio
+                ? isUrdu ? 'بند کریں' : 'Stop'
+                : isUrdu ? 'آڈیو' : 'Audio'}
+            </Text>
           </TouchableOpacity>
         </View>
 
