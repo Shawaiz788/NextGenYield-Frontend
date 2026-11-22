@@ -33,6 +33,7 @@ import {
 } from '@/hooks/use-community';
 import { CommunityPostDTO, PublicUserProfileDTO, UserConnectionDTO } from '@/services/api-client';
 import { UserProfileModal } from '@/components/user-profile-modal';
+import BestPracticeShowcaseScreen from './showcase';
 
 const POST_CATEGORIES = [
   { key: 'all', labelEn: 'All Topics', labelUr: 'تمام موضوعات' },
@@ -47,7 +48,7 @@ export default function CommunityScreen() {
   const { language, t } = useApp();
   const isUrdu = language === 'ur';
 
-  const [activeSubTab, setActiveSubTab] = useState<'feed' | 'network' | 'messages'>('feed');
+  const [activeSubTab, setActiveSubTab] = useState<'feed' | 'network' | 'messages' | 'showcase'>('feed');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Create post modal state
@@ -89,6 +90,8 @@ export default function CommunityScreen() {
       setActiveSubTab('messages');
     } else if (params.subTab === 'messages') {
       setActiveSubTab('messages');
+    } else if (params.subTab === 'showcase') {
+      setActiveSubTab('showcase');
     }
   }, [params.conversationId, params.recipientName, params.recipientId, params.subTab]);
 
@@ -260,44 +263,62 @@ export default function CommunityScreen() {
 
       {/* Segmented Sub Tabs */}
       <View style={styles.subTabsRow}>
-        <TouchableOpacity
-          style={[styles.subTabItem, activeSubTab === 'feed' && styles.subTabItemActive]}
-          onPress={() => setActiveSubTab('feed')}>
-          <MaterialCommunityIcons
-            name="newspaper-variant-outline"
-            size={18}
-            color={activeSubTab === 'feed' ? '#16A34A' : '#64748B'}
-          />
-          <Text style={[styles.subTabText, activeSubTab === 'feed' && styles.subTabTextActive]}>
-            {isUrdu ? 'کمیونٹی فیڈ' : 'Feed'}
-          </Text>
-        </TouchableOpacity>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, flexDirection: 'row' }}>
+          <TouchableOpacity
+            style={[styles.subTabItem, activeSubTab === 'feed' && styles.subTabItemActive]}
+            onPress={() => setActiveSubTab('feed')}>
+            <MaterialCommunityIcons
+              name="newspaper-variant-outline"
+              size={17}
+              color={activeSubTab === 'feed' ? '#16A34A' : '#64748B'}
+            />
+            <Text style={[styles.subTabText, activeSubTab === 'feed' && styles.subTabTextActive]}>
+              {isUrdu ? 'فیڈ' : 'Feed'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.subTabItem, activeSubTab === 'network' && styles.subTabItemActive]}
-          onPress={() => setActiveSubTab('network')}>
-          <MaterialCommunityIcons
-            name="account-group-outline"
-            size={18}
-            color={activeSubTab === 'network' ? '#16A34A' : '#64748B'}
-          />
-          <Text style={[styles.subTabText, activeSubTab === 'network' && styles.subTabTextActive]}>
-            {isUrdu ? 'کسان نیٹ ورک' : 'Farmers'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.subTabItem, activeSubTab === 'network' && styles.subTabItemActive]}
+            onPress={() => setActiveSubTab('network')}>
+            <MaterialCommunityIcons
+              name="account-group-outline"
+              size={17}
+              color={activeSubTab === 'network' ? '#16A34A' : '#64748B'}
+            />
+            <Text style={[styles.subTabText, activeSubTab === 'network' && styles.subTabTextActive]}>
+              {isUrdu ? 'کسان' : 'Farmers'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.subTabItem, activeSubTab === 'messages' && styles.subTabItemActive]}
-          onPress={() => setActiveSubTab('messages')}>
-          <MaterialCommunityIcons
-            name="chat-processing-outline"
-            size={18}
-            color={activeSubTab === 'messages' ? '#16A34A' : '#64748B'}
-          />
-          <Text style={[styles.subTabText, activeSubTab === 'messages' && styles.subTabTextActive]}>
-            {isUrdu ? 'پیغامات' : 'Messages'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.subTabItem, activeSubTab === 'messages' && styles.subTabItemActive]}
+            onPress={() => setActiveSubTab('messages')}>
+            <MaterialCommunityIcons
+              name="chat-processing-outline"
+              size={17}
+              color={activeSubTab === 'messages' ? '#16A34A' : '#64748B'}
+            />
+            <Text style={[styles.subTabText, activeSubTab === 'messages' && styles.subTabTextActive]}>
+              {isUrdu ? 'پیغامات' : 'Messages'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.subTabItem, activeSubTab === 'showcase' && styles.subTabItemActive]}
+            onPress={() => setActiveSubTab('showcase')}>
+            <Ionicons
+              name="trophy-outline"
+              size={16}
+              color={activeSubTab === 'showcase' ? '#16A34A' : '#64748B'}
+            />
+            <Text style={[styles.subTabText, activeSubTab === 'showcase' && styles.subTabTextActive]}>
+              {isUrdu ? 'پیداوار' : 'Proven Yield'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* SUB-TAB 1: FEED */}
@@ -652,6 +673,13 @@ export default function CommunityScreen() {
         </ScrollView>
       )}
 
+      {/* SUB-TAB 4: PROVEN YIELD SHOWCASE */}
+      {activeSubTab === 'showcase' && (
+        <View style={{ flex: 1 }}>
+          <BestPracticeShowcaseScreen embedded />
+        </View>
+      )}
+
       {/* Active Chat Conversation Modal */}
       <Modal
         visible={!!activeConversationId}
@@ -876,7 +904,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',

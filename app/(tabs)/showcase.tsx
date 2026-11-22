@@ -28,7 +28,7 @@ const CATEGORY_COLORS: Record<CropCycleEvent['category'], string> = {
   harvest: '#EA580C',
 };
 
-export default function BestPracticeShowcaseScreen() {
+export default function BestPracticeShowcaseScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { peerShowcase, adoptedPlaybooks, adoptPlaybook, selectedField, t, language, fontMultiplier } = useApp();
 
   const [varietyFilter, setVarietyFilter] = useState<'all' | 'Akbar-2019' | 'Dilkash-20'>('all');
@@ -260,33 +260,78 @@ export default function BestPracticeShowcaseScreen() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const Wrapper = embedded ? View : SafeAreaView;
+  const wrapperProps = embedded ? { style: styles.safeArea } : { style: styles.safeArea, edges: ['top'] as const };
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <Wrapper {...wrapperProps}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="trophy" size={18} color="#FFFFFF" />
+      <View style={[styles.header, embedded && { paddingTop: 10 }]}>
+        {!embedded && (
+          <View style={styles.headerTopRow}>
+            <View style={styles.brandRow}>
+              <View style={styles.logoCircle}>
+                <Ionicons name="trophy" size={18} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={[styles.screenTitle, { fontSize: 15 * fontMultiplier }]}>
+                  {language === 'ur' ? 'کامیاب پیداواری شیڈول' : 'Proven Yields'}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
+                  {language === 'ur'
+                    ? '📍 فیصل آباد · ٹاپ فارمرز'
+                    : '📍 Faisalabad · 54-62 M/Ac'}
+                </Text>
+              </View>
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={[styles.screenTitle, { fontSize: 15 * fontMultiplier }]}>
-                {language === 'ur' ? 'کامیاب پیداواری شیڈول' : 'Proven Yields'}
-              </Text>
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={[styles.screenSubtitle, { fontSize: 10.5 * fontMultiplier }]}>
-                {language === 'ur'
-                  ? '📍 فیصل آباد · ٹاپ فارمرز'
-                  : '📍 Faisalabad · 54-62 M/Ac'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => setIsSubmitModalOpen(true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#16A34A',
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: Radius.sm,
+                }}
+                activeOpacity={0.8}>
+                <Ionicons name="add" size={15} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontFamily: FontFamily.bold, fontSize: 11, marginLeft: 2 }}>
+                  {language === 'ur' ? 'شیئر کریں' : 'Share'}
+                </Text>
+              </TouchableOpacity>
+              <AccessibilityControls />
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        )}
+
+        {/* Variety Filters (+ inline Share button when embedded in Community tab) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {[
+              { key: 'all' as const, label: t.allVarieties },
+              { key: 'Akbar-2019' as const, label: 'Akbar-2019' },
+              { key: 'Dilkash-20' as const, label: 'Dilkash-20' },
+            ].map((f) => (
+              <TouchableOpacity
+                key={f.key}
+                onPress={() => setVarietyFilter(f.key)}
+                style={[styles.filterChip, varietyFilter === f.key && styles.filterChipActive]}
+                activeOpacity={0.7}>
+                <Text style={[styles.filterChipText, varietyFilter === f.key && styles.filterChipTextActive]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {embedded && (
             <TouchableOpacity
               onPress={() => setIsSubmitModalOpen(true)}
               style={{
@@ -300,31 +345,11 @@ export default function BestPracticeShowcaseScreen() {
               activeOpacity={0.8}>
               <Ionicons name="add" size={15} color="#FFFFFF" />
               <Text style={{ color: '#FFFFFF', fontFamily: FontFamily.bold, fontSize: 11, marginLeft: 2 }}>
-                {language === 'ur' ? 'شیئر کریں' : 'Share'}
+                {language === 'ur' ? 'شیئر' : 'Share'}
               </Text>
             </TouchableOpacity>
-            <AccessibilityControls />
-          </View>
+          )}
         </View>
-
-        {/* Variety Filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {[
-            { key: 'all' as const, label: t.allVarieties },
-            { key: 'Akbar-2019' as const, label: 'Akbar-2019' },
-            { key: 'Dilkash-20' as const, label: 'Dilkash-20' },
-          ].map((f) => (
-            <TouchableOpacity
-              key={f.key}
-              onPress={() => setVarietyFilter(f.key)}
-              style={[styles.filterChip, varietyFilter === f.key && styles.filterChipActive]}
-              activeOpacity={0.7}>
-              <Text style={[styles.filterChipText, varietyFilter === f.key && styles.filterChipTextActive]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {/* Toast */}
@@ -691,7 +716,7 @@ export default function BestPracticeShowcaseScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </Wrapper>
   );
 }
 
