@@ -17,7 +17,8 @@ export function useShowcasePostsQuery() {
       logger.debug('Fetching peer showcase posts');
       return await api.getShowcasePosts();
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours cache
     retry: 1,
   });
 }

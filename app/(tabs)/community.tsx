@@ -31,7 +31,9 @@ import {
   useSendMessageMutation,
   useStartConversationMutation,
 } from '@/hooks/use-community';
-import { CommunityPostDTO, PublicUserProfileDTO, UserConnectionDTO } from '@/services/api-client';
+import { useQueryClient } from '@tanstack/react-query';
+import { CommunityPostDTO, PublicUserProfileDTO, UserConnectionDTO, api } from '@/services/api-client';
+import { SHOWCASE_QUERY_KEYS } from '@/hooks/use-showcase';
 import { UserProfileModal } from '@/components/user-profile-modal';
 import BestPracticeShowcaseScreen from './showcase';
 
@@ -48,7 +50,17 @@ export default function CommunityScreen() {
   const { language, t } = useApp();
   const isUrdu = language === 'ur';
 
+  const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<'feed' | 'network' | 'messages' | 'showcase'>('feed');
+
+  // Prefetch Proven Yield showcase in background so switching to the tab is instantaneous
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: SHOWCASE_QUERY_KEYS.all,
+      queryFn: () => api.getShowcasePosts(),
+      staleTime: 1000 * 60 * 10,
+    });
+  }, [queryClient]);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Create post modal state

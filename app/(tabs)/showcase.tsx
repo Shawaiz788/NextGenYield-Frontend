@@ -28,13 +28,24 @@ const CATEGORY_COLORS: Record<CropCycleEvent['category'], string> = {
   harvest: '#EA580C',
 };
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatDayDateFast(sowDateStr: string | null | undefined, offsetDays: number): string {
+  if (!sowDateStr) return `Day ${offsetDays}`;
+  const parsedMs = Date.parse(sowDateStr);
+  if (isNaN(parsedMs)) return `Day ${offsetDays}`;
+  const target = new Date(parsedMs + offsetDays * 86400000);
+  const dd = String(target.getUTCDate()).padStart(2, '0');
+  return `${dd} ${MONTHS_SHORT[target.getUTCMonth()]} ${target.getUTCFullYear()}`;
+}
+
 export default function BestPracticeShowcaseScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { peerShowcase, adoptedPlaybooks, adoptPlaybook, selectedField, t, language, fontMultiplier } = useApp();
 
   const [varietyFilter, setVarietyFilter] = useState<'all' | 'Akbar-2019' | 'Dilkash-20'>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const PAGE_SIZE = 5;
-  const [expandedId, setExpandedId] = useState<string | null>('sc_01');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adoptingField, setAdoptingField] = useState<PeerShowcaseField | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showcaseQuery = useShowcasePostsQuery();
@@ -53,9 +64,10 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
 
   const displayPosts = React.useMemo<PeerShowcaseField[]>(() => {
     if (!showcaseQuery.data || showcaseQuery.data.length === 0) {
-      return peerShowcase;
+      return peerShowcase.slice(0, 10);
     }
-    const backendItems: PeerShowcaseField[] = showcaseQuery.data.map((item, idx) => {
+    const topBackendRaw = showcaseQuery.data.slice(0, 10);
+    const backendItems: PeerShowcaseField[] = topBackendRaw.map((item, idx) => {
       const region = item.district || item.region || 'Punjab';
       const regionClean = region.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GEN';
       const actualYield = item.yield_maunds_per_acre || item.actual_yield_maunds || 55.0;
@@ -90,14 +102,6 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
         return { stageName, category };
       };
 
-      const formatDayDate = (sowDateStr: string | null | undefined, offsetDays: number): string => {
-        if (!sowDateStr) return `Day ${offsetDays}`;
-        const parsed = new Date(sowDateStr);
-        if (isNaN(parsed.getTime())) return `Day ${offsetDays}`;
-        const target = new Date(parsed.getTime() + offsetDays * 86400000);
-        return target.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      };
-
       // Filter out submission metadata objects (which have submitted_by_user_id or no event/day)
       const rawEvents = Array.isArray(item.cycle_event_log)
         ? item.cycle_event_log.filter(
@@ -115,7 +119,7 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
         const inferred = inferStageAndCategory(dayNum, eventText);
         return {
           day: dayNum,
-          date: ev?.date || formatDayDate(item.sowing_date, dayNum),
+          date: ev?.date || formatDayDateFast(item.sowing_date, dayNum),
           stageName: ev?.stageName || inferred.stageName,
           title: eventText,
           category: (['water', 'fertilizer', 'filter', 'sow', 'harvest'].includes(ev?.category)
@@ -146,7 +150,7 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
             const inferred = inferStageAndCategory(std.day, std.title);
             cycleEvents.push({
               day: std.day,
-              date: formatDayDate(item.sowing_date, std.day),
+              date: formatDayDateFast(item.sowing_date, std.day),
               stageName: inferred.stageName,
               title: std.title,
               category: inferred.category,
@@ -650,8 +654,9 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
           </View>
         </Modal>
       )}
-      {/* Submit Yield Playbook Modal */}
-      <Modal visible={isSubmitModalOpen} animationType="slide" transparent>
+      {/* Submit Yield Playbook Modal — mount only when opened */}
+      {isSubmitModalOpen && (
+      <Modal visible={true} animationType="slide" transparent onRequestClose={() => setIsSubmitModalOpen(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -782,6 +787,7 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
           </View>
         </View>
       </Modal>
+      )}
     </Wrapper>
   );
 }
