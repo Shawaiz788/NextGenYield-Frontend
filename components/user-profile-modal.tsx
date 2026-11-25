@@ -13,7 +13,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Colors, FontFamily, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
   useUserProfileQuery,
@@ -184,13 +184,17 @@ export function UserProfileModal({
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Navigation Header */}
         <View style={styles.topHeader}>
-          <TouchableOpacity onPress={onClose} style={styles.backBtn} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.backBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={22} color="#0F172A" />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { fontSize: 16 * fontMultiplier }]}>
             {isUrdu ? 'کسان پروفائل' : 'Farmer Profile'}
           </Text>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 40 }} />
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -532,12 +536,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   headerTitle: {
     fontFamily: FontFamily.bold,
@@ -552,31 +558,34 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   avatarCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: 24,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   avatarWrap: {
     position: 'relative',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   avatarCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#16A34A',
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
   },
   avatarText: {
     fontSize: 30,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.extraBold,
     color: '#15803D',
   },
   verifiedBadge: {
@@ -587,24 +596,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   userName: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.extraBold,
     color: '#0F172A',
-    marginBottom: 4,
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
   rolePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: 'rgba(22, 163, 74, 0.18)',
     marginBottom: 8,
   },
   roleText: {
     fontSize: 12,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
     color: '#15803D',
   },
   locationRow: {
@@ -614,13 +624,13 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12.5,
-    fontFamily: FontFamily.regular,
-    color: '#64748B',
+    fontFamily: FontFamily.medium,
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   actionRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   addFriendBtn: {
     flex: 1,
@@ -629,13 +639,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
+    minHeight: 48,
     paddingVertical: 12,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    borderRadius: Radius.md,
+    ...PrimaryButtonShadow,
   },
   addFriendBtnText: {
     fontFamily: FontFamily.bold,
@@ -644,6 +651,7 @@ const styles = StyleSheet.create({
   friendsBtn: {
     backgroundColor: '#F0FDF4',
     borderColor: '#16A34A',
+    borderTopColor: '#16A34A',
     borderWidth: 1.5,
     elevation: 0,
     shadowOpacity: 0,
@@ -659,8 +667,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#FFFFFF',
+    minHeight: 48,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
@@ -675,12 +684,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#F0FDF4',
+    minHeight: 44,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.18)',
   },
   selfBadgeText: {
     fontSize: 13,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
     color: '#15803D',
   },
   sectionTitle: {
@@ -697,17 +709,16 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
+    gap: 8,
+    marginBottom: 18,
   },
   statCard: {
+    ...CardStyle,
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: Radius.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   statIconWrap: {
     width: 38,
@@ -715,26 +726,26 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 16,
     color: '#0F172A',
   },
   statLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: '#64748B',
+    fontSize: 10.5,
+    fontFamily: FontFamily.medium,
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
+    textAlign: 'center',
   },
   detailsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...CardStyle,
+    borderRadius: Radius.lg,
+    padding: 18,
     gap: 12,
+    marginTop: 16,
   },
   detailRow: {
     flexDirection: 'row',
@@ -742,9 +753,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   detailIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
@@ -759,7 +770,7 @@ const styles = StyleSheet.create({
   detailSub: {
     fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
   callSmallBtn: {
@@ -767,13 +778,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#E0F2FE',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    minHeight: 36,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: Radius.sm,
   },
   callSmallBtnText: {
     fontSize: 12,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: '#0284C7',
   },
   parcelsSectionHeader: {
@@ -788,9 +800,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#DCFCE7',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    minHeight: 34,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: Radius.full,
   },
   viewAllMapPillText: {
     fontSize: 11.5,
@@ -798,50 +811,44 @@ const styles = StyleSheet.create({
     color: '#16A34A',
   },
   parcelsList: {
-    gap: 8,
+    gap: 10,
     marginBottom: 16,
   },
   parcelCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    padding: 14,
   },
   parcelIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F0FDF4',
     alignItems: 'center',
     justifyContent: 'center',
   },
   parcelName: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   parcelAcres: {
-    fontSize: 12.5,
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 13.5,
     color: '#16A34A',
   },
   parcelMeta: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
   emptyParcelsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    ...CardStyle,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: 16,
     gap: 6,
   },
@@ -852,44 +859,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   machCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    padding: 14,
   },
   machIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   machTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   machMeta: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
   machPrice: {
-    fontSize: 12.5,
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 13.5,
     color: '#16A34A',
   },
   postSnippetCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...CardStyle,
+    padding: 14,
     gap: 6,
   },
   postSnippetTitle: {

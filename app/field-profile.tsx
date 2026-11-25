@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/app-context';
-import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { AccessibilityControls } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { useActiveCropCycleQuery, useApplyFertilizerMutation, useCompleteIrrigationMutation } from '@/hooks/use-crop-cycles';
@@ -127,27 +127,27 @@ export default function FieldProfileScreen() {
               </View>
             </View>
 
-            {/* Stats Grid */}
+            {/* Stats Grid — Values Emphasized Above Labels (Tabular Metrics) */}
             <View style={styles.gridRow}>
-              <View style={[styles.gridItem, { backgroundColor: '#F0FDF4' }]}>
-                <Ionicons name="resize-outline" size={14} color={Colors.light.primary} style={{ marginBottom: 2 }} />
+              <View style={[styles.gridItem, { backgroundColor: '#F0FDF4', borderColor: 'rgba(22, 163, 74, 0.14)' }]}>
+                <Ionicons name="resize-outline" size={16} color={Colors.light.primary} style={{ marginBottom: 6 }} />
+                <Text style={styles.gridVal}>{selectedField.areaAcres} Ac</Text>
                 <Text style={styles.gridLabel}>{t.area}</Text>
-                <Text style={styles.gridVal}>{selectedField.areaAcres} Acres</Text>
               </View>
-              <View style={[styles.gridItem, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="calendar-outline" size={14} color={Colors.light.irrigation} style={{ marginBottom: 2 }} />
+              <View style={[styles.gridItem, { backgroundColor: '#EFF6FF', borderColor: 'rgba(37, 99, 235, 0.14)' }]}>
+                <Ionicons name="calendar-outline" size={16} color={Colors.light.irrigation} style={{ marginBottom: 6 }} />
+                <Text style={[styles.gridVal, { fontSize: 15 }]}>{isCycleActive ? selectedField.sowingDate : t.cycleNotStarted}</Text>
                 <Text style={styles.gridLabel}>{t.sowingDate}</Text>
-                <Text style={styles.gridVal}>{isCycleActive ? selectedField.sowingDate : t.cycleNotStarted}</Text>
               </View>
-              <View style={[styles.gridItem, { backgroundColor: '#F0FDF4' }]}>
-                <Ionicons name="trophy-outline" size={14} color={Colors.light.primary} style={{ marginBottom: 2 }} />
-                <Text style={styles.gridLabel}>{t.harvestReturn}</Text>
+              <View style={[styles.gridItem, { backgroundColor: '#F0FDF4', borderColor: 'rgba(22, 163, 74, 0.14)' }]}>
+                <Ionicons name="trophy-outline" size={16} color={Colors.light.primary} style={{ marginBottom: 6 }} />
                 <Text style={[styles.gridVal, { color: Colors.light.primary }]}>{isCycleActive ? `${selectedField.yieldMaundsPerAcre} M/Ac` : '--'}</Text>
+                <Text style={styles.gridLabel}>{t.harvestReturn}</Text>
               </View>
-              <View style={[styles.gridItem, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="analytics-outline" size={14} color="#D97706" style={{ marginBottom: 2 }} />
-                <Text style={styles.gridLabel}>{t.efficiency}</Text>
+              <View style={[styles.gridItem, { backgroundColor: '#FFFBEB', borderColor: 'rgba(217, 119, 6, 0.16)' }]}>
+                <Ionicons name="analytics-outline" size={16} color="#D97706" style={{ marginBottom: 6 }} />
                 <Text style={[styles.gridVal, { color: '#D97706' }]}>{isCycleActive ? `${selectedField.yieldReturnKgSqm} kg/m²` : '--'}</Text>
+                <Text style={styles.gridLabel}>{t.efficiency}</Text>
               </View>
             </View>
 
@@ -296,25 +296,57 @@ export default function FieldProfileScreen() {
           </View>
         )}
 
-        {/* Tab 2: Fertilizer Schedule */}
+        {/* Tab 2: Fertilizer Schedule (with Peak-End Progress Affirmation) */}
         {activeTab === 'fertilizer' && (
           <View style={styles.card}>
-            <Text style={[styles.cardHeading, { fontSize: 16 * fontMultiplier }]}>{t.fertilizerApplications}</Text>
-            <Text style={styles.cardSub}>{t.dosesPerAcre}</Text>
+            {(() => {
+              const list = activeCycle?.fertilizer_schedules || [];
+              const doneCount = list.length > 0
+                ? list.filter((e) => e.is_applied).length
+                : selectedField.fertilizerPlan.filter((e) => e.applied).length;
+              const totalCount = list.length > 0 ? list.length : selectedField.fertilizerPlan.length;
+              const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+              return (
+                <>
+                  <View style={styles.progressHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cardHeading, { fontSize: 16 * fontMultiplier }]}>{t.fertilizerApplications}</Text>
+                      <Text style={[styles.cardSub, { marginBottom: 0 }]}>{t.dosesPerAcre}</Text>
+                    </View>
+                    <View style={styles.progressCountPill}>
+                      <Ionicons name={pct === 100 ? 'sparkles' : 'checkmark-done'} size={13} color="#15803D" />
+                      <Text style={styles.progressCountText}>{doneCount}/{totalCount}</Text>
+                    </View>
+                  </View>
+                  {totalCount > 0 && (
+                    <View style={styles.scheduleBarTrack}>
+                      <View style={[styles.scheduleBarFill, { width: `${pct}%` }]} />
+                    </View>
+                  )}
+                </>
+              );
+            })()}
 
             <View style={styles.ledgerList}>
               {activeCycle?.fertilizer_schedules && activeCycle.fertilizer_schedules.length > 0 ? (
                 activeCycle.fertilizer_schedules.map((entry) => (
                   <View key={entry.schedule_id} style={[styles.ledgerRow, entry.is_applied && styles.ledgerRowApplied]}>
                     <View style={styles.ledgerHeader}>
-                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{entry.stage_name}</Text>
+                      <Text style={[styles.ledgerStage, { fontSize: 13.5 * fontMultiplier }]}>{entry.stage_name}</Text>
                       <TouchableOpacity
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         onPress={() => applyFertilizerMutation.mutate(entry.schedule_id)}
                         disabled={entry.is_applied || applyFertilizerMutation.isPending}
                         style={[styles.appliedPill, entry.is_applied ? styles.appliedPillDone : styles.appliedPillScheduled]}
                         activeOpacity={0.8}>
+                        <Ionicons
+                          name={entry.is_applied ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={entry.is_applied ? Colors.light.primaryDark : '#B45309'}
+                          style={{ marginRight: 4 }}
+                        />
                         <Text style={[styles.appliedPillText, entry.is_applied ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
-                          {entry.is_applied ? t.applied : t.scheduled}
+                          {entry.is_applied ? t.applied : (language === 'ur' ? 'مکمل کریں' : 'Mark Applied')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -344,25 +376,57 @@ export default function FieldProfileScreen() {
           </View>
         )}
 
-        {/* Tab 3: Irrigation Log */}
+        {/* Tab 3: Irrigation Log (with Peak-End Progress Affirmation) */}
         {activeTab === 'irrigation' && (
           <View style={styles.card}>
-            <Text style={[styles.cardHeading, { fontSize: 16 * fontMultiplier }]}>{t.irrigationSchedule}</Text>
-            <Text style={styles.cardSub}>{t.waterTimingMatched}</Text>
+            {(() => {
+              const list = activeCycle?.irrigation_schedules || [];
+              const doneCount = list.length > 0
+                ? list.filter((e) => e.is_completed).length
+                : selectedField.irrigationPlan.filter((e) => e.completed).length;
+              const totalCount = list.length > 0 ? list.length : selectedField.irrigationPlan.length;
+              const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+              return (
+                <>
+                  <View style={styles.progressHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cardHeading, { fontSize: 16 * fontMultiplier }]}>{t.irrigationSchedule}</Text>
+                      <Text style={[styles.cardSub, { marginBottom: 0 }]}>{t.waterTimingMatched}</Text>
+                    </View>
+                    <View style={[styles.progressCountPill, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                      <Ionicons name={pct === 100 ? 'sparkles' : 'water'} size={13} color="#2563EB" />
+                      <Text style={[styles.progressCountText, { color: '#1D4ED8' }]}>{doneCount}/{totalCount}</Text>
+                    </View>
+                  </View>
+                  {totalCount > 0 && (
+                    <View style={styles.scheduleBarTrack}>
+                      <View style={[styles.scheduleBarFill, { width: `${pct}%`, backgroundColor: '#2563EB' }]} />
+                    </View>
+                  )}
+                </>
+              );
+            })()}
 
             <View style={styles.ledgerList}>
               {activeCycle?.irrigation_schedules && activeCycle.irrigation_schedules.length > 0 ? (
                 activeCycle.irrigation_schedules.map((irrig) => (
                   <View key={irrig.schedule_id} style={[styles.ledgerRow, irrig.is_completed && styles.ledgerRowApplied]}>
                     <View style={styles.ledgerHeader}>
-                      <Text style={[styles.ledgerStage, { fontSize: 13 * fontMultiplier }]}>{irrig.event_name}</Text>
+                      <Text style={[styles.ledgerStage, { fontSize: 13.5 * fontMultiplier }]}>{irrig.event_name}</Text>
                       <TouchableOpacity
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         onPress={() => completeIrrigationMutation.mutate(irrig.schedule_id)}
                         disabled={irrig.is_completed || completeIrrigationMutation.isPending}
                         style={[styles.appliedPill, irrig.is_completed ? styles.appliedPillDone : styles.appliedPillScheduled]}
                         activeOpacity={0.8}>
+                        <Ionicons
+                          name={irrig.is_completed ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={irrig.is_completed ? Colors.light.primaryDark : '#B45309'}
+                          style={{ marginRight: 4 }}
+                        />
                         <Text style={[styles.appliedPillText, irrig.is_completed ? styles.appliedPillTextDone : styles.appliedPillTextScheduled]}>
-                          {irrig.is_completed ? t.completed : t.upcoming}
+                          {irrig.is_completed ? t.completed : (language === 'ur' ? 'مکمل کریں' : 'Mark Done')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -433,9 +497,9 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F5F9',
@@ -559,19 +623,20 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     width: '48%',
-    padding: Spacing.md,
-    borderRadius: Radius.md,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     alignItems: 'flex-start',
   },
   gridLabel: {
     fontFamily: FontFamily.medium,
-    fontSize: 10,
-    color: Colors.light.textSecondary,
-    marginBottom: 2,
+    fontSize: 11,
+    color: Colors.light.textCaption,
+    marginTop: 2,
   },
   gridVal: {
-    fontFamily: FontFamily.bold,
-    fontSize: 13,
+    ...MetricNumberStyle,
+    fontSize: 17,
     color: Colors.light.text,
   },
 
@@ -616,7 +681,41 @@ const styles = StyleSheet.create({
   // ─── Content Card ─────────────────────────
   card: {
     ...CardStyle,
-    padding: 18,
+    padding: Spacing.xl,
+  },
+  progressHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  progressCountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+  },
+  progressCountText: {
+    ...MetricNumberStyle,
+    fontSize: 12,
+    color: '#15803D',
+  },
+  scheduleBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F1F5F9',
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+  },
+  scheduleBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
   },
   cardHeading: {
     fontFamily: FontFamily.bold,
@@ -708,9 +807,12 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   appliedPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 34,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
   },
   appliedPillDone: {
     backgroundColor: Colors.light.primaryLight,

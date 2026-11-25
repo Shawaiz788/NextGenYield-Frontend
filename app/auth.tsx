@@ -13,7 +13,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import { setAuthToken, getBackendBaseUrl, BackendUnreachableError } from '@/services/api-client';
 import { useLoginMutation, useRegisterMutation } from '@/hooks/use-auth-mutations';
@@ -69,6 +69,7 @@ export default function AuthScreen() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [district, setDistrict] = useState('');
+  const [isOtherDistrict, setIsOtherDistrict] = useState(false);
   const [pin, setPin] = useState('');
 
   // Validation errors
@@ -360,10 +361,16 @@ export default function AuthScreen() {
           {/* ─── Top Illustration Area ─── */}
           <View style={styles.heroSection}>
             <View style={styles.heroGradient}>
-              <View style={styles.logoContainer}>
+              <View style={styles.logoHalo}>
                 <View style={styles.logoBg}>
                   <MaterialCommunityIcons name="sprout" size={32} color="#FFFFFF" />
                 </View>
+              </View>
+              <View style={styles.trustPill}>
+                <Ionicons name="sparkles" size={12} color="#15803D" />
+                <Text style={styles.trustPillText}>
+                  {isUrdu ? 'پنجاب کا تصدیق شدہ زرعی AI پلیٹ فارم' : 'Verified Punjab Agri-AI Platform'}
+                </Text>
               </View>
               <Text style={styles.heroTitle}>NextGenYield</Text>
               <Text style={styles.heroSubtitle}>
@@ -559,35 +566,86 @@ export default function AuthScreen() {
               )}
             </View>
 
-            {/* District Chips (Sign Up only) */}
+            {/* District Chips with Icons + Manual "Other" Fallback (Sign Up only) */}
             {mode === 'signup' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
                   {isUrdu ? 'ضلع / علاقہ' : 'District / Region'}
                 </Text>
                 <View style={styles.districtChips}>
-                  {['Faisalabad', 'Lahore', 'Multan', 'Sahiwal'].map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      onPress={() => {
-                        setDistrict(d);
+                  {['Faisalabad', 'Lahore', 'Multan', 'Sahiwal', 'Sargodha', 'Sheikhupura'].map((d) => {
+                    const isSelected = !isOtherDistrict && district === d;
+                    return (
+                      <TouchableOpacity
+                        key={d}
+                        onPress={() => {
+                          setIsOtherDistrict(false);
+                          setDistrict(d);
+                          clearError('district');
+                        }}
+                        style={[
+                          styles.districtChip,
+                          isSelected && styles.districtChipActive,
+                        ]}
+                        activeOpacity={0.75}
+                        disabled={submitStatus === 'sending'}>
+                        <Ionicons
+                          name={isSelected ? 'location' : 'location-outline'}
+                          size={13}
+                          color={isSelected ? Colors.light.primaryDark : Colors.light.textMuted}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={[
+                          styles.districtChipText,
+                          isSelected && styles.districtChipTextActive,
+                        ]}>
+                          {d}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsOtherDistrict(true);
+                      setDistrict('');
+                      clearError('district');
+                    }}
+                    style={[
+                      styles.districtChip,
+                      isOtherDistrict && styles.districtChipActive,
+                    ]}
+                    activeOpacity={0.75}
+                    disabled={submitStatus === 'sending'}>
+                    <Ionicons
+                      name="create-outline"
+                      size={13}
+                      color={isOtherDistrict ? Colors.light.primaryDark : Colors.light.textMuted}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={[
+                      styles.districtChipText,
+                      isOtherDistrict && styles.districtChipTextActive,
+                    ]}>
+                      {isUrdu ? 'دیگر ضلع' : 'Other'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {isOtherDistrict && (
+                  <View style={[styles.inputWrapper, { marginTop: 8 }, errors.district ? styles.inputWrapperError : null]}>
+                    <Ionicons name="map-outline" size={18} color={Colors.light.textMuted} style={styles.inputIcon} />
+                    <TextInput
+                      value={district}
+                      onChangeText={(text) => {
+                        setDistrict(text);
                         clearError('district');
                       }}
-                      style={[
-                        styles.districtChip,
-                        district === d && styles.districtChipActive,
-                      ]}
-                      activeOpacity={0.7}
-                      disabled={submitStatus === 'sending'}>
-                      <Text style={[
-                        styles.districtChipText,
-                        district === d && styles.districtChipTextActive,
-                      ]}>
-                        {d}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      placeholder={isUrdu ? 'اپنے ضلع کا نام لکھیں' : 'Type your district name (e.g. Okara, Gujranwala)'}
+                      placeholderTextColor="#94A3B8"
+                      style={styles.textInput}
+                      editable={submitStatus !== 'sending'}
+                    />
+                  </View>
+                )}
                 {errors.district && (
                   <View style={styles.errorRow}>
                     <Ionicons name="warning-outline" size={14} color="#DC2626" />
@@ -691,11 +749,11 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 80,
+    paddingBottom: 64,
   },
 
   // ─── Hero ─────────────────────────────────
@@ -705,41 +763,69 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     backgroundColor: '#F0FDF4',
-    paddingTop: 48,
-    paddingBottom: 36,
+    paddingTop: 40,
+    paddingBottom: 32,
     alignItems: 'center',
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(22, 163, 74, 0.10)',
   },
-  logoContainer: {
-    marginBottom: Spacing.lg,
+  logoHalo: {
+    width: 84,
+    height: 84,
+    borderRadius: 28,
+    backgroundColor: 'rgba(22, 163, 74, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   logoBg: {
     width: 64,
     height: 64,
     borderRadius: 20,
     backgroundColor: Colors.light.primary,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.30)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
     elevation: 6,
+  },
+  trustPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    marginBottom: Spacing.sm,
+  },
+  trustPillText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#15803D',
   },
   heroTitle: {
     fontFamily: FontFamily.extraBold,
     fontSize: 28,
     color: Colors.light.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
   heroSubtitle: {
     fontFamily: FontFamily.medium,
-    fontSize: 13,
-    color: Colors.light.textSecondary,
+    fontSize: 13.5,
+    color: Colors.light.textCaption,
     marginTop: 4,
     textAlign: 'center',
     paddingHorizontal: Spacing.xxxl,
+    maxWidth: 420,
   },
   wheatDecoLeft: {
     position: 'absolute',
@@ -763,15 +849,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   langBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: Colors.light.border,
   },
   langBtnActive: {
     backgroundColor: Colors.light.primary,
     borderColor: Colors.light.primary,
+    ...PrimaryButtonShadow,
   },
   langBtnText: {
     fontFamily: FontFamily.semiBold,
@@ -817,8 +907,11 @@ const styles = StyleSheet.create({
 
   // ─── Form Card ────────────────────────────
   formCard: {
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.xl,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: Spacing.xxl,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
     gap: Spacing.lg,
   },
   inputGroup: {
@@ -879,7 +972,10 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
   },
   eyeBtn: {
-    padding: 4,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   districtChips: {
     flexDirection: 'row',
@@ -887,15 +983,18 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   districtChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.light.border,
     backgroundColor: '#F8FAFC',
   },
   districtChipActive: {
-    backgroundColor: Colors.light.primaryLight,
+    backgroundColor: Colors.light.primarySubtle,
     borderColor: Colors.light.primary,
   },
   districtChipText: {
@@ -979,15 +1078,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 52,
     backgroundColor: Colors.light.primary,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: Radius.md,
     marginTop: Spacing.sm,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    ...PrimaryButtonShadow,
   },
   submitBtnSending: {
     backgroundColor: '#15803D',

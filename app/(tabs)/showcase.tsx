@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/app-context';
 import { PeerShowcaseField, CropCycleEvent } from '@/constants/mock-data';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
-import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { useShowcasePostsQuery, useSubmitShowcaseMutation } from '@/hooks/use-showcase';
 import { BackendReachabilityBanner } from '@/components/backend-reachability-banner';
 import { logger } from '@/services/logger';
@@ -657,19 +659,25 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
       {/* Submit Yield Playbook Modal — mount only when opened */}
       {isSubmitModalOpen && (
       <Modal visible={true} animationType="slide" transparent onRequestClose={() => setIsSubmitModalOpen(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' }}>
                   <Ionicons name="trophy" size={20} color="#16A34A" />
                 </View>
                 <Text style={{ fontFamily: FontFamily.bold, fontSize: 16, color: Colors.light.text }}>
                   {language === 'ur' ? 'کامیاب پیداوار شیئر کریں' : 'Share Proven Harvest'}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setIsSubmitModalOpen(false)}>
-                <Ionicons name="close" size={22} color="#64748B" />
+              <TouchableOpacity
+                onPress={() => setIsSubmitModalOpen(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
@@ -682,7 +690,7 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
               />
             )}
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
                 {language === 'ur' ? 'عنوان / کسان کا نام' : 'Title / Farmer Name'}
               </Text>
@@ -690,7 +698,8 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
                 value={newTitle}
                 onChangeText={setNewTitle}
                 placeholder="e.g. Chaudhry Record Harvest"
-                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+                placeholderTextColor="#94A3B8"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13.5, color: '#0F172A' }}
               />
 
               <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
@@ -700,22 +709,34 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
                 value={newFieldName}
                 onChangeText={setNewFieldName}
                 placeholder="e.g. Canal Block Parcel"
-                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+                placeholderTextColor="#94A3B8"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13.5, color: '#0F172A' }}
               />
 
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
-                    {language === 'ur' ? 'گندم کی قسم' : 'Wheat Variety'}
-                  </Text>
-                  <TextInput
-                    value={newVariety}
-                    onChangeText={setNewVariety}
-                    placeholder="Akbar-2019"
-                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
-                  />
-                </View>
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 6 }}>
+                {language === 'ur' ? 'گندم کی قسم' : 'Wheat Variety'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {['Akbar-2019', 'Dilkash-20', 'Subhani-21'].map((v) => (
+                  <TouchableOpacity
+                    key={v}
+                    onPress={() => setNewVariety(v)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: newVariety === v ? '#16A34A' : '#F8FAFC',
+                      borderWidth: 1,
+                      borderColor: newVariety === v ? '#16A34A' : '#E2E8F0',
+                    }}>
+                    <Text style={{ fontSize: 12, fontFamily: FontFamily.bold, color: newVariety === v ? '#FFFFFF' : '#475569' }}>
+                      {v}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
+              <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
                     {language === 'ur' ? 'پیداوار (من/ایکڑ)' : 'Yield (Maunds/Ac)'}
@@ -725,20 +746,24 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
                     onChangeText={setNewYield}
                     keyboardType="numeric"
                     placeholder="58.5"
-                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
+                    placeholderTextColor="#94A3B8"
+                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13.5, color: '#0F172A' }}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
+                    {language === 'ur' ? 'علاقہ / ضلع' : 'Region / District'}
+                  </Text>
+                  <TextInput
+                    value={newRegion}
+                    onChangeText={setNewRegion}
+                    placeholder="Faisalabad / Lahore"
+                    placeholderTextColor="#94A3B8"
+                    style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13.5, color: '#0F172A' }}
                   />
                 </View>
               </View>
-
-              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
-                {language === 'ur' ? 'علاقہ / ضلع' : 'Region / District'}
-              </Text>
-              <TextInput
-                value={newRegion}
-                onChangeText={setNewRegion}
-                placeholder="Faisalabad / Lahore"
-                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: FontFamily.medium, fontSize: 13 }}
-              />
 
               <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 12, color: '#475569', marginBottom: 4 }}>
                 {language === 'ur' ? 'اہم طریقہ کار اور حکمت عملی' : 'Key Agronomic Tactics'}
@@ -749,28 +774,36 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
                 multiline
                 numberOfLines={3}
                 placeholder="e.g. Split DAP application, Potash at booting, laser levelling"
-                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 14, fontFamily: FontFamily.medium, fontSize: 13, minHeight: 60 }}
+                placeholderTextColor="#94A3B8"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 16, fontFamily: FontFamily.medium, fontSize: 13.5, color: '#0F172A', minHeight: 68 }}
               />
 
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
                 <TouchableOpacity
                   onPress={() => setIsSubmitModalOpen(false)}
                   disabled={submittingState === 'sending'}
-                  style={{ flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center' }}>
-                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 13, color: '#475569' }}>
+                  style={{ flex: 1, minHeight: 48, justifyContent: 'center', paddingVertical: 12, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' }}>
+                  <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 13.5, color: '#475569' }}>
                     {t.cancel}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleSubmitShowcase}
-                  disabled={submittingState === 'sending'}
-                  style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, backgroundColor: '#16A34A', opacity: submittingState === 'sending' ? 0.85 : 1 }}>
+                  disabled={submittingState === 'sending' || submittingState === 'success'}
+                  style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingVertical: 12, borderRadius: 12, backgroundColor: '#16A34A', opacity: submittingState === 'sending' ? 0.85 : 1, ...PrimaryButtonShadow }}>
                   {submittingState === 'sending' ? (
                     <>
                       <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
                       <Text style={{ fontFamily: FontFamily.bold, fontSize: 14, color: '#FFFFFF' }}>
                         {language === 'ur' ? 'شائع ہو رہا ہے...' : 'Publishing...'}
+                      </Text>
+                    </>
+                  ) : submittingState === 'success' ? (
+                    <>
+                      <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={{ fontFamily: FontFamily.bold, fontSize: 14, color: '#FFFFFF' }}>
+                        {language === 'ur' ? 'شائع ہو گیا!' : 'Published!'}
                       </Text>
                     </>
                   ) : (
@@ -786,6 +819,7 @@ export default function BestPracticeShowcaseScreen({ embedded = false }: { embed
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
       )}
     </Wrapper>
@@ -841,9 +875,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   filterChip: {
+    minHeight: 38,
+    justifyContent: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.full,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: Colors.light.border,
@@ -886,7 +922,8 @@ const styles = StyleSheet.create({
   // ─── Card ─────────────────────────────────
   card: {
     ...CardStyle,
-    padding: 18,
+    borderRadius: Radius.xl,
+    padding: 20,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -896,27 +933,28 @@ const styles = StyleSheet.create({
   yieldHero: {
     alignItems: 'center',
     backgroundColor: '#F0FDF4',
-    width: 76,
+    width: 84,
     paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: '#BBF7D0',
   },
   yieldNumber: {
-    fontFamily: FontFamily.extraBold,
-    fontSize: 28,
+    ...MetricNumberStyle,
+    fontSize: 27,
     color: Colors.light.primaryDark,
-    lineHeight: 32,
+    lineHeight: 31,
   },
   yieldUnitLabel: {
     fontFamily: FontFamily.bold,
-    fontSize: 9,
+    fontSize: 9.5,
     color: Colors.light.primary,
-    marginTop: 1,
+    marginTop: 2,
   },
   yieldSqm: {
     fontFamily: FontFamily.medium,
-    fontSize: 8,
+    fontSize: 8.5,
+    fontVariant: ['tabular-nums'],
     color: Colors.light.textMuted,
     marginTop: 2,
   },
@@ -1017,6 +1055,7 @@ const styles = StyleSheet.create({
   },
   dayPillText: {
     fontFamily: FontFamily.extraBold,
+    fontVariant: ['tabular-nums'],
     fontSize: 10,
   },
   dayLine: {
@@ -1074,11 +1113,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.light.primary,
     borderRadius: Radius.md,
+    minHeight: 48,
     paddingVertical: 13,
     marginTop: Spacing.sm,
+    ...PrimaryButtonShadow,
   },
   adoptButtonDone: {
     backgroundColor: Colors.light.primaryLight,
+    elevation: 0,
+    shadowOpacity: 0,
+    borderTopColor: 'transparent',
   },
   adoptButtonText: {
     fontFamily: FontFamily.bold,

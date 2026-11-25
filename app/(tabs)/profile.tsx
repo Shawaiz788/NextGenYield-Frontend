@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/app-context';
-import { FontFamily, Spacing, Radius } from '@/constants/theme';
+import { FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { AccessibilityControls } from '@/components/accessibility-bar';
 import { FarmTeamModal } from '@/components/farm-team-manager';
 import { SoilPrepGuideModal } from '@/components/soil-prep-guide';
@@ -240,7 +240,7 @@ export default function ProfileScreen() {
             <View style={[styles.statIconWrap, { backgroundColor: '#DCFCE7' }]}>
               <MaterialCommunityIcons name="image-filter-hdr" size={18} color="#16A34A" />
             </View>
-            <Text style={[styles.statValue, { fontSize: 16 * fontMultiplier }]}>
+            <Text style={[styles.statValue, { fontSize: 18 * fontMultiplier }]}>
               {myTotalAcreage} ac
             </Text>
             <Text style={styles.statLabel}>
@@ -253,7 +253,7 @@ export default function ProfileScreen() {
             <View style={[styles.statIconWrap, { backgroundColor: '#E0F2FE' }]}>
               <Ionicons name="map-outline" size={18} color="#0284C7" />
             </View>
-            <Text style={[styles.statValue, { fontSize: 16 * fontMultiplier }]}>
+            <Text style={[styles.statValue, { fontSize: 18 * fontMultiplier }]}>
               {myFields.length}
             </Text>
             <Text style={styles.statLabel}>
@@ -266,7 +266,7 @@ export default function ProfileScreen() {
             <View style={[styles.statIconWrap, { backgroundColor: '#FEF3C7' }]}>
               <MaterialCommunityIcons name="gold" size={18} color="#D97706" />
             </View>
-            <Text style={[styles.statValue, { fontSize: 16 * fontMultiplier }]}>
+            <Text style={[styles.statValue, { fontSize: 18 * fontMultiplier }]}>
               {userProfile.seasonYieldMaunds || 840} md
             </Text>
             <Text style={styles.statLabel}>
@@ -289,6 +289,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               onPress={() => router.push('/map')}
               style={styles.fieldViewMapBtn}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               activeOpacity={0.7}>
               <Ionicons name="map" size={14} color="#16A34A" style={{ marginRight: 4 }} />
               <Text style={styles.fieldViewMapBtnText}>
@@ -299,11 +300,27 @@ export default function ProfileScreen() {
 
           <View style={styles.fieldParcelsList}>
             {myFields.length === 0 ? (
-              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                <MaterialCommunityIcons name="map-marker-off-outline" size={32} color="#94A3B8" />
-                <Text style={{ fontFamily: FontFamily.medium, color: '#64748B', fontSize: 13 * fontMultiplier, marginTop: 8 }}>
-                  {isUrdu ? 'ابھی تک کوئی کھیت رجسٹرڈ نہیں ہے۔' : 'No parcels demarcated yet.'}
+              <View style={styles.emptyParcelsBox}>
+                <View style={styles.emptyParcelsIconCircle}>
+                  <MaterialCommunityIcons name="vector-polygon" size={26} color="#16A34A" />
+                </View>
+                <Text style={[styles.emptyParcelsTitle, { fontSize: 14.5 * fontMultiplier }]}>
+                  {isUrdu ? 'پہلا کھیت نقشے پر بنائیں' : 'Map Your First Wheat Parcel'}
                 </Text>
+                <Text style={styles.emptyParcelsDesc}>
+                  {isUrdu
+                    ? 'سیٹلائٹ نقشے پر کھیت کی حد بندی کر کے AI کھاد اور آبپاشی شیڈول حاصل کریں۔'
+                    : 'Draw your field boundary on the satellite map to unlock tailored irrigation & fertilizer schedules.'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/map')}
+                  style={styles.emptyParcelsCta}
+                  activeOpacity={0.85}>
+                  <Ionicons name="add-circle-outline" size={17} color="#FFFFFF" />
+                  <Text style={styles.emptyParcelsCtaText}>
+                    {isUrdu ? '+ نقشے پر کھیت بنائیں' : '+ Demarcate Field on Map'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               myFields.map((f, idx) => (
@@ -714,23 +731,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   scrollContent: {
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.lg,
+    gap: Spacing.lg,
     paddingBottom: Spacing.xxxl,
   },
 
   // ─── Profile Card ─────────────────────────
   profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: 20,
   },
   avatarRow: {
     flexDirection: 'row',
@@ -740,14 +750,19 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: '#16A34A',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#DCFCE7',
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3,
   },
   avatarInitials: {
     fontFamily: FontFamily.extraBold,
@@ -846,57 +861,44 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   statBox: {
+    ...CardStyle,
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.md,
-    padding: 12,
+    borderRadius: Radius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   statIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   statValue: {
-    fontFamily: FontFamily.extraBold,
+    ...MetricNumberStyle,
     color: '#0F172A',
   },
   statLabel: {
     fontFamily: FontFamily.medium,
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
     textAlign: 'center',
   },
 
   // ─── Section Card ─────────────────────────
   sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: 20,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontFamily: FontFamily.bold,
@@ -905,48 +907,100 @@ const styles = StyleSheet.create({
   sectionSub: {
     fontFamily: FontFamily.medium,
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
   fieldViewMapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.sm,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
     borderWidth: 1,
     borderColor: '#86EFAC',
   },
   fieldViewMapBtnText: {
     fontFamily: FontFamily.bold,
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#16A34A',
   },
 
   // Parcels list
   fieldParcelsList: {
-    gap: 8,
+    gap: 10,
+  },
+  emptyParcelsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: Radius.lg,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyParcelsIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyParcelsTitle: {
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  emptyParcelsDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(15, 23, 42, 0.62)',
+    textAlign: 'center',
+    marginTop: 4,
+    maxWidth: 260,
+  },
+  emptyParcelsCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#16A34A',
+    minHeight: 44,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: Radius.full,
+    marginTop: 12,
+    ...PrimaryButtonShadow,
+  },
+  emptyParcelsCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: '#FFFFFF',
   },
   parcelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderRadius: Radius.md,
-    padding: 12,
+    minHeight: 58,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   parcelIdxCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#16A34A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   parcelIdxText: {
     fontFamily: FontFamily.bold,
+    fontVariant: ['tabular-nums'],
     fontSize: 12,
     color: '#FFFFFF',
   },
@@ -957,7 +1011,7 @@ const styles = StyleSheet.create({
   parcelDetails: {
     fontFamily: FontFamily.medium,
     fontSize: 11.5,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
 
@@ -966,6 +1020,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 54,
     paddingVertical: 10,
   },
   settingItemLeft: {
@@ -975,27 +1030,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   settingItemTitle: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 13.5,
+    fontSize: 14,
     color: '#0F172A',
   },
   settingItemSub: {
     fontFamily: FontFamily.medium,
     fontSize: 11.5,
-    color: '#64748B',
-    marginTop: 1,
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 2,
   },
   togglePill: {
     backgroundColor: '#F1F5F9',
+    minHeight: 38,
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -1070,8 +1127,8 @@ const styles = StyleSheet.create({
   // Sign out card
   signOutCard: {
     backgroundColor: '#FEF2F2',
-    borderRadius: Radius.lg,
-    padding: 16,
+    borderRadius: Radius.xl,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
@@ -1103,12 +1160,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#DC2626',
+    minHeight: 50,
     paddingVertical: 13,
     borderRadius: Radius.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
     elevation: 3,
   },
   signOutButtonText: {

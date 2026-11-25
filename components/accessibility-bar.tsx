@@ -16,13 +16,14 @@ export function AccessibilityControls() {
       {/* Language Switcher */}
       <TouchableOpacity
         onPress={toggleLanguage}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         style={[styles.pill, language === 'ur' && styles.pillActive]}
         activeOpacity={0.8}>
         <Ionicons
           name="globe-outline"
-          size={13}
+          size={14}
           color={language === 'ur' ? '#FFFFFF' : Colors.light.primaryDark}
-          style={{ marginRight: 3 }}
+          style={{ marginRight: 4 }}
         />
         <Text style={[styles.pillText, language === 'ur' && styles.pillTextActive]}>
           {language === 'en' ? 'اردو' : 'EN'}
@@ -32,6 +33,7 @@ export function AccessibilityControls() {
       {/* Font Scale Switcher */}
       <TouchableOpacity
         onPress={toggleFontScale}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         style={[styles.pill, fontScale === 'large' && styles.pillActive]}
         activeOpacity={0.8}>
         <Text style={[styles.pillText, fontScale === 'large' && styles.pillTextActive]}>
@@ -128,26 +130,34 @@ const styles = StyleSheet.create({
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    minHeight: 36,
+    minWidth: 38,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(22, 163, 74, 0.06)',
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: 'rgba(22, 163, 74, 0.16)',
   },
   pillActive: {
-    backgroundColor: Colors.light.primaryDark,
-    borderColor: Colors.light.primaryDark,
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
   },
   pillText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    color: '#334155',
+    fontSize: 11.5,
+    color: Colors.light.primaryDark,
   },
   pillTextActive: {
     color: '#FFFFFF',
@@ -156,21 +166,23 @@ const styles = StyleSheet.create({
   // ─── Floating audio player (new) ──────────
   floatingPlayer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 12,
     left: Spacing.lg,
     right: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(21, 128, 61, 0.95)',
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    backgroundColor: '#15803D',
+    borderRadius: Radius.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.28)',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 8,
   },
   playerPulse: {
     width: 24,

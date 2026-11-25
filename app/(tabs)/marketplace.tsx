@@ -12,11 +12,12 @@ import {
   Alert,
   Linking,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
   useMarketplaceItemsQuery,
@@ -39,6 +40,22 @@ const MARKET_CATEGORIES = [
   { key: 'land_lease', labelEn: 'Land Lease', labelUr: 'کھیت ٹھیکہ', icon: 'map-outline' },
 ];
 
+const QUICK_SEARCH_CHIPS = [
+  { labelEn: 'Akbar-2019', labelUr: 'اکبر 2019', query: 'Akbar-2019' },
+  { labelEn: 'DAP', labelUr: 'ڈی اے پی', query: 'DAP' },
+  { labelEn: 'Seed Drill', labelUr: 'سیڈ ڈرل', query: 'Drill' },
+  { labelEn: 'Faisalabad', labelUr: 'فیصل آباد', query: 'Faisalabad' },
+  { labelEn: 'Wheat Grain', labelUr: 'گندم دانہ', query: 'Wheat' },
+];
+
+const CONDITION_CHIPS = [
+  { key: 'new', labelEn: 'Brand New', labelUr: 'بالکل نیا' },
+  { key: 'like_new', labelEn: 'Used · Good', labelUr: 'استعمال شدہ · عمدہ' },
+  { key: 'used', labelEn: 'Used', labelUr: 'پرانا' },
+];
+
+const MARKET_DISTRICTS = ['Faisalabad', 'Lahore', 'Multan', 'Sahiwal', 'Sargodha'];
+
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { language, t } = useApp();
@@ -47,6 +64,18 @@ export default function MarketplaceScreen() {
   const [activeTab, setActiveTab] = useState<'browse' | 'mine'>('browse');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [recentSearches, setRecentSearches] = useState<string[]>(['Akbar-2019', 'DAP']);
+
+  const applyQuickSearch = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    if (searchQuery.toLowerCase() === trimmed.toLowerCase()) {
+      setSearchQuery('');
+      return;
+    }
+    setSearchQuery(trimmed);
+    setRecentSearches((prev) => [trimmed, ...prev.filter((item) => item.toLowerCase() !== trimmed.toLowerCase())].slice(0, 4));
+  };
 
   // Selected item modal details
   const [selectedItem, setSelectedItem] = useState<MarketplaceItemDTO | null>(null);
@@ -197,29 +226,80 @@ export default function MarketplaceScreen() {
 
         <TouchableOpacity
           style={styles.sellItemBtn}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          activeOpacity={0.85}
           onPress={() => setIsSellModalOpen(true)}>
           <Ionicons name="pricetag" size={16} color="#FFFFFF" />
           <Text style={styles.sellItemBtnText}>{isUrdu ? 'فروخت کریں' : '+ Sell'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Facebook-style Search Bar */}
+      {/* Smarter Search Bar + Trending & Recent Chips */}
       <View style={styles.searchBarContainer}>
         <View style={styles.searchBarBox}>
           <Ionicons name="search" size={18} color="#64748B" />
           <TextInput
-            style={[styles.searchInput, { color: '#000000' }]}
+            style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={() => {
+              if (searchQuery.trim()) {
+                const term = searchQuery.trim();
+                setRecentSearches((prev) => [term, ...prev.filter((x) => x.toLowerCase() !== term.toLowerCase())].slice(0, 4));
+              }
+            }}
+            returnKeyType="search"
             placeholder={isUrdu ? 'بیج، ڈی اے پی کھاد، ٹریکٹر تلاش کریں...' : 'Search seeds, DAP, machinery, grain...'}
-            placeholderTextColor="#64748B"
+            placeholderTextColor="#94A3B8"
           />
           {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={18} color="#94A3B8" />
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {activeTab === 'browse' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickSearchScroll}>
+            {recentSearches.map((recent) => {
+              const active = searchQuery.toLowerCase() === recent.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={`rec-${recent}`}
+                  style={[styles.quickSearchChip, active && styles.quickSearchChipActive]}
+                  activeOpacity={0.75}
+                  onPress={() => applyQuickSearch(recent)}>
+                  <Ionicons name="time-outline" size={12} color={active ? '#15803D' : '#64748B'} />
+                  <Text style={[styles.quickSearchChipText, active && styles.quickSearchChipTextActive]}>
+                    {recent}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            {QUICK_SEARCH_CHIPS.filter(
+              (chip) => !recentSearches.some((r) => r.toLowerCase() === chip.query.toLowerCase())
+            ).map((chip) => {
+              const active = searchQuery.toLowerCase() === chip.query.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={chip.query}
+                  style={[styles.quickSearchChip, active && styles.quickSearchChipActive]}
+                  activeOpacity={0.75}
+                  onPress={() => applyQuickSearch(chip.query)}>
+                  <Ionicons name="trending-up" size={12} color={active ? '#15803D' : '#16A34A'} />
+                  <Text style={[styles.quickSearchChipText, active && styles.quickSearchChipTextActive]}>
+                    {isUrdu ? chip.labelUr : chip.labelEn}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       {/* Segmented: Browse vs My Listings */}
@@ -276,10 +356,24 @@ export default function MarketplaceScreen() {
               </View>
             ) : itemsQuery.data?.length === 0 ? (
               <View style={styles.emptyFeedBox}>
-                <MaterialCommunityIcons name="store-outline" size={54} color="#94A3B8" />
-                <Text style={styles.emptyFeedText}>
-                  {isUrdu ? 'اس زمرے میں کوئی چیز موجود نہیں۔ فروخت کے لیے پہلی چیز آپ لسٹ کریں!' : 'No items found matching criteria. List your product for sale!'}
+                <View style={styles.emptyIconBadge}>
+                  <MaterialCommunityIcons name="storefront-outline" size={32} color="#16A34A" />
+                </View>
+                <Text style={styles.emptyFeedTitle}>
+                  {isUrdu ? 'کوئی لسٹنگ نہیں ملی' : 'No Matching Listings Yet'}
                 </Text>
+                <Text style={styles.emptyFeedText}>
+                  {isUrdu ? 'اس زمرے میں کوئی چیز موجود نہیں۔ فروخت کے لیے پہلی چیز آپ لسٹ کریں!' : 'Be the first grower in your district to list certified seeds, inputs, or grain here.'}
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyActionCta}
+                  activeOpacity={0.85}
+                  onPress={() => setIsSellModalOpen(true)}>
+                  <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.emptyActionCtaText}>
+                    {isUrdu ? '+ پہلی چیز لسٹ کریں' : '+ List an Item for Sale'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.gridRow}>
@@ -325,10 +419,24 @@ export default function MarketplaceScreen() {
             <ActivityIndicator size="large" color="#16A34A" />
           ) : myItemsQuery.data?.length === 0 ? (
             <View style={styles.emptyFeedBox}>
-              <MaterialCommunityIcons name="tag-outline" size={48} color="#94A3B8" />
-              <Text style={styles.emptyFeedText}>
-                {isUrdu ? 'آپ نے ابھی تک کوئی چیز فروخت کے لیے نہیں لگائی۔' : 'You have not listed any items yet.'}
+              <View style={styles.emptyIconBadge}>
+                <MaterialCommunityIcons name="tag-plus-outline" size={32} color="#16A34A" />
+              </View>
+              <Text style={styles.emptyFeedTitle}>
+                {isUrdu ? 'آپ کی دکان ابھی خالی ہے' : 'Start Selling to Local Farmers'}
               </Text>
+              <Text style={styles.emptyFeedText}>
+                {isUrdu ? 'آپ نے ابھی تک کوئی چیز فروخت کے لیے نہیں لگائی۔' : 'List surplus seeds, fertilizer bags, or harvest grain to connect directly with buyers.'}
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyActionCta}
+                activeOpacity={0.85}
+                onPress={() => setIsSellModalOpen(true)}>
+                <Ionicons name="pricetag-outline" size={17} color="#FFFFFF" />
+                <Text style={styles.emptyActionCtaText}>
+                  {isUrdu ? '+ فروخت کے لیے لگائیں' : '+ Create First Listing'}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             myItemsQuery.data?.map((item) => (
@@ -376,11 +484,14 @@ export default function MarketplaceScreen() {
         {selectedItem && (
           <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
             <View style={styles.detailHeader}>
-              <TouchableOpacity onPress={() => setSelectedItem(null)} style={styles.backBtn}>
-                <Ionicons name="close" size={24} color="#0F172A" />
+              <TouchableOpacity
+                onPress={() => setSelectedItem(null)}
+                style={styles.backBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
               <Text style={styles.detailHeaderTitle}>{isUrdu ? 'تفصیلات' : 'Listing Details'}</Text>
-              <View style={{ width: 24 }} />
+              <View style={{ width: 40 }} />
             </View>
 
             <ScrollView style={styles.feedScroll} contentContainerStyle={styles.detailContent}>
@@ -397,7 +508,7 @@ export default function MarketplaceScreen() {
                 <Text style={styles.detailTitle}>{selectedItem.title}</Text>
 
                 <View style={styles.detailMetaRow}>
-                  <View style={styles.conditionTag}>
+                  <View style={styles.conditionTagInline}>
                     <Text style={styles.conditionTagText}>{selectedItem.condition.toUpperCase()}</Text>
                   </View>
                   <View style={styles.categoryBadge}>
@@ -416,7 +527,7 @@ export default function MarketplaceScreen() {
                 {/* Seller Card */}
                 <TouchableOpacity
                   style={styles.sellerCard}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                   onPress={() => {
                     setSelectedSellerUserId(selectedItem.seller_id);
                     setSelectedSellerInitialData({
@@ -439,32 +550,34 @@ export default function MarketplaceScreen() {
                     <Text style={styles.sellerDistrict}>{selectedItem.district} · Verified Farmer</Text>
                   </View>
                 </TouchableOpacity>
-
-                {/* Contact & Chat Buttons */}
-                <View style={styles.contactButtonsRow}>
-                  <TouchableOpacity
-                    style={[styles.chatSellerBtn, isStartingChat && { opacity: 0.7 }]}
-                    disabled={isStartingChat}
-                    onPress={() => handleChatWithSeller(selectedItem)}>
-                    {isStartingChat ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
-                        <Text style={styles.chatSellerBtnText}>{isUrdu ? 'چیٹ میں بات کریں' : 'Chat with Seller'}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.callSellerBtn}
-                    onPress={() => handleCallSeller(selectedItem.seller_phone)}>
-                    <Ionicons name="call" size={20} color="#FFFFFF" />
-                    <Text style={styles.callSellerBtnText}>{isUrdu ? 'فون کال' : 'Call'}</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             </ScrollView>
+
+            {/* Thumb-Zone Sticky Contact & Chat Dock */}
+            <View style={styles.detailStickyDock}>
+              <TouchableOpacity
+                style={[styles.chatSellerBtn, isStartingChat && { opacity: 0.7 }]}
+                disabled={isStartingChat}
+                activeOpacity={0.85}
+                onPress={() => handleChatWithSeller(selectedItem)}>
+                {isStartingChat ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
+                    <Text style={styles.chatSellerBtnText}>{isUrdu ? 'چیٹ میں بات کریں' : 'Chat with Seller'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.callSellerBtn}
+                activeOpacity={0.85}
+                onPress={() => handleCallSeller(selectedItem.seller_phone)}>
+                <Ionicons name="call" size={19} color="#FFFFFF" />
+                <Text style={styles.callSellerBtnText}>{isUrdu ? 'فون کال' : 'Call'}</Text>
+              </TouchableOpacity>
+            </View>
           </SafeAreaView>
         )}
       </Modal>
@@ -472,21 +585,32 @@ export default function MarketplaceScreen() {
       {/* Post / Sell Item Modal */}
       <Modal visible={isSellModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsSellModalOpen(false)}>
         <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.topHeader}>
-            <TouchableOpacity onPress={() => setIsSellModalOpen(false)} style={styles.backBtn}>
-              <Ionicons name="close" size={24} color="#0F172A" />
+            <TouchableOpacity
+              onPress={() => setIsSellModalOpen(false)}
+              style={styles.backBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{isUrdu ? 'مارکیٹ میں چیز لسٹ کریں' : 'Sell Agricultural Product'}</Text>
-            <View style={{ width: 32 }} />
+            <View style={{ width: 40 }} />
           </View>
 
-          <ScrollView style={styles.feedScroll} contentContainerStyle={styles.feedContent}>
+          <ScrollView
+            style={styles.feedScroll}
+            contentContainerStyle={styles.feedContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
             <Text style={styles.inputLabel}>{isUrdu ? 'پروڈکٹ کا نام *' : 'Item Title *'}</Text>
             <TextInput
               style={styles.formInput}
               value={newTitle}
               onChangeText={setNewTitle}
               placeholder="e.g. Certified Akbar-2019 Wheat Seed (50kg)"
+              placeholderTextColor="#94A3B8"
             />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'زمرہ (Category)' : 'Category'}</Text>
@@ -496,8 +620,27 @@ export default function MarketplaceScreen() {
                   key={cat.key}
                   style={[styles.typeOptionPill, newCategory === cat.key && styles.typeOptionPillActive]}
                   onPress={() => setNewCategory(cat.key)}>
+                  <MaterialCommunityIcons
+                    name={cat.icon as any}
+                    size={14}
+                    color={newCategory === cat.key ? '#FFFFFF' : '#475569'}
+                  />
                   <Text style={[styles.typeOptionText, newCategory === cat.key && styles.typeOptionTextActive]}>
                     {isUrdu ? cat.labelUr : cat.labelEn}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>{isUrdu ? 'حالت (Condition)' : 'Condition'}</Text>
+            <View style={styles.typeSelectorRow}>
+              {CONDITION_CHIPS.map((cond) => (
+                <TouchableOpacity
+                  key={cond.key}
+                  style={[styles.typeOptionPill, newCondition === cond.key && styles.typeOptionPillActive]}
+                  onPress={() => setNewCondition(cond.key)}>
+                  <Text style={[styles.typeOptionText, newCondition === cond.key && styles.typeOptionTextActive]}>
+                    {isUrdu ? cond.labelUr : cond.labelEn}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -512,27 +655,7 @@ export default function MarketplaceScreen() {
                   value={newPrice}
                   onChangeText={setNewPrice}
                   placeholder="4800"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>{isUrdu ? 'حالت' : 'Condition'}</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newCondition}
-                  onChangeText={setNewCondition}
-                  placeholder="New / Used"
-                />
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>{isUrdu ? 'ضلع / علاقہ *' : 'District *'}</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newDistrict}
-                  onChangeText={setNewDistrict}
-                  placeholder="Faisalabad"
+                  placeholderTextColor="#94A3B8"
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -543,9 +666,32 @@ export default function MarketplaceScreen() {
                   value={newPhone}
                   onChangeText={setNewPhone}
                   placeholder="03001234567"
+                  placeholderTextColor="#94A3B8"
                 />
               </View>
             </View>
+
+            <Text style={styles.inputLabel}>{isUrdu ? 'ضلع / علاقہ *' : 'District *'}</Text>
+            <View style={styles.typeSelectorRow}>
+              {MARKET_DISTRICTS.map((dist) => (
+                <TouchableOpacity
+                  key={dist}
+                  style={[styles.typeOptionPill, newDistrict === dist && styles.typeOptionPillActive]}
+                  onPress={() => setNewDistrict(dist)}>
+                  <Ionicons name="location-outline" size={13} color={newDistrict === dist ? '#FFFFFF' : '#64748B'} />
+                  <Text style={[styles.typeOptionText, newDistrict === dist && styles.typeOptionTextActive]}>
+                    {dist}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.formInput}
+              value={newDistrict}
+              onChangeText={setNewDistrict}
+              placeholder="Faisalabad"
+              placeholderTextColor="#94A3B8"
+            />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'مقام / دکان کا پتہ (اختیاری)' : 'Location / Shop Address (Optional)'}</Text>
             <TextInput
@@ -553,6 +699,7 @@ export default function MarketplaceScreen() {
               value={newAddress}
               onChangeText={setNewAddress}
               placeholder="Grain Market, Jhang Road"
+              placeholderTextColor="#94A3B8"
             />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'تفصیل *' : 'Description *'}</Text>
@@ -562,6 +709,7 @@ export default function MarketplaceScreen() {
               value={newDesc}
               onChangeText={setNewDesc}
               placeholder="Provide quality, certification details, bags available..."
+              placeholderTextColor="#94A3B8"
             />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'تصویر کا لنک (اختیاری)' : 'Product Photo URL (Optional)'}</Text>
@@ -570,14 +718,28 @@ export default function MarketplaceScreen() {
               value={newImageUrl}
               onChangeText={setNewImageUrl}
               placeholder="https://images.unsplash.com/..."
+              placeholderTextColor="#94A3B8"
             />
 
             <TouchableOpacity
-              style={[styles.submitPostBtn, sellStatus === 'sending' && { opacity: 0.7 }]}
-              disabled={sellStatus === 'sending'}
+              style={[
+                styles.submitPostBtn,
+                sellStatus === 'success' && { backgroundColor: '#15803D' },
+                sellStatus === 'sending' && { opacity: 0.7 },
+              ]}
+              disabled={sellStatus === 'sending' || sellStatus === 'success'}
+              activeOpacity={0.85}
               onPress={handlePostItem}>
               {sellStatus === 'sending' ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.submitPostBtnText}>{isUrdu ? 'شائع ہو رہا ہے...' : 'Publishing...'}</Text>
+                </>
+              ) : sellStatus === 'success' ? (
+                <>
+                  <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+                  <Text style={styles.submitPostBtnText}>{isUrdu ? 'شائع ہو گیا!' : 'Listed Successfully!'}</Text>
+                </>
               ) : (
                 <>
                   <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
@@ -588,6 +750,7 @@ export default function MarketplaceScreen() {
               )}
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -639,38 +802,71 @@ const styles = StyleSheet.create({
   sellItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#16A34A',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: Radius.md,
+    ...PrimaryButtonShadow,
   },
   sellItemBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.bold,
   },
   searchBarContainer: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 10,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   searchBarBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    minHeight: 44,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    color: '#000000',
-    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
+    color: '#0F172A',
+    fontFamily: FontFamily.medium,
+  },
+  quickSearchScroll: {
+    paddingTop: 8,
+    gap: 6,
+  },
+  quickSearchChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickSearchChipActive: {
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    borderColor: '#16A34A',
+  },
+  quickSearchChipText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.medium,
+    color: '#475569',
+  },
+  quickSearchChipTextActive: {
+    fontFamily: FontFamily.bold,
+    color: '#15803D',
   },
   toggleRow: {
     flexDirection: 'row',
@@ -683,8 +879,10 @@ const styles = StyleSheet.create({
   },
   toggleBtn: {
     flex: 1,
+    minHeight: 40,
+    justifyContent: 'center',
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
   },
@@ -692,7 +890,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16A34A',
   },
   toggleBtnText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.medium,
     color: '#475569',
   },
@@ -702,7 +900,7 @@ const styles = StyleSheet.create({
   },
   categoriesBar: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
@@ -714,10 +912,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    minHeight: 38,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: Radius.full,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -739,7 +938,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   gridContainer: {
-    padding: 12,
+    padding: 14,
     paddingBottom: 40,
   },
   gridRow: {
@@ -748,16 +947,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   productCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     ...CardStyle,
+    width: '48%',
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
   },
   imageContainer: {
-    height: 120,
+    height: 124,
     backgroundColor: '#F1F5F9',
     position: 'relative',
   },
@@ -773,32 +969,38 @@ const styles = StyleSheet.create({
   },
   conditionTag: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: '#0F172ACC',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 6,
+  },
+  conditionTagInline: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
   },
   conditionTagText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontFamily: FontFamily.bold,
     color: '#FFFFFF',
   },
   productInfo: {
-    padding: 10,
+    padding: 12,
   },
   productPrice: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 16,
     color: '#16A34A',
   },
   productTitle: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.semiBold,
     color: '#0F172A',
-    marginTop: 2,
-    lineHeight: 16,
+    marginTop: 3,
+    lineHeight: 17,
   },
   locationRow: {
     flexDirection: 'row',
@@ -809,7 +1011,7 @@ const styles = StyleSheet.create({
   productLocation: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     flex: 1,
   },
   feedContent: {
@@ -817,48 +1019,52 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   myListingCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...CardStyle,
+    borderRadius: Radius.lg,
+    padding: 16,
+    marginBottom: 12,
   },
   myListingTitle: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   myListingPrice: {
-    fontSize: 13,
-    fontFamily: FontFamily.semiBold,
+    ...MetricNumberStyle,
+    fontSize: 15,
     color: '#16A34A',
-    marginTop: 2,
+    marginTop: 3,
   },
   myListingStatus: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: '#64748B',
-    marginTop: 3,
+    fontSize: 11.5,
+    fontFamily: FontFamily.medium,
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 4,
   },
   toggleSoldBtn: {
     backgroundColor: '#DCFCE7',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: Radius.sm,
   },
   toggleSoldBtnText: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 11.5,
+    fontFamily: FontFamily.bold,
     color: '#16A34A',
   },
   deleteListingBtn: {
     alignSelf: 'flex-end',
-    padding: 6,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailHeader: {
     flexDirection: 'row',
@@ -871,7 +1077,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailHeaderTitle: {
     fontSize: 16,
@@ -879,7 +1092,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   detailContent: {
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
   detailImage: {
     width: '100%',
@@ -887,15 +1100,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   detailMainBox: {
-    padding: 16,
+    padding: 20,
   },
   detailPrice: {
-    fontSize: 22,
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 24,
     color: '#16A34A',
   },
   detailTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
     marginTop: 4,
@@ -908,54 +1121,52 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     backgroundColor: '#F0FDF4',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
     borderRadius: 6,
   },
   categoryBadgeText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
     color: '#16A34A',
   },
   detailLocation: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   detailAddress: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.regular,
-    color: '#475569',
+    color: 'rgba(15, 23, 42, 0.80)',
     marginTop: 8,
   },
   detailSectionTitle: {
     fontSize: 14,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
-    marginTop: 18,
+    marginTop: 20,
     marginBottom: 6,
   },
   detailDesc: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 21,
     fontFamily: FontFamily.regular,
-    color: '#334155',
+    color: 'rgba(15, 23, 42, 0.80)',
   },
   sellerCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: Radius.lg,
+    padding: 16,
     marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   sellerAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#16A34A20',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(22, 163, 74, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -965,33 +1176,43 @@ const styles = StyleSheet.create({
     color: '#16A34A',
   },
   sellerName: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   sellerDistrict: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 1,
   },
   viewProfileChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
   },
   viewProfileChipText: {
     fontSize: 11,
     fontFamily: FontFamily.bold,
     color: '#16A34A',
   },
-  contactButtonsRow: {
+  detailStickyDock: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(15, 23, 42, 0.08)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 8,
   },
   chatSellerBtn: {
     flex: 2,
@@ -1000,8 +1221,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
-    paddingVertical: 14,
-    borderRadius: 12,
+    minHeight: 50,
+    paddingVertical: 13,
+    borderRadius: Radius.md,
+    ...PrimaryButtonShadow,
   },
   chatSellerBtnText: {
     color: '#FFFFFF',
@@ -1015,8 +1238,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#0F172A',
-    paddingVertical: 14,
-    borderRadius: 12,
+    minHeight: 50,
+    paddingVertical: 13,
+    borderRadius: Radius.md,
   },
   callSellerBtnText: {
     color: '#FFFFFF',
@@ -1024,33 +1248,39 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
   },
   inputLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    color: '#334155',
-    marginBottom: 4,
-    marginTop: 10,
+    fontSize: 12.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#0F172A',
+    marginBottom: 6,
+    marginTop: 12,
   },
   formInput: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderRadius: Radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    minHeight: 46,
     fontSize: 14,
+    fontFamily: FontFamily.medium,
     backgroundColor: '#FFFFFF',
     color: '#0F172A',
   },
   typeSelectorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 4,
+    gap: 8,
+    marginBottom: 6,
   },
   typeOptionPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 38,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Radius.full,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -1059,7 +1289,7 @@ const styles = StyleSheet.create({
     borderColor: '#16A34A',
   },
   typeOptionText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.medium,
     color: '#475569',
   },
@@ -1073,13 +1303,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
+    minHeight: 52,
     paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 22,
+    borderRadius: Radius.md,
+    marginTop: 24,
+    ...PrimaryButtonShadow,
   },
   submitPostBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
   },
   centerLoading: {
@@ -1094,16 +1326,53 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   emptyFeedBox: {
-    paddingVertical: 60,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    marginTop: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
+  },
+  emptyIconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyFeedTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+    textAlign: 'center',
   },
   emptyFeedText: {
     fontSize: 13,
-    fontFamily: FontFamily.medium,
-    color: '#64748B',
+    lineHeight: 19,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(15, 23, 42, 0.62)',
     textAlign: 'center',
-    maxWidth: 240,
+    maxWidth: 260,
+  },
+  emptyActionCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#16A34A',
+    minHeight: 46,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: Radius.full,
+    marginTop: 8,
+    ...PrimaryButtonShadow,
+  },
+  emptyActionCtaText: {
+    fontSize: 13.5,
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
   },
 });

@@ -16,7 +16,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
   useCommunityPostsQuery,
@@ -43,6 +43,14 @@ const POST_CATEGORIES = [
   { key: 'disease_alert', labelEn: 'Disease Alerts', labelUr: 'بیماریوں کے انتباہ' },
   { key: 'machinery', labelEn: 'Machinery & Tools', labelUr: 'مشینری و آلات' },
   { key: 'market_prices', labelEn: 'Grain Prices', labelUr: 'مارکیٹ ریٹس' },
+];
+
+const FARMER_QUICK_FILTERS = [
+  { labelEn: 'Faisalabad', labelUr: 'فیصل آباد', query: 'Faisalabad' },
+  { labelEn: 'Lahore', labelUr: 'لاہور', query: 'Lahore' },
+  { labelEn: 'Multan', labelUr: 'ملتان', query: 'Multan' },
+  { labelEn: 'Sahiwal', labelUr: 'ساہیوال', query: 'Sahiwal' },
+  { labelEn: 'Sargodha', labelUr: 'سرگودھا', query: 'Sargodha' },
 ];
 
 export default function CommunityScreen() {
@@ -356,7 +364,7 @@ export default function CommunityScreen() {
           </View>
 
           {/* Posts List */}
-          <ScrollView style={styles.feedScroll} contentContainerStyle={styles.feedContent}>
+          <ScrollView style={styles.feedScroll} contentContainerStyle={[styles.feedContent, { paddingBottom: 92 }]}>
             {postsQuery.isLoading ? (
               <View style={styles.centerLoading}>
                 <ActivityIndicator size="large" color="#16A34A" />
@@ -364,10 +372,24 @@ export default function CommunityScreen() {
               </View>
             ) : postsQuery.data?.length === 0 ? (
               <View style={styles.emptyFeedBox}>
-                <MaterialCommunityIcons name="newspaper-plus" size={48} color="#94A3B8" />
-                <Text style={styles.emptyFeedText}>
-                  {isUrdu ? 'اس زمرے میں کوئی پوسٹ موجود نہیں۔ پہلی پوسٹ آپ کریں!' : 'No posts in this category yet. Be the first to share!'}
+                <View style={styles.emptyIconBadge}>
+                  <MaterialCommunityIcons name="newspaper-plus" size={32} color="#16A34A" />
+                </View>
+                <Text style={styles.emptyFeedTitle}>
+                  {isUrdu ? 'پہلا مشورہ شیئر کریں' : 'Start the Conversation'}
                 </Text>
+                <Text style={styles.emptyFeedText}>
+                  {isUrdu ? 'اس زمرے میں کوئی پوسٹ موجود نہیں۔ پہلی پوسٹ آپ کریں!' : 'No posts in this category yet. Share a field update or ask local growers!'}
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyActionCta}
+                  activeOpacity={0.85}
+                  onPress={() => setIsCreateModalOpen(true)}>
+                  <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.emptyActionCtaText}>
+                    {isUrdu ? '+ پہلی پوسٹ بنائیں' : '+ Share First Post'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               postsQuery.data?.map((post) => (
@@ -486,6 +508,17 @@ export default function CommunityScreen() {
               ))
             )}
           </ScrollView>
+
+          {/* Thumb-Zone Floating + New Post Pill FAB */}
+          <TouchableOpacity
+            style={styles.feedThumbFab}
+            activeOpacity={0.88}
+            onPress={() => setIsCreateModalOpen(true)}>
+            <Ionicons name="create-outline" size={19} color="#FFFFFF" />
+            <Text style={styles.feedThumbFabText}>
+              {isUrdu ? '+ نئی پوسٹ' : '+ New Post'}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -494,7 +527,7 @@ export default function CommunityScreen() {
         <ScrollView style={styles.feedScroll} contentContainerStyle={styles.feedContent}>
           {/* Farmers Search Input */}
           <View style={styles.farmerSearchContainer}>
-            <Ionicons name="search" size={18} color="#94A3B8" style={{ marginLeft: 10 }} />
+            <Ionicons name="search" size={18} color="#94A3B8" style={{ marginLeft: 12 }} />
             <TextInput
               style={styles.farmerSearchInput}
               placeholder={isUrdu ? 'کسان کا نام، ضلع یا فون نمبر تلاش کریں...' : 'Search farmers by name, district, or phone...'}
@@ -511,11 +544,37 @@ export default function CommunityScreen() {
                   setFarmerSearchQuery('');
                   setFarmerPage(1);
                 }}
-                style={{ padding: 6, marginRight: 6 }}>
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ padding: 8, marginRight: 6 }}>
                 <Ionicons name="close-circle" size={18} color="#94A3B8" />
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Smarter Search: Quick District Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickDistrictRow}>
+            {FARMER_QUICK_FILTERS.map((df) => {
+              const active = farmerSearchQuery.trim().toLowerCase() === df.query.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={df.query}
+                  style={[styles.quickDistrictChip, active && styles.quickDistrictChipActive]}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    setFarmerSearchQuery(active ? '' : df.query);
+                    setFarmerPage(1);
+                  }}>
+                  <Ionicons name="location-outline" size={12} color={active ? '#15803D' : '#64748B'} />
+                  <Text style={[styles.quickDistrictChipText, active && styles.quickDistrictChipTextActive]}>
+                    {isUrdu ? df.labelUr : df.labelEn}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
           {/* Results Summary Bar */}
           {totalFarmersCount > 0 && (
@@ -648,10 +707,24 @@ export default function CommunityScreen() {
             </View>
           ) : conversationsQuery.data?.length === 0 ? (
             <View style={styles.emptyFeedBox}>
-              <MaterialCommunityIcons name="chat-outline" size={48} color="#94A3B8" />
-              <Text style={styles.emptyFeedText}>
-                {isUrdu ? 'ابھی کوئی بات چیت شروع نہیں ہوئی۔ کسانوں سے رابطہ کریں!' : 'No messages yet. Connect with a farmer or inquiry from Marketplace!'}
+              <View style={styles.emptyIconBadge}>
+                <MaterialCommunityIcons name="chat-plus-outline" size={32} color="#16A34A" />
+              </View>
+              <Text style={styles.emptyFeedTitle}>
+                {isUrdu ? 'آپ کا ان باکس تیار ہے' : 'Your Direct Inbox Is Ready'}
               </Text>
+              <Text style={styles.emptyFeedText}>
+                {isUrdu ? 'ابھی کوئی بات چیت شروع نہیں ہوئی۔ کسانوں سے رابطہ کریں!' : 'Connect with progressive growers in your district or message any Marketplace seller.'}
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyActionCta}
+                activeOpacity={0.85}
+                onPress={() => setActiveSubTab('network')}>
+                <MaterialCommunityIcons name="account-group-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.emptyActionCtaText}>
+                  {isUrdu ? 'کسان نیٹ ورک دیکھیں' : 'Browse Farmers Network'}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             conversationsQuery.data?.map((c) => (
@@ -767,8 +840,9 @@ export default function CommunityScreen() {
                 value={chatMessageText}
                 onChangeText={setChatMessageText}
                 placeholder={isUrdu ? 'پیغام لکھیں...' : 'Type a message...'}
+                placeholderTextColor="#94A3B8"
               />
-              <TouchableOpacity style={styles.chatSendBtn} onPress={handleSendMessage}>
+              <TouchableOpacity style={styles.chatSendBtn} activeOpacity={0.85} onPress={handleSendMessage}>
                 <Ionicons name="send" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -779,21 +853,32 @@ export default function CommunityScreen() {
       {/* Create New Post Modal */}
       <Modal visible={isCreateModalOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsCreateModalOpen(false)}>
         <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.topHeader}>
-            <TouchableOpacity onPress={() => setIsCreateModalOpen(false)} style={styles.backBtn}>
-              <Ionicons name="close" size={24} color="#0F172A" />
+            <TouchableOpacity
+              onPress={() => setIsCreateModalOpen(false)}
+              style={styles.backBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{isUrdu ? 'نئی کمیونٹی پوسٹ' : 'Create Community Post'}</Text>
-            <View style={{ width: 32 }} />
+            <View style={{ width: 40 }} />
           </View>
 
-          <ScrollView style={styles.feedScroll} contentContainerStyle={styles.feedContent}>
+          <ScrollView
+            style={styles.feedScroll}
+            contentContainerStyle={styles.feedContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
             <Text style={styles.inputLabel}>{isUrdu ? 'پوسٹ کا عنوان *' : 'Post Title *'}</Text>
             <TextInput
               style={styles.formInput}
               value={newTitle}
               onChangeText={setNewTitle}
               placeholder="e.g. Sowing date experience in Faisalabad"
+              placeholderTextColor="#94A3B8"
             />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'موضوع منتخب کریں' : 'Category'}</Text>
@@ -817,6 +902,7 @@ export default function CommunityScreen() {
               value={newContent}
               onChangeText={setNewContent}
               placeholder={isUrdu ? 'اپنا زرعی تجربہ یا سوال تفصیل سے لکھیں...' : 'Share your agronomic observations, questions, or crop tips...'}
+              placeholderTextColor="#94A3B8"
             />
 
             <Text style={styles.inputLabel}>{isUrdu ? 'تصویر کا لنک (اختیاری)' : 'Image URL (Optional)'}</Text>
@@ -825,14 +911,28 @@ export default function CommunityScreen() {
               value={newImageUrl}
               onChangeText={setNewImageUrl}
               placeholder="https://..."
+              placeholderTextColor="#94A3B8"
             />
 
             <TouchableOpacity
-              style={[styles.submitPostBtn, postStatus === 'sending' && { opacity: 0.7 }]}
-              disabled={postStatus === 'sending'}
+              style={[
+                styles.submitPostBtn,
+                postStatus === 'success' && { backgroundColor: '#15803D' },
+                postStatus === 'sending' && { opacity: 0.7 },
+              ]}
+              disabled={postStatus === 'sending' || postStatus === 'success'}
+              activeOpacity={0.85}
               onPress={handleCreatePost}>
               {postStatus === 'sending' ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.submitPostBtnText}>{isUrdu ? 'شائع ہو رہا ہے...' : 'Publishing...'}</Text>
+                </>
+              ) : postStatus === 'success' ? (
+                <>
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+                  <Text style={styles.submitPostBtnText}>{isUrdu ? 'پوسٹ شائع ہو گئی!' : 'Published!'}</Text>
+                </>
               ) : (
                 <>
                   <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
@@ -843,6 +943,7 @@ export default function CommunityScreen() {
               )}
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -896,13 +997,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#16A34A',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: Radius.md,
+    ...PrimaryButtonShadow,
   },
   createPostBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.bold,
   },
   subTabsRow: {
@@ -917,6 +1020,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
+    minHeight: 46,
     paddingHorizontal: 10,
     paddingVertical: 12,
     borderBottomWidth: 2,
@@ -936,7 +1040,7 @@ const styles = StyleSheet.create({
   },
   categoriesBar: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
@@ -945,10 +1049,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: Radius.full,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -973,25 +1079,41 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+  feedThumbFab: {
+    position: 'absolute',
+    bottom: 18,
+    right: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#16A34A',
+    minHeight: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    borderRadius: Radius.full,
+    ...PrimaryButtonShadow,
+  },
+  feedThumbFabText: {
+    fontSize: 13.5,
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+  },
   postCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: 20,
+    marginBottom: 16,
   },
   postAuthorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   authorAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#16A34A20',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(22, 163, 74, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1001,83 +1123,90 @@ const styles = StyleSheet.create({
     color: '#16A34A',
   },
   authorName: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   authorDistrict: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 1,
   },
   categoryBadge: {
     backgroundColor: '#F0FDF4',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.14)',
   },
   categoryBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: '#16A34A',
+    textTransform: 'capitalize',
   },
   postTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
     marginBottom: 6,
   },
   postContentText: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 21,
     fontFamily: FontFamily.regular,
-    color: '#334155',
+    color: 'rgba(15, 23, 42, 0.80)',
   },
   postImage: {
     width: '100%',
-    height: 180,
-    borderRadius: 10,
-    marginTop: 10,
+    height: 188,
+    borderRadius: Radius.md,
+    marginTop: 12,
   },
   engagementRow: {
     flexDirection: 'row',
-    gap: 18,
-    marginTop: 12,
-    paddingTop: 10,
+    gap: 20,
+    marginTop: 14,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   engagementBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 38,
+    paddingHorizontal: 6,
     gap: 6,
   },
   engagementText: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    color: '#64748B',
+    fontSize: 12.5,
+    fontFamily: FontFamily.semiBold,
+    fontVariant: ['tabular-nums'],
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   commentsContainer: {
     marginTop: 12,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     gap: 8,
   },
   singleComment: {
     backgroundColor: '#F8FAFC',
-    padding: 8,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: Radius.sm,
   },
   commentAuthor: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   commentContent: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.regular,
-    color: '#334155',
+    color: 'rgba(15, 23, 42, 0.80)',
     marginTop: 2,
   },
   commentInputRow: {
@@ -1089,57 +1218,58 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 12,
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    minHeight: 42,
+    fontSize: 12.5,
     color: '#0F172A',
     backgroundColor: '#FFFFFF',
   },
   commentSendBtn: {
     backgroundColor: '#16A34A',
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    minWidth: 44,
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   farmerCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...CardStyle,
+    borderRadius: Radius.lg,
+    padding: 16,
+    marginBottom: 12,
   },
   farmerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#3B82F620',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   farmerName: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   farmerDistrict: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 2,
   },
   connectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#16A34A',
-    paddingVertical: 7,
+    minHeight: 38,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
   },
   connectedBtn: {
     backgroundColor: '#F0FDF4',
@@ -1149,48 +1279,48 @@ const styles = StyleSheet.create({
   connectBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
   },
   connectedBtnText: {
     color: '#16A34A',
   },
   chatShortcutBtn: {
-    padding: 8,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
     backgroundColor: '#F1F5F9',
   },
   conversationItem: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...CardStyle,
+    borderRadius: Radius.lg,
+    padding: 16,
+    marginBottom: 12,
   },
   convName: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
     color: '#0F172A',
   },
   convLastMessage: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 3,
   },
   unreadBadge: {
     backgroundColor: '#16A34A',
     borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
   unreadBadgeText: {
+    ...MetricNumberStyle,
     color: '#FFFFFF',
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
+    fontSize: 10.5,
   },
   chatModalContainer: {
     flex: 1,
@@ -1206,7 +1336,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chatHeaderProfileTouch: {
     flex: 1,
@@ -1215,9 +1352,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatHeaderAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1251,8 +1388,8 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    borderRadius: 14,
-    paddingVertical: 9,
+    borderRadius: 16,
+    paddingVertical: 10,
     paddingHorizontal: 14,
   },
   myBubble: {
@@ -1264,8 +1401,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   messageText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 13.5,
+    lineHeight: 19,
     fontFamily: FontFamily.regular,
   },
   myMessageText: {
@@ -1288,48 +1425,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    minHeight: 44,
     fontSize: 14,
     color: '#0F172A',
   },
   chatSendBtn: {
     backgroundColor: '#16A34A',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    ...PrimaryButtonShadow,
   },
   inputLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    color: '#334155',
-    marginBottom: 4,
-    marginTop: 10,
+    fontSize: 12.5,
+    fontFamily: FontFamily.semiBold,
+    color: '#0F172A',
+    marginBottom: 6,
+    marginTop: 12,
   },
   formInput: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderRadius: Radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    minHeight: 46,
     fontSize: 14,
+    fontFamily: FontFamily.medium,
     backgroundColor: '#FFFFFF',
     color: '#0F172A',
   },
   typeSelectorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 4,
+    gap: 8,
+    marginBottom: 6,
   },
   typeOptionPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Radius.full,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -1338,7 +1480,7 @@ const styles = StyleSheet.create({
     borderColor: '#16A34A',
   },
   typeOptionText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.medium,
     color: '#475569',
   },
@@ -1352,13 +1494,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
+    minHeight: 52,
     paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 20,
+    borderRadius: Radius.md,
+    marginTop: 24,
+    ...PrimaryButtonShadow,
   },
   submitPostBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.bold,
   },
   centerLoading: {
@@ -1373,35 +1517,98 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   emptyFeedBox: {
-    paddingVertical: 60,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
+  },
+  emptyIconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyFeedTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.bold,
+    color: '#0F172A',
+    textAlign: 'center',
   },
   emptyFeedText: {
     fontSize: 13,
-    fontFamily: FontFamily.medium,
-    color: '#64748B',
+    lineHeight: 19,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(15, 23, 42, 0.62)',
     textAlign: 'center',
-    maxWidth: 240,
+    maxWidth: 260,
   },
-  farmerSearchContainer: {
+  emptyActionCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
+    gap: 6,
+    backgroundColor: '#16A34A',
+    minHeight: 46,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: Radius.full,
+    marginTop: 8,
+    ...PrimaryButtonShadow,
+  },
+  emptyActionCtaText: {
+    fontSize: 13.5,
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+  },
+  farmerSearchContainer: {
     ...CardStyle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.md,
+    minHeight: 46,
+    marginBottom: 8,
   },
   farmerSearchInput: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 10,
-    fontSize: 13,
+    fontSize: 13.5,
     fontFamily: FontFamily.medium,
     color: '#0F172A',
+  },
+  quickDistrictRow: {
+    gap: 6,
+    paddingBottom: 12,
+  },
+  quickDistrictChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickDistrictChipActive: {
+    backgroundColor: 'rgba(22, 163, 74, 0.10)',
+    borderColor: '#16A34A',
+  },
+  quickDistrictChipText: {
+    fontSize: 11.5,
+    fontFamily: FontFamily.medium,
+    color: '#475569',
+  },
+  quickDistrictChipTextActive: {
+    fontFamily: FontFamily.bold,
+    color: '#15803D',
   },
   resultsSummaryRow: {
     flexDirection: 'row',
@@ -1413,11 +1620,12 @@ const styles = StyleSheet.create({
   resultsCountText: {
     fontSize: 11.5,
     fontFamily: FontFamily.medium,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   resultsPageBadge: {
     fontSize: 11,
     fontFamily: FontFamily.bold,
+    fontVariant: ['tabular-nums'],
     color: '#16A34A',
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 8,

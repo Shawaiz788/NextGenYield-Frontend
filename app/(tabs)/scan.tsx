@@ -22,7 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
 import { useApp } from '@/context/app-context';
-import { FontFamily, Spacing, Radius, STAGE_CONFIG } from '@/constants/theme';
+import { FontFamily, Spacing, Radius, STAGE_CONFIG, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import {
   useApiServerConfig,
   usePredictGrowthStage,
@@ -729,15 +729,15 @@ export default function CameraScanScreen() {
                   </View>
                 )}
 
-                {/* Detected Stage Banner */}
-                <View style={[styles.stageBannerCard, { borderColor: activeStageConfig.color }]}>
+                {/* Detected Stage Banner (Peak-End Celebratory Vision Card) */}
+                <View style={[styles.stageBannerCard, { borderColor: activeStageConfig.color, backgroundColor: activeStageConfig.lightBg + '55' }]}>
                   <View style={styles.stageBannerTop}>
                     <View
                       style={[
                         styles.confidenceBadge,
                         { backgroundColor: badgeColors?.bg, borderColor: badgeColors?.border },
                       ]}>
-                      <View style={[styles.confDot, { backgroundColor: badgeColors?.badge }]} />
+                      <Ionicons name="sparkles" size={12} color={badgeColors?.badge || '#16A34A'} />
                       <Text style={[styles.confidenceBadgeText, { color: badgeColors?.text }]}>
                         {(prediction.confidence * 100).toFixed(1)}% {t.confidenceMatch}
                       </Text>
@@ -1005,10 +1005,12 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   iconCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1264,22 +1266,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   shutterOuter: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   shutterOuterGood: {
     borderColor: '#22C55E',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 16,
+    elevation: 6,
   },
   shutterInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#16A34A',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.30)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1287,16 +1296,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#22C55E',
   },
   rightControlsCol: {
-    width: 70,
+    width: 96,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
   },
   miniToolBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1351,9 +1362,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1653,8 +1664,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   confidenceBadgeText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
+    ...MetricNumberStyle,
+    fontSize: 12,
   },
   stageIndexPill: {
     backgroundColor: '#E2E8F0',
@@ -1735,14 +1746,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   probVal: {
-    width: 38,
+    width: 42,
     textAlign: 'right',
-    fontFamily: FontFamily.medium,
-    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    fontVariant: ['tabular-nums'],
+    fontSize: 11.5,
     color: '#64748B',
   },
   probValWinner: {
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 12,
     color: '#16A34A',
   },
 
@@ -1823,17 +1836,14 @@ const styles = StyleSheet.create({
   },
   saveObservationBtn: {
     flex: 2,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#16A34A',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: Radius.md,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    ...PrimaryButtonShadow,
   },
   saveObservationBtnText: {
     fontFamily: FontFamily.bold,

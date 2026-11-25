@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp, MapFieldItem } from '@/context/app-context';
-import { STAGE_CONFIG, FontFamily, Colors, Spacing, Radius } from '@/constants/theme';
+import { STAGE_CONFIG, FontFamily, Colors, Spacing, Radius, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { RealLeafletMap } from '@/components/real-leaflet-map';
@@ -558,9 +558,19 @@ export default function FarmMapScreen() {
             )}
           </TouchableOpacity>
         )}
+        {/* Thumb-Zone Floating + Demarcate Field Pill FAB */}
+        {!isDrawModeOpen && !selectedMapField && (
+          <TouchableOpacity
+            onPress={() => setIsDrawModeOpen(true)}
+            style={styles.thumbZoneMapFab}
+            activeOpacity={0.85}>
+            <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.thumbZoneMapFabText}>
+              {language === 'ur' ? 'نیا کھیت بنائیں' : 'Demarcate Field'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
-
-      {/* ─── Bottom Panel: Add Field Sheet OR Selected Field Card ─── */}
       {isDrawModeOpen ? (
         /* ─── Add Field Bottom Setup Sheet (Map remains visible above) ─── */
         <KeyboardAvoidingView
@@ -653,23 +663,28 @@ export default function FarmMapScreen() {
                 disabled={saveStatus !== 'idle' || isAreaTooLarge}
                 style={[styles.saveFieldBtn, (saveStatus !== 'idle' || isAreaTooLarge) && styles.saveFieldBtnDisabled]}
                 activeOpacity={0.85}>
-                <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                  {saveStatus === 'saving' ? (
-                    <>
-                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                        {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Saving Field...'}
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
-                        {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
-                      </Text>
-                    </>
-                  )}
-                </Text>
+                {saveStatus === 'saving' ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                      {language === 'ur' ? 'محفوظ ہو رہا ہے...' : 'Saving Field...'}
+                    </Text>
+                  </>
+                ) : saveStatus === 'success' ? (
+                  <>
+                    <Ionicons name="sparkles" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                      {language === 'ur' ? 'محفوظ ہو گیا!' : 'Field Saved!'}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={[styles.saveFieldBtnText, { fontSize: 14 * fontMultiplier }]}>
+                      {language === 'ur' ? 'کھیت محفوظ کریں' : 'Save Field to Map'}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -834,22 +849,22 @@ export default function FarmMapScreen() {
             </View>
           ) : (
             <>
-              {/* Stats Row with Icons */}
+              {/* Stats Row with Values Above Labels */}
               <View style={styles.statsRow}>
                 <View style={styles.statCol}>
-                  <Ionicons name="resize-outline" size={14} color={Colors.light.textMuted} style={{ marginBottom: 2 }} />
-                  <Text style={styles.statLabel}>{t.area}</Text>
+                  <Ionicons name="resize-outline" size={14} color={Colors.light.textMuted} style={{ marginBottom: 4 }} />
                   <Text style={styles.statValue}>{selectedMapField.acres} Ac</Text>
+                  <Text style={styles.statLabel}>{t.area}</Text>
                 </View>
                 <View style={styles.statCol}>
-                  <Ionicons name="analytics-outline" size={14} color={Colors.light.primary} style={{ marginBottom: 2 }} />
-                  <Text style={styles.statLabel}>{t.yieldEfficiency}</Text>
+                  <Ionicons name="analytics-outline" size={14} color={Colors.light.primary} style={{ marginBottom: 4 }} />
                   <Text style={[styles.statValue, { color: Colors.light.primary }]}>{selectedMapField.yieldKgSqm} kg/m²</Text>
+                  <Text style={styles.statLabel}>{t.yieldEfficiency}</Text>
                 </View>
                 <View style={styles.statCol}>
-                  <Ionicons name="trophy-outline" size={14} color="#D97706" style={{ marginBottom: 2 }} />
-                  <Text style={styles.statLabel}>{t.yieldPerAcre}</Text>
+                  <Ionicons name="trophy-outline" size={14} color="#D97706" style={{ marginBottom: 4 }} />
                   <Text style={styles.statValue}>{(selectedMapField.yieldKgSqm * 100).toFixed(0)} M</Text>
+                  <Text style={styles.statLabel}>{t.yieldPerAcre}</Text>
                 </View>
               </View>
 
@@ -1071,6 +1086,26 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     backgroundColor: '#0F172A',
+  },
+  thumbZoneMapFab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 16,
+    zIndex: 90,
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    ...PrimaryButtonShadow,
+  },
+  thumbZoneMapFabText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13.5,
+    color: '#FFFFFF',
   },
   toastBanner: {
     position: 'absolute',
@@ -1528,14 +1563,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: FontFamily.medium,
-    fontSize: 10,
-    color: '#64748B',
+    fontSize: 10.5,
+    color: Colors.light.textCaption,
+    marginTop: 2,
   },
   statValue: {
-    fontFamily: FontFamily.bold,
-    fontSize: 13,
+    ...MetricNumberStyle,
+    fontSize: 15,
     color: '#0F172A',
-    marginTop: 1,
   },
   inspectBtn: {
     flexDirection: 'row',

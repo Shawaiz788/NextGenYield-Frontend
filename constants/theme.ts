@@ -1,17 +1,25 @@
 import { Platform, TextStyle, ViewStyle } from 'react-native';
 
-// ─── Color Palette ────────────────────────────────────────────────
+// ─── Color Palette (60/30/10 Rule + Opacity Hierarchy) ────────────
 export const Colors = {
   light: {
+    // 30% Complementary Dark Text with Opacity Hierarchy (100% / 80% / 62%)
     text: '#0F172A',
-    textSecondary: '#64748B',
+    textBody: 'rgba(15, 23, 42, 0.80)',
+    textSecondary: '#475569',
+    textCaption: 'rgba(15, 23, 42, 0.62)',
     textMuted: '#94A3B8',
+    // 60% Neutral Surfaces
     background: '#F8FAFC',
     card: '#FFFFFF',
+    surfaceSubtle: '#F1F5F9',
     border: '#E2E8F0',
     borderLight: '#F1F5F9',
+    // 10% Brand Accent (#16A34A) + 5% Subtle Accent Highlights & Borders
     primary: '#16A34A',
     primaryLight: '#DCFCE7',
+    primarySubtle: 'rgba(22, 163, 74, 0.06)',
+    primaryBorderSubtle: 'rgba(22, 163, 74, 0.14)',
     primaryDark: '#15803D',
     tint: '#16A34A',
     icon: '#64748B',
@@ -21,25 +29,30 @@ export const Colors = {
     warning: '#D97706',
     danger: '#DC2626',
     info: '#3B82F6',
-    // Semantic accent colors
-    irrigation: '#3B82F6',
-    irrigationLight: '#DBEAFE',
+    // Semantic category colors with soft solid backgrounds
+    irrigation: '#2563EB',
+    irrigationLight: '#EFF6FF',
     fertilizer: '#16A34A',
-    fertilizerLight: '#DCFCE7',
-    disease: '#F97316',
-    diseaseLight: '#FFEDD5',
+    fertilizerLight: '#F0FDF4',
+    disease: '#D97706',
+    diseaseLight: '#FFFBEB',
   },
   // Ensure dark fallback matches clean light mode if system requests it
   dark: {
     text: '#0F172A',
-    textSecondary: '#64748B',
+    textBody: 'rgba(15, 23, 42, 0.80)',
+    textSecondary: '#475569',
+    textCaption: 'rgba(15, 23, 42, 0.62)',
     textMuted: '#94A3B8',
     background: '#F8FAFC',
     card: '#FFFFFF',
+    surfaceSubtle: '#F1F5F9',
     border: '#E2E8F0',
     borderLight: '#F1F5F9',
     primary: '#16A34A',
     primaryLight: '#DCFCE7',
+    primarySubtle: 'rgba(22, 163, 74, 0.06)',
+    primaryBorderSubtle: 'rgba(22, 163, 74, 0.14)',
     primaryDark: '#15803D',
     tint: '#16A34A',
     icon: '#64748B',
@@ -49,12 +62,12 @@ export const Colors = {
     warning: '#D97706',
     danger: '#DC2626',
     info: '#3B82F6',
-    irrigation: '#3B82F6',
-    irrigationLight: '#DBEAFE',
+    irrigation: '#2563EB',
+    irrigationLight: '#EFF6FF',
     fertilizer: '#16A34A',
-    fertilizerLight: '#DCFCE7',
-    disease: '#F97316',
-    diseaseLight: '#FFEDD5',
+    fertilizerLight: '#F0FDF4',
+    disease: '#D97706',
+    diseaseLight: '#FFFBEB',
   },
 };
 
@@ -68,7 +81,7 @@ export const STAGE_CONFIG = [
   { index: 5, key: 'maturity', name: 'Maturity', color: '#B45309', lightBg: '#FEF3C7', summary: 'Crops are dry and golden. Ready for combine harvest.' },
 ] as const;
 
-// ─── Spacing Scale ────────────────────────────────────────────────
+// ─── Spacing Scale (Strict 4/8-Point Grid System) ─────────────────
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -77,14 +90,16 @@ export const Spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
+  section: 48,
+  hero: 64,
 } as const;
 
-// ─── Border Radius Tokens ─────────────────────────────────────────
+// ─── Border Radius Tokens (Modern rounded-2xl / rounded-3xl) ──────
 export const Radius = {
-  sm: 8,    // badges, chips, pills
-  md: 12,   // input fields, small cards
-  lg: 16,   // cards, buttons
-  xl: 20,   // modals, sheet tops
+  sm: 8,     // compact badges, micro-pills
+  md: 12,    // input fields, secondary buttons
+  lg: 20,    // standard cards (rounded-2xl)
+  xl: 24,    // hero cards, modal sheets (rounded-3xl)
   full: 999, // circles, capsule pills
 } as const;
 
@@ -153,17 +168,35 @@ export const Typography: Record<string, TextStyle> = {
   },
 };
 
-// ─── Standard Card Style ──────────────────────────────────────────
+// ─── Standard Card Style (Soft Tinted Diffused Shadow) ────────────
 export const CardStyle: ViewStyle = {
   backgroundColor: Colors.light.card,
   borderRadius: Radius.lg,
   borderWidth: 1,
-  borderColor: Colors.light.border,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.03,
-  shadowRadius: 8,
-  elevation: 1,
+  borderColor: 'rgba(15, 23, 42, 0.06)',
+  shadowColor: '#0F172A',
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.05,
+  shadowRadius: 16,
+  elevation: 2,
+};
+
+// ─── Primary CTA Dimension (Tinted Glow + Subtle Inner Highlight) ─
+export const PrimaryButtonShadow: ViewStyle = {
+  borderTopWidth: 1,
+  borderTopColor: 'rgba(255, 255, 255, 0.28)',
+  shadowColor: '#16A34A',
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.24,
+  shadowRadius: 14,
+  elevation: 4,
+};
+
+// ─── Tabular / Monospace Metric Numbers ───────────────────────────
+export const MetricNumberStyle: TextStyle = {
+  fontFamily: FontFamily.extraBold,
+  fontVariant: ['tabular-nums'],
+  letterSpacing: -0.5,
 };
 
 // ─── Legacy Fonts (keep for backward compat) ──────────────────────

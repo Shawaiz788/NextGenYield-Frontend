@@ -13,7 +13,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp, mapBackendFieldToFieldData } from '@/context/app-context';
-import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, STAGE_CONFIG, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { AccessibilityControls, AudioMiniPlayer } from '@/components/accessibility-bar';
 import { StartCycleModal } from '@/components/start-cycle-modal';
 import { DashboardFieldsSkeleton } from '@/components/skeleton-loader';
@@ -329,80 +329,52 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
-        {/* Quick Agri Platform Services Bar */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+        {/* Color-Coded Category Quick Services Bar */}
+        <View style={styles.quickServicesRow}>
           <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-              elevation: 1,
-            }}
+            style={styles.quickServiceCard}
+            activeOpacity={0.8}
             onPress={() => setIsSoilPrepOpen(true)}>
-            <MaterialCommunityIcons name="tractor" size={20} color="#D97706" />
-            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+            <View style={[styles.quickServiceIconWrap, { backgroundColor: '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="tractor" size={20} color="#D97706" />
+            </View>
+            <Text style={styles.quickServiceLabel} numberOfLines={1}>
               {language === 'ur' ? 'زمین و مشینری' : 'Soil & Hire'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-              elevation: 1,
-            }}
+            style={styles.quickServiceCard}
+            activeOpacity={0.8}
             onPress={() => setIsTeamModalOpen(true)}>
-            <Ionicons name="people-outline" size={20} color="#0284C7" />
-            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+            <View style={[styles.quickServiceIconWrap, { backgroundColor: '#E0F2FE' }]}>
+              <Ionicons name="people" size={19} color="#0284C7" />
+            </View>
+            <Text style={styles.quickServiceLabel} numberOfLines={1}>
               {language === 'ur' ? 'فارم ٹیم' : 'Farm Team'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-              elevation: 1,
-            }}
+            style={styles.quickServiceCard}
+            activeOpacity={0.8}
             onPress={() => router.push('/(tabs)/marketplace' as any)}>
-            <Ionicons name="cart-outline" size={20} color="#16A34A" />
-            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+            <View style={[styles.quickServiceIconWrap, { backgroundColor: '#DCFCE7' }]}>
+              <Ionicons name="cart" size={19} color="#16A34A" />
+            </View>
+            <Text style={styles.quickServiceLabel} numberOfLines={1}>
               {language === 'ur' ? 'مارکیٹ' : 'Market'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-              elevation: 1,
-            }}
+            style={styles.quickServiceCard}
+            activeOpacity={0.8}
             onPress={() => router.push('/(tabs)/community' as any)}>
-            <Ionicons name="chatbubbles-outline" size={20} color="#9333EA" />
-            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, color: '#334155', marginTop: 3 }} numberOfLines={1}>
+            <View style={[styles.quickServiceIconWrap, { backgroundColor: '#F3E8FF' }]}>
+              <Ionicons name="chatbubbles" size={19} color="#9333EA" />
+            </View>
+            <Text style={styles.quickServiceLabel} numberOfLines={1}>
               {language === 'ur' ? 'کمیونٹی' : 'Community'}
             </Text>
           </TouchableOpacity>
@@ -418,27 +390,64 @@ export default function DashboardScreen() {
             onRetry={() => refetchFields()}
           />
         ) : !isFieldDemarcated ? (
-          /* ─── Empty State: No Demarcated Fields ─── */
+          /* ─── Personalized New-User Welcome & Guided 3-Step Setup ─── */
           <View style={styles.emptyFieldsCard}>
-            <View style={styles.emptyFieldsIconCircle}>
-              <MaterialCommunityIcons name="map-marker-path" size={42} color="#16A34A" />
+            <View style={styles.emptyFieldsHalo}>
+              <View style={styles.emptyFieldsIconCircle}>
+                <MaterialCommunityIcons name="map-marker-path" size={38} color="#16A34A" />
+              </View>
             </View>
-            <Text style={[styles.emptyFieldsTitle, { fontSize: 19 * fontMultiplier }]}>
-              {language === 'ur' ? 'کوئی کھیت شامل نہیں کیا گیا' : 'No Fields Demarcated Yet'}
+            <Text style={[styles.emptyFieldsTitle, { fontSize: 20 * fontMultiplier }]}>
+              {language === 'ur' ? 'آئیے آپ کے کھیت کی نگرانی شروع کریں' : 'Welcome! Set Up Your First Field'}
             </Text>
             <Text style={[styles.emptyFieldsDesc, { fontSize: 13.5 * fontMultiplier }]}>
               {language === 'ur'
-                ? 'اپنے گندم کے کھیت کی باؤنڈری سیٹلائٹ نقشے پر بنائیں تاکہ مرحلہ وار رہنمائی، کھاد و پانی کا شیڈول اور AI مانیٹرنگ شروع ہو سکے۔'
-                : 'Demarcate your wheat field boundary on the satellite map to start automated crop growth tracking, advisories, and weather telemetry.'}
+                ? 'صرف ۳ آسان مراحل میں سیٹلائٹ باؤنڈری بنائیں اور ۱۴۰ دن کا خودکار زرعی شیڈول حاصل کریں۔'
+                : 'Get personalized 140-day wheat irrigation, nutrient, and AI vision advisories in 3 quick steps:'}
             </Text>
+
+            <View style={styles.onboardingStepsList}>
+              {[
+                {
+                  num: '1',
+                  en: 'Draw your parcel boundary on Satellite Map',
+                  ur: 'سیٹلائٹ نقشے پر کھیت کی باؤنڈری بنائیں',
+                  icon: 'map-outline' as const,
+                },
+                {
+                  num: '2',
+                  en: 'Select wheat variety & fertilizer brand once',
+                  ur: 'بیج کی قسم اور کھاد کمپنی منتخب کریں',
+                  icon: 'leaf-outline' as const,
+                },
+                {
+                  num: '3',
+                  en: 'Scan canopy photos for live AI stage tracking',
+                  ur: 'فصل کی تصویر اسکین کر کے مرحلہ چیک کریں',
+                  icon: 'camera-outline' as const,
+                },
+              ].map((st) => (
+                <View key={st.num} style={styles.onboardingStepRow}>
+                  <View style={styles.onboardingStepBadge}>
+                    <Text style={styles.onboardingStepNum}>{st.num}</Text>
+                  </View>
+                  <Text style={styles.onboardingStepText}>
+                    {language === 'ur' ? st.ur : st.en}
+                  </Text>
+                  <Ionicons name={st.icon} size={16} color="#16A34A" />
+                </View>
+              ))}
+            </View>
+
             <TouchableOpacity
               onPress={() => router.push('/map')}
               style={styles.emptyFieldsBtn}
               activeOpacity={0.85}>
-              <Ionicons name="map-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Ionicons name="map" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
               <Text style={[styles.emptyFieldsBtnText, { fontSize: 15 * fontMultiplier }]}>
                 {language === 'ur' ? 'نقشے پر باؤنڈری بنائیں' : 'Demarcate Field on Map'}
               </Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
             </TouchableOpacity>
           </View>
         ) : !isCycleActive ? (
@@ -840,12 +849,23 @@ export default function DashboardScreen() {
           <View style={styles.historyTimeline}>
             {timelineObservations.length === 0 ? (
               <View style={styles.emptyTimelineBox}>
-                <Ionicons name="camera-outline" size={24} color="#94A3B8" />
+                <View style={styles.emptyTimelineIconCircle}>
+                  <Ionicons name="camera-outline" size={24} color="#16A34A" />
+                </View>
                 <Text style={[styles.emptyTimelineText, { fontSize: 13 * fontMultiplier }]}>
                   {language === 'ur'
                     ? 'ابھی تک کوئی تصویر محفوظ نہیں ہوئی۔ پہلی تصویر اسکین کریں۔'
-                    : 'No canopy photos recorded yet for this cycle.'}
+                    : 'No canopy photos recorded yet. Capture your first scan to log growth progress!'}
                 </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/scan')}
+                  style={styles.emptyTimelineCta}
+                  activeOpacity={0.8}>
+                  <Ionicons name="scan" size={15} color="#16A34A" />
+                  <Text style={styles.emptyTimelineCtaText}>
+                    {language === 'ur' ? 'ابھی اسکین کریں' : 'Scan Canopy Now'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               timelineObservations.map((item, idx) => (
@@ -1115,58 +1135,127 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   scrollContent: {
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  quickServicesRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  quickServiceCard: {
+    flex: 1,
+    ...CardStyle,
+    borderRadius: Radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 72,
+  },
+  quickServiceIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  quickServiceLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.light.textBody,
   },
 
   // ─── Empty Fields State ──────────────────
   emptyFieldsCard: {
     ...CardStyle,
-    borderColor: '#DCFCE7',
+    borderRadius: Radius.xl,
+    borderColor: Colors.light.primaryBorderSubtle,
     alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     backgroundColor: '#FFFFFF',
-    marginTop: 10,
+  },
+  emptyFieldsHalo: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   emptyFieldsIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: '#F0FDF4',
     borderWidth: 1.5,
     borderColor: '#BBF7D0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
   emptyFieldsTitle: {
     fontFamily: FontFamily.extraBold,
     color: '#0F172A',
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   emptyFieldsDesc: {
     fontFamily: FontFamily.regular,
-    color: '#64748B',
+    color: Colors.light.textCaption,
     textAlign: 'center',
     lineHeight: 21,
+    marginBottom: 20,
+    maxWidth: 340,
+  },
+  onboardingStepsList: {
+    width: '100%',
+    gap: 10,
     marginBottom: 24,
-    maxWidth: 320,
+  },
+  onboardingStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: Radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  onboardingStepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingStepNum: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#15803D',
+  },
+  onboardingStepText: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: 12.5,
+    color: Colors.light.textBody,
   },
   emptyFieldsBtn: {
+    width: '100%',
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#16A34A',
-    paddingVertical: 13,
+    paddingVertical: 15,
     paddingHorizontal: 24,
     borderRadius: Radius.md,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    ...PrimaryButtonShadow,
   },
   emptyFieldsBtnText: {
     fontFamily: FontFamily.bold,
@@ -1178,12 +1267,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyTimelineIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTimelineText: {
     fontFamily: FontFamily.medium,
-    color: '#94A3B8',
+    color: Colors.light.textCaption,
     textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 19,
+  },
+  emptyTimelineCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.light.primarySubtle,
+    borderWidth: 1,
+    borderColor: Colors.light.primaryBorderSubtle,
+    marginTop: 4,
+  },
+  emptyTimelineCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12.5,
+    color: '#15803D',
   },
 
   // ─── Fallow Card ──────────────────────────
@@ -1265,24 +1386,17 @@ const styles = StyleSheet.create({
 
   // ─── Hero Command Stage Card ──────────────
   heroCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...CardStyle,
+    borderRadius: Radius.xl,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   stageAccentBar: {
     height: 5,
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
   },
   heroCardContent: {
-    padding: 16,
+    padding: Spacing.xl,
   },
   stageHeader: {
     flexDirection: 'row',
@@ -1333,7 +1447,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   dasText: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
+    fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: '#475569',
   },
@@ -1427,34 +1542,28 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   telemetryValue: {
-    fontFamily: FontFamily.bold,
+    ...MetricNumberStyle,
+    fontSize: 14,
     color: '#0F172A',
     textAlign: 'center',
   },
   telemetryLabel: {
     fontFamily: FontFamily.medium,
-    color: '#64748B',
-    marginTop: 1,
+    color: Colors.light.textCaption,
+    marginTop: 2,
     textAlign: 'center',
   },
   telemetryDivider: {
     width: 1,
-    height: 32,
+    height: 36,
     backgroundColor: '#E2E8F0',
   },
 
   // ─── Section Card ─────────────────────────
   sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    ...CardStyle,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
   },
   sectionHeadingRow: {
     flexDirection: 'row',

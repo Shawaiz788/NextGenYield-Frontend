@@ -9,10 +9,12 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing, Radius, CardStyle } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
   useEmployeesQuery,
@@ -23,10 +25,10 @@ import {
 import { FarmEmployeeDTO } from '@/services/api-client';
 
 const ROLES = [
-  { key: 'farmhand', labelEn: 'Farmhand / Labor', labelUr: 'کھیت مزدور' },
-  { key: 'operator', labelEn: 'Tractor / Machine Operator', labelUr: 'ٹریکٹر و مشین آپریٹر' },
-  { key: 'agronomist', labelEn: 'Field Agronomist', labelUr: 'زرعی ماہر' },
-  { key: 'manager', labelEn: 'Farm Supervisor', labelUr: 'فارم سپروائزر' },
+  { key: 'farmhand', labelEn: 'Farmhand / Labor', labelUr: 'کھیت مزدور', icon: 'hand-left-outline' as const },
+  { key: 'operator', labelEn: 'Tractor / Machine Operator', labelUr: 'ٹریکٹر و مشین آپریٹر', icon: 'cog-outline' as const },
+  { key: 'agronomist', labelEn: 'Field Agronomist', labelUr: 'زرعی ماہر', icon: 'leaf-outline' as const },
+  { key: 'manager', labelEn: 'Farm Supervisor', labelUr: 'فارم سپروائزر', icon: 'shield-checkmark-outline' as const },
 ];
 
 interface Props {
@@ -242,47 +244,64 @@ export function FarmTeamModal({ visible, onClose }: Props) {
         {/* Add Employee Modal */}
         <Modal visible={isAddOpen} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={() => setIsAddOpen(false)}>
           <SafeAreaView style={styles.modalFullContainer} edges={['top', 'bottom']}>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => setIsAddOpen(false)} style={styles.closeBtn}>
-                <Ionicons name="arrow-back" size={24} color="#0F172A" />
-              </TouchableOpacity>
-              <View style={styles.headerTitleWrap}>
-                <Text style={styles.headerTitle}>{isUrdu ? 'نیا ملازم شامل کریں' : 'Add Farm Employee'}</Text>
-                <Text style={styles.headerSubtitle}>{isUrdu ? 'نام، موبائل نمبر اور عہدہ منتخب کریں' : 'Enter employee contact & roles'}</Text>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+              <View style={styles.header}>
+                <TouchableOpacity onPress={() => setIsAddOpen(false)} style={styles.closeBtn}>
+                  <Ionicons name="arrow-back" size={24} color="#0F172A" />
+                </TouchableOpacity>
+                <View style={styles.headerTitleWrap}>
+                  <Text style={styles.headerTitle}>{isUrdu ? 'نیا ملازم شامل کریں' : 'Add Farm Employee'}</Text>
+                  <Text style={styles.headerSubtitle}>{isUrdu ? 'نام، موبائل نمبر اور عہدہ منتخب کریں' : 'Enter employee contact & roles'}</Text>
+                </View>
               </View>
-            </View>
 
-            <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.bodyContent}>
-              <Text style={styles.inputLabel}>{isUrdu ? 'ملازم کا نام *' : 'Employee Full Name *'}</Text>
-              <TextInput
-                style={styles.textInput}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Muhammad Aslam"
-              />
+              <ScrollView
+                style={styles.bodyScroll}
+                contentContainerStyle={styles.bodyContent}
+                keyboardShouldPersistTaps="handled">
+                <Text style={styles.inputLabel}>{isUrdu ? 'ملازم کا نام *' : 'Employee Full Name *'}</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g. Muhammad Aslam"
+                  placeholderTextColor="#94A3B8"
+                />
 
-              <Text style={styles.inputLabel}>{isUrdu ? 'موبائل نمبر (پاکستانی) *' : 'Phone Number (Pakistani) *'}</Text>
-              <TextInput
-                style={styles.textInput}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="03001234567"
-              />
+                <Text style={styles.inputLabel}>{isUrdu ? 'موبائل نمبر (پاکستانی) *' : 'Phone Number (Pakistani) *'}</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="03001234567"
+                  placeholderTextColor="#94A3B8"
+                />
 
-              <Text style={styles.inputLabel}>{isUrdu ? 'عہدہ / ذمہ داری' : 'Employee Role'}</Text>
-              <View style={styles.typeSelectorRow}>
-                {ROLES.map((r) => (
-                  <TouchableOpacity
-                    key={r.key}
-                    style={[styles.typeOptionPill, role === r.key && styles.typeOptionPillActive]}
-                    onPress={() => setRole(r.key)}>
-                    <Text style={[styles.typeOptionText, role === r.key && styles.typeOptionTextActive]}>
-                      {isUrdu ? r.labelUr : r.labelEn}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                <Text style={styles.inputLabel}>{isUrdu ? 'عہدہ / ذمہ داری' : 'Employee Role'}</Text>
+                <View style={styles.typeSelectorRow}>
+                  {ROLES.map((r) => {
+                    const active = role === r.key;
+                    return (
+                      <TouchableOpacity
+                        key={r.key}
+                        style={[styles.typeOptionPill, active && styles.typeOptionPillActive]}
+                        onPress={() => setRole(r.key)}>
+                        <Ionicons
+                          name={r.icon}
+                          size={14}
+                          color={active ? '#FFFFFF' : '#475569'}
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text style={[styles.typeOptionText, active && styles.typeOptionTextActive]}>
+                          {isUrdu ? r.labelUr : r.labelEn}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
               {/* Access All Fields Toggle */}
               <TouchableOpacity
@@ -340,6 +359,7 @@ export function FarmTeamModal({ visible, onClose }: Props) {
                 )}
               </TouchableOpacity>
             </ScrollView>
+            </KeyboardAvoidingView>
           </SafeAreaView>
         </Modal>
 
@@ -660,9 +680,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   typeOptionPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -720,14 +743,16 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   submitBtn: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 15,
+    borderRadius: 14,
     marginTop: 24,
+    ...PrimaryButtonShadow,
   },
   submitBtnText: {
     color: '#FFFFFF',

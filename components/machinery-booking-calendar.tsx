@@ -9,10 +9,12 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Radius, CardStyle, PrimaryButtonShadow, MetricNumberStyle } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import {
   MachineryListingDTO,
@@ -278,10 +280,17 @@ export function MachineryBookingCalendarModal({
   return (
     <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={onClose}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* Navigation Bar */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.backBtn} activeOpacity={0.7}>
-            <Ionicons name="close" size={24} color="#0F172A" />
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.backBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}>
+            <Ionicons name="close" size={22} color="#0F172A" />
           </TouchableOpacity>
           <View style={{ flex: 1, marginHorizontal: 12 }}>
             <Text style={[styles.headerTitle, { fontSize: 16 * fontMultiplier }]} numberOfLines={1}>
@@ -293,7 +302,11 @@ export function MachineryBookingCalendarModal({
           </View>
         </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
           {/* Equipment Quick Overview Card */}
           <View style={styles.equipCard}>
             <View style={styles.equipIconWrap}>
@@ -313,6 +326,7 @@ export function MachineryBookingCalendarModal({
             <TouchableOpacity
               onPress={handlePrevMonth}
               disabled={!canGoPrev}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               style={[styles.monthNavBtn, !canGoPrev && { opacity: 0.3 }]}
               activeOpacity={0.7}>
               <Ionicons name="chevron-back" size={20} color="#0F172A" />
@@ -323,7 +337,11 @@ export function MachineryBookingCalendarModal({
               <Text style={[styles.monthTitleText, { fontSize: 15 * fontMultiplier }]}>{monthTitle}</Text>
             </View>
 
-            <TouchableOpacity onPress={handleNextMonth} style={styles.monthNavBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={handleNextMonth}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.monthNavBtn}
+              activeOpacity={0.7}>
               <Ionicons name="chevron-forward" size={20} color="#0F172A" />
             </TouchableOpacity>
           </View>
@@ -548,41 +566,50 @@ export function MachineryBookingCalendarModal({
               placeholderTextColor="#94A3B8"
               multiline
             />
-
-            {/* Price Summary & Confirm Button */}
-            {selectedSlot && (
-              <View style={styles.summaryBar}>
-                <View>
-                  <Text style={styles.summaryTotalLabel}>{isUrdu ? 'کل کرایہ:' : 'Total Amount:'}</Text>
-                  <Text style={styles.summaryTotalPrice}>PKR {selectedSlot.price_pkr.toLocaleString()}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.confirmBtn,
-                    (!selectedSlot.is_available || bookingStatus === 'sending') && { opacity: 0.6 },
-                  ]}
-                  disabled={!selectedSlot.is_available || bookingStatus === 'sending'}
-                  onPress={handleConfirmBooking}
-                  activeOpacity={0.8}>
-                  {bookingStatus === 'sending' ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : bookingStatus === 'success' ? (
-                    <>
-                      <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.confirmBtnText}>{isUrdu ? 'بک ہو گیا!' : 'Confirmed!'}</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="calendar-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.confirmBtnText}>{isUrdu ? 'سلاٹ بک کریں' : 'Confirm Slot'}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         </ScrollView>
+
+        {/* Thumb-Zone Sticky Summary & Confirm Dock */}
+        {selectedSlot && (
+          <View style={styles.stickySummaryDock}>
+            <View style={styles.summaryPriceCol}>
+              <Text style={styles.summaryTotalLabel}>
+                {isUrdu ? 'کل کرایہ' : 'TOTAL RENTAL'}
+              </Text>
+              <Text style={styles.summaryTotalPrice}>
+                PKR {selectedSlot.price_pkr.toLocaleString()}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.confirmBtn,
+                bookingStatus === 'success' && { backgroundColor: '#15803D' },
+                (!selectedSlot.is_available || bookingStatus === 'sending') && { opacity: 0.6 },
+              ]}
+              disabled={!selectedSlot.is_available || bookingStatus === 'sending' || bookingStatus === 'success'}
+              onPress={handleConfirmBooking}
+              activeOpacity={0.85}>
+              {bookingStatus === 'sending' ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.confirmBtnText}>{isUrdu ? 'بک ہو رہا ہے...' : 'Booking...'}</Text>
+                </>
+              ) : bookingStatus === 'success' ? (
+                <>
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.confirmBtnText}>{isUrdu ? 'بک ہو گیا!' : 'Confirmed!'}</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="calendar-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.confirmBtnText}>{isUrdu ? 'سلاٹ بک کریں' : 'Confirm Slot'}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -603,12 +630,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   headerTitle: {
     fontFamily: FontFamily.bold,
@@ -617,7 +646,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontFamily: FontFamily.regular,
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   scroll: {
     flex: 1,
@@ -625,53 +654,48 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 32,
   },
   equipCard: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 14,
+    padding: 16,
+    marginBottom: 16,
   },
   equipIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#DCFCE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   equipTitle: {
     fontFamily: FontFamily.bold,
-    fontSize: 14,
+    fontSize: 15,
     color: '#0F172A',
   },
   equipMeta: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+    color: 'rgba(15, 23, 42, 0.62)',
+    marginTop: 3,
   },
   monthBar: {
+    ...CardStyle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: Radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   monthNavBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -685,11 +709,8 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   calendarCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...CardStyle,
+    padding: 16,
     marginBottom: 16,
   },
   weekdaysRow: {
@@ -729,7 +750,7 @@ const styles = StyleSheet.create({
   dayCell: {
     width: `${100 / 7}%`,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 2,
@@ -737,7 +758,8 @@ const styles = StyleSheet.create({
   },
   dayNumberText: {
     fontSize: 13,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
+    fontVariant: ['tabular-nums'],
   },
   statusDot: {
     width: 5,
@@ -770,11 +792,8 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   slotsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...CardStyle,
+    padding: 18,
   },
   slotsHeaderRow: {
     flexDirection: 'row',
@@ -801,12 +820,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     gap: 8,
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   bufferNoticeText: {
     flex: 1,
@@ -817,15 +836,16 @@ const styles = StyleSheet.create({
   },
   slotsList: {
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   slotCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: Radius.md,
+    padding: 14,
+    minHeight: 62,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -841,25 +861,25 @@ const styles = StyleSheet.create({
   },
   slotTitle: {
     fontFamily: FontFamily.bold,
-    fontSize: 13,
+    fontSize: 13.5,
     color: '#0F172A',
   },
   slotHoursSub: {
     fontFamily: FontFamily.regular,
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 11.5,
+    color: 'rgba(15, 23, 42, 0.62)',
     marginTop: 2,
   },
   slotPrice: {
-    fontFamily: FontFamily.bold,
-    fontSize: 13,
+    ...MetricNumberStyle,
+    fontSize: 15,
     color: '#0F172A',
   },
   slotStatusBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 3,
+    borderRadius: 6,
+    marginTop: 4,
   },
   slotStatusBadgeText: {
     fontSize: 10,
@@ -877,7 +897,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontFamily: FontFamily.bold,
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#0F172A',
     marginBottom: 6,
   },
@@ -885,45 +905,57 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 12.5,
+    borderRadius: Radius.md,
+    padding: 12,
+    fontSize: 13,
     fontFamily: FontFamily.medium,
     color: '#0F172A',
-    minHeight: 50,
-    marginBottom: 14,
+    minHeight: 58,
   },
-  summaryBar: {
+  stickySummaryDock: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(15, 23, 42, 0.08)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 8,
+    gap: 12,
+  },
+  summaryPriceCol: {
+    justifyContent: 'center',
   },
   summaryTotalLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 11,
-    color: '#64748B',
+    fontFamily: FontFamily.bold,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+    color: 'rgba(15, 23, 42, 0.62)',
   },
   summaryTotalPrice: {
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
+    ...MetricNumberStyle,
+    fontSize: 20,
     color: '#16A34A',
+    marginTop: 1,
   },
   confirmBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#16A34A',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 22,
+    minHeight: 50,
+    borderRadius: Radius.md,
+    ...PrimaryButtonShadow,
   },
   confirmBtnText: {
     fontFamily: FontFamily.bold,
-    fontSize: 13,
+    fontSize: 14,
     color: '#FFFFFF',
   },
 });
